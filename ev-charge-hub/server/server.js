@@ -1,25 +1,23 @@
-const express = require("express");
-const mongoose = require("mongoose");
-const cors = require("cors");
-const dotenv = require("dotenv");
+const express = require('express');
+const connectDB = require('./config/db');
+const cors = require('cors');
+const authRoutes = require('./routes/auth');
+require('dotenv').config();
 
-dotenv.config();
 const app = express();
 
-app.use(cors());
-app.use(express.json());
+// Connect to the database
+connectDB();
 
-// MongoDB Connection
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => console.log("MongoDB Connected"))
-.catch((err) => console.log(err));
+// Middleware
+app.use(express.json()); // Parse JSON request bodies
+app.use(cors()); // Enable CORS for frontend-backend communication
 
-app.get("/", (req, res) => {
-  res.send("EV Charge Hub API is running...");
-});
+// Routes
+app.use('/api/auth', authRoutes);
 
+// Start the server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
