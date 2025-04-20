@@ -1,8 +1,7 @@
-import React from 'react';
-import AppRoutes from './routes/AppRoutes';
+import AdminLogin from './components/admin/AdminLogin';
 
-const App = () => {
-  return <AppRoutes />;
-};
+function App() {
+  return <AdminLogin />;
+}
 
 export default App;
