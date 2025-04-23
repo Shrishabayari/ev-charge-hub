@@ -10,24 +10,16 @@ const AdminLogin = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Clear previous error
     setError("");
 
     try {
-      // Sending the login request
       const response = await axios.post("http://localhost:5000/api/admin/login", {
         email,
         password,
       });
 
-      // If login successful, store the token
       localStorage.setItem("adminToken", response.data.token);
-
-      // Show success alert
       alert("Login successful!");
-
-      // Navigate to the dashboard or admin page after successful login
       navigate("/admin/dashboard");
 
     } catch (err) {
@@ -75,11 +67,10 @@ const AdminLogin = () => {
         </div>
 
         <button type="submit" className="w-full bg-blue-500 text-white p-2 rounded-md">Login</button>
-        
-        {/* Admin Register Link */}
+
         <div className="mt-4 text-center">
           <p className="text-sm">
-            Don't have an account? 
+            Don't have an account?
             <a href="/admin/register" className="text-blue-500"> Register here</a>
           </p>
         </div>
