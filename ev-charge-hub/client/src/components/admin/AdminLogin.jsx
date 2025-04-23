@@ -24,6 +24,9 @@ const AdminLogin = () => {
       // If login successful, store the token
       localStorage.setItem("adminToken", response.data.token);
 
+      // Show success alert
+      alert("Login successful!");
+
       // Navigate to the dashboard or admin page after successful login
       navigate("/admin/dashboard");
 
@@ -68,7 +71,7 @@ const AdminLogin = () => {
             <input type="checkbox" id="rememberMe" className="mr-2" />
             <label htmlFor="rememberMe" className="text-sm">Remember Me</label>
           </div>
-          <a href="#" className="text-sm text-blue-500">Forgot Password?</a>
+          <a href="/admin/forgot-password" className="text-sm text-blue-500">Forgot Password?</a>
         </div>
 
         <button type="submit" className="w-full bg-blue-500 text-white p-2 rounded-md">Login</button>
