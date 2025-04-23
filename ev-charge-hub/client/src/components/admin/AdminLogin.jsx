@@ -58,14 +58,6 @@ const AdminLogin = () => {
           />
         </div>
 
-        <div className="flex justify-between items-center mb-4">
-          <div className="flex items-center">
-            <input type="checkbox" id="rememberMe" className="mr-2" />
-            <label htmlFor="rememberMe" className="text-sm">Remember Me</label>
-          </div>
-          <a href="/admin/forgot-password" className="text-sm text-blue-500">Forgot Password?</a>
-        </div>
-
         <button type="submit" className="w-full bg-blue-500 text-white p-2 rounded-md">Login</button>
 
         <div className="mt-4 text-center">
