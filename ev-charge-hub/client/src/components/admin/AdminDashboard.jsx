@@ -1,22 +1,50 @@
-import React, { useEffect } from "react";
-import { useHistory } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 
 const AdminDashboard = () => {
-  const history = useHistory();
+  const [evBunkLocations, setEvBunkLocations] = useState([]);
+  const token = localStorage.getItem("adminToken"); // Assuming you store the token here
 
   useEffect(() => {
-    // Check if token exists in localStorage
-    const token = localStorage.getItem("adminToken");
-    if (!token) {
-      // If no token, redirect to login page
-      history.push("/");
+    const fetchEvBunkLocations = async () => {
+      try {
+        const response = await axios.get("http://localhost:5000/api/admin/ev-bunks", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        setEvBunkLocations(response.data);
+      } catch (error) {
+        console.error("Error fetching EV bunk locations:", error);
+        // Handle error (e.g., display an error message to the admin)
+      }
+    };
+
+    if (token) {
+      fetchEvBunkLocations();
     }
-  }, [history]);
+  }, [token]);
 
   return (
-    <div className="container mx-auto mt-16">
-      <h2 className="text-2xl font-semibold mb-6">Welcome to Admin Dashboard</h2>
-      {/* Admin Dashboard Content */}
+    <div>
+      <h1>Admin Dashboard</h1>
+      <p>Hi, how are you?</p>
+
+      <h2>EV Bunk Locations</h2>
+      {evBunkLocations.length > 0 ? (
+        <ul>
+          {evBunkLocations.map(bunk => (
+            <li key={bunk._id}>
+              <strong>{bunk.name}</strong>
+              <p>Latitude: {bunk.latitude}, Longitude: {bunk.longitude}</p>
+              {bunk.address && <p>Address: {bunk.address}</p>}
+              {/* Display other relevant details */}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p>No EV bunk locations found.</p>
+      )}
     </div>
   );
 };

@@ -58,3 +58,19 @@ import Admin from "../models/Admin.js";
      res.status(500).json({ message: "Server error" });
    }
  };
+
+ const getAllEvBunks = async (req, res) => {
+  try {
+    const evBunks = await EvBunk.find(); // Fetch all EV bunk locations
+    res.json(evBunks);
+  } catch (error) {
+    console.error('Error fetching EV bunk locations:', error);
+    res.status(500).json({ message: 'Failed to fetch EV bunk locations' });
+  }
+};
+module.exports = {
+  getAllEvBunks,
+  // addEvBunk,
+  // updateEvBunk,
+  // deleteEvBunk,
+};
