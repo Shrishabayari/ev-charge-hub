@@ -5,7 +5,6 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
  import AdminDashboard from './components/admin/AdminDashboard';
  import AddEvBunk from './components/admin/AddEvBunk'; // Adjust path accordingly
 
-
  const App = () => {
   return (
     <Router>
@@ -14,7 +13,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin/register" element={<AdminRegister />} />
         <Route path='/admin/dashboard' element={<AdminDashboard/>} />
-        <Route path="/admin/add-ev-bunk" component={<AddEvBunk/>} />
+        <Route path="/admin/add-ev-bunk" element={<AddEvBunk />} />
         {/* More routes */}
       </Routes>
     </Router>

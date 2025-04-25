@@ -6,9 +6,12 @@ const EvBunkSchema = new mongoose.Schema({
   latitude: { type: Number, required: true },
   longitude: { type: Number, required: true },
   address: { type: String, required: true },
-  phone: { type: String, required: true },  // Phone number of the EV Bunk
+  phone: { 
+    type: String, 
+    required: true,
+    match: [/^\+?[1-9]\d{1,14}$/, 'Please enter a valid phone number'] // Adding regex for phone validation
+  },
   slotsAvailable: { type: Number, required: true },  // Number of available recharge slots
-  // Add other relevant details like operating hours, connector types, etc.
   operatingHours: { 
     type: String, 
     required: true, 

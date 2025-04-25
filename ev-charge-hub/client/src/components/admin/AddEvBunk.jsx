@@ -54,12 +54,14 @@ const AddEvBunk = () => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-6 bg-white shadow-md rounded-lg">
-      <h2 className="text-2xl font-semibold text-center mb-4">Add New EV Bunk</h2>
-      {message && <p className="text-green-600 mb-4">{message}</p>}
-      {error && <p className="text-red-600 mb-4">{error}</p>}
+    <div className="max-w-3xl mx-auto p-8 bg-white shadow-lg rounded-lg">
+      <h2 className="text-3xl font-semibold text-center text-gray-800 mb-6">Add New EV Bunk</h2>
+      
+      {message && <p className="text-green-600 mb-4 text-center">{message}</p>}
+      {error && <p className="text-red-600 mb-4 text-center">{error}</p>}
+      
       <form onSubmit={handleSubmit}>
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-gray-700">
               Bunk Name
@@ -71,7 +73,7 @@ const AddEvBunk = () => {
               value={formData.name}
               onChange={handleChange}
               required
-              className="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              className="mt-1 block w-full p-4 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
             />
           </div>
 
@@ -86,13 +88,13 @@ const AddEvBunk = () => {
               value={formData.address}
               onChange={handleChange}
               required
-              className="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              className="mt-1 block w-full p-4 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
             />
           </div>
 
           <div>
             <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
-              Phone
+              Phone Number
             </label>
             <input
               type="text"
@@ -101,7 +103,7 @@ const AddEvBunk = () => {
               value={formData.phone}
               onChange={handleChange}
               required
-              className="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              className="mt-1 block w-full p-4 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
             />
           </div>
 
@@ -116,7 +118,7 @@ const AddEvBunk = () => {
               value={formData.slotsAvailable}
               onChange={handleChange}
               required
-              className="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              className="mt-1 block w-full p-4 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
             />
           </div>
 
@@ -131,7 +133,7 @@ const AddEvBunk = () => {
               value={formData.latitude}
               onChange={handleChange}
               required
-              className="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              className="mt-1 block w-full p-4 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
             />
           </div>
 
@@ -146,7 +148,7 @@ const AddEvBunk = () => {
               value={formData.longitude}
               onChange={handleChange}
               required
-              className="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              className="mt-1 block w-full p-4 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
             />
           </div>
 
@@ -160,7 +162,7 @@ const AddEvBunk = () => {
               name="operatingHours"
               value={formData.operatingHours}
               onChange={handleChange}
-              className="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              className="mt-1 block w-full p-4 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
             />
           </div>
 
@@ -174,13 +176,13 @@ const AddEvBunk = () => {
               name="connectorTypes"
               value={formData.connectorTypes}
               onChange={handleChange}
-              className="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              className="mt-1 block w-full p-4 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
             />
           </div>
 
           <button
             type="submit"
-            className="w-full py-2 px-4 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 mt-4"
+            className="w-full py-3 px-6 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 mt-6 shadow-md"
           >
             Add EV Bunk
           </button>

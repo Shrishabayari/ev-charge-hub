@@ -60,13 +60,16 @@ export const loginAdmin = async (req, res) => {
 };
 
 // Fetch all EV Bunks (already created)
+import EvBunk from "../models/EvBunk";  // Import your EvBunk model
+
+// Get all EV Bunks
 const getAllEvBunks = async (req, res) => {
   try {
     const evBunks = await EvBunk.find(); // Fetch all EV bunk locations
     res.json(evBunks);
   } catch (error) {
     console.error('Error fetching EV bunk locations:', error);
-    res.status(500).json({ message: 'Failed to fetch EV bunk locations' });
+    res.status(500).json({ message: 'Failed to fetch EV bunk locations', error: error.message });
   }
 };
 
@@ -83,22 +86,21 @@ export const addEvBunk = async (req, res) => {
       slotsAvailable,
       latitude,
       longitude,
-      operatingHours: operatingHours || "9:00 AM - 9:00 PM", // Default hours if not provided
-      connectorTypes: connectorTypes || ["Type 2", "CCS"], // Default connectors if not provided
+      operatingHours, // Will use default from the schema if not provided
+      connectorTypes, // Will use default from the schema if not provided
     });
 
     // Save the EV Bunk to the database
     await newEVBunk.save();
 
     res.status(201).json({ message: "EV Bunk added successfully", data: newEVBunk });
-
   } catch (error) {
     console.error("Error adding EV Bunk:", error);
     res.status(500).json({ message: "Error adding EV Bunk", error: error.message });
   }
 };
 
-module.exports = {
+export default {
   getAllEvBunks,
   addEvBunk,  // Add the addEvBunk method here
   // updateEvBunk,
