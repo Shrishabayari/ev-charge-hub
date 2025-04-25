@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { useNavigate } from 'react-router-dom';
 
 const AdminDashboard = () => {
   const [evBunkLocations, setEvBunkLocations] = useState([]);
   const token = localStorage.getItem("adminToken"); // Assuming you store the token here
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchEvBunkLocations = async () => {
@@ -25,12 +27,23 @@ const AdminDashboard = () => {
     }
   }, [token]);
 
+  const handleAddEvBunk = () => {
+    navigate("/admin/add-ev-bunk");
+  };
+
   return (
     <div>
       <h1>Admin Dashboard</h1>
       <p>Hi, how are you?</p>
 
       <h2>EV Bunk Locations</h2>
+      <button
+        onClick={handleAddEvBunk}
+        className="py-2 px-4 bg-green-600 text-white rounded-md hover:bg-green-700 mb-4"
+      >
+        Add New EV Bunk
+      </button>
+
       {evBunkLocations.length > 0 ? (
         <ul>
           {evBunkLocations.map(bunk => (
