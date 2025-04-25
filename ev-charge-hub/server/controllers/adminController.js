@@ -1,8 +1,9 @@
 import EvBunk from "../models/EvBunk.js"; // Import the EvBunk model
+import Admin from "../models/Admin.js"; // Import the Admin model
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-// Register Admin (already created)
+// Register Admin
 export const registerAdmin = async (req, res) => {
   const { name, email, password } = req.body;
 
@@ -59,9 +60,6 @@ export const loginAdmin = async (req, res) => {
   }
 };
 
-// Fetch all EV Bunks (already created)
-import EvBunk from "../models/EvBunk";  // Import your EvBunk model
-
 // Get all EV Bunks
 const getAllEvBunks = async (req, res) => {
   try {
@@ -86,8 +84,8 @@ export const addEvBunk = async (req, res) => {
       slotsAvailable,
       latitude,
       longitude,
-      operatingHours, // Will use default from the schema if not provided
-      connectorTypes, // Will use default from the schema if not provided
+      operatingHours: operatingHours || "9:00 AM - 9:00 PM", // Default value if not provided
+      connectorTypes: connectorTypes || ["Type 2", "CCS"], // Default value if not provided
     });
 
     // Save the EV Bunk to the database
@@ -101,8 +99,8 @@ export const addEvBunk = async (req, res) => {
 };
 
 export default {
+  registerAdmin,
+  loginAdmin,
   getAllEvBunks,
-  addEvBunk,  // Add the addEvBunk method here
-  // updateEvBunk,
-  // deleteEvBunk,
+  addEvBunk,
 };

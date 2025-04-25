@@ -1,8 +1,9 @@
 const express = require('express');
 const connectDB = require('./config/db'); // Assuming this handles MongoDB connection
 const cors = require('cors');
-const bcrypt = require('bcrypt'); // For password hashing (install with: npm install bcrypt)
+const bcrypt = require('bcrypt'); // For password hashing
 const mongoose = require('mongoose'); // To define the Admin model
+const WebSocket = require('ws'); // For WebSocket server
 
 require('dotenv').config();
 
@@ -58,10 +59,6 @@ app.post('/api/admin/register', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
-
 // Admin Login Route
 app.post('/api/admin/login', async (req, res) => {
   try {
@@ -93,6 +90,24 @@ app.post('/api/admin/login', async (req, res) => {
   }
 });
 
+// WebSocket Server Setup
+const wss = new WebSocket.Server({ server: app, path: '/ws' });
+
+wss.on('connection', (ws) => {
+  console.log('Client connected');
+
+  ws.on('message', (message) => {
+    console.log(`Received message: ${message}`);
+    // You can handle messages from the client here and broadcast them to other clients if needed
+    ws.send('Message received!'); // Send a response back to the client
+  });
+
+  ws.on('close', () => {
+    console.log('Client disconnected');
+  });
+});
+
+// Start the server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

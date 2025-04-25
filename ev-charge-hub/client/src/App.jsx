@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
  import AdminRegister from './components/admin/AdminRegister'; // Admin dashboard page
  import AdminDashboard from './components/admin/AdminDashboard';
  import AddEvBunk from './components/admin/AddEvBunk'; // Adjust path accordingly
+ import WebSocketComponent from './components/admin/WebSocket';
 
  const App = () => {
   return (
@@ -14,6 +15,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
         <Route path="/admin/register" element={<AdminRegister />} />
         <Route path='/admin/dashboard' element={<AdminDashboard/>} />
         <Route path="/admin/add-ev-bunk" element={<AddEvBunk />} />
+        <Route element={<WebSocketComponent />} />
         {/* More routes */}
       </Routes>
     </Router>
