@@ -27,6 +27,12 @@ const AddEvBunk = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Validate form data
+    if (!formData.name || !formData.address || !formData.phone || !formData.slotsAvailable || !formData.latitude || !formData.longitude) {
+      setError("All fields are required!");
+      return;
+    }
+
     try {
       const response = await axios.post(
         '/api/admin/ev-bunks/add', // Assuming this is the correct API route
@@ -49,7 +55,7 @@ const AddEvBunk = () => {
         connectorTypes: '',
       });
     } catch (err) {
-      setError('Error adding EV Bunk');
+      setError('Error adding EV Bunk: ' + (err.response?.data?.message || err.message));
     }
   };
 

@@ -1,55 +1,55 @@
-const express = require('express');
-const connectDB = require('./config/db'); // Assuming this handles MongoDB connection
-const cors = require('cors');
-const bcrypt = require('bcrypt'); // For password hashing
-const mongoose = require('mongoose'); // To define the Admin model
-const WebSocket = require('ws'); // For WebSocket server
+import express from 'express';
+import connectDB from './config/db.js';
+import cors from 'cors';
+import bcrypt from 'bcrypt';
+import mongoose from 'mongoose';
+import { WebSocket } from 'ws';
+import http from 'http';
+import dotenv from 'dotenv';
+import adminRoutes from './routes/adminRoutes.js';
+import bunkRoutes from './routes/bunkRoutes.js';
 
-require('dotenv').config();
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors());
-app.use(express.json()); // To parse JSON request bodies
+app.use(express.json());
 
 // Connect to MongoDB
 connectDB();
 
-// Define Admin Model (in this file for simplicity, you might have it in a separate models folder)
+// Admin Schema and Model
 const AdminSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  // Add any other admin fields as needed
 }, { timestamps: true });
 
-const Admin = mongoose.model('Admin', AdminSchema);
+// Use mongoose.models to prevent duplicate model compilation
+const Admin = mongoose.models.Admin || mongoose.model('Admin', AdminSchema);
 
-// Admin Registration Route
+// Admin Register Route
 app.post('/api/admin/register', async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    // Check if the admin with this email already exists
     const existingAdmin = await Admin.findOne({ email });
     if (existingAdmin) {
       return res.status(400).json({ message: 'Admin with this email already exists' });
     }
 
-    // Hash the password
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Create a new admin
     const newAdmin = new Admin({
       name,
       email,
       password: hashedPassword,
     });
 
-    // Save the admin to the database
     const savedAdmin = await newAdmin.save();
 
     res.status(201).json({ message: 'Admin registered successfully', admin: { _id: savedAdmin._id, email: savedAdmin.email } });
@@ -64,23 +64,18 @@ app.post('/api/admin/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Find the admin by email
     const admin = await Admin.findOne({ email });
-
     if (!admin) {
-      return res.status(401).json({ message: 'Invalid credentials' }); // Unauthorized
+      return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Compare the provided password with the stored hashed password
     const isPasswordMatch = await bcrypt.compare(password, admin.password);
 
     if (!isPasswordMatch) {
-      return res.status(401).json({ message: 'Invalid credentials' }); // Unauthorized
+      return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // If credentials are valid, generate a token
-    // const token = jwt.sign({ adminId: admin._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    const token = 'dummy-admin-token'; // Replace with actual JWT generation
+    const token = 'dummy-admin-token'; // Replace with real JWT generation if needed
 
     res.status(200).json({ message: 'Login successful', token });
 
@@ -90,32 +85,30 @@ app.post('/api/admin/login', async (req, res) => {
   }
 });
 
-// WebSocket Server Setup
-const wss = new WebSocket.Server({ server: app, path: '/ws' });
+// Routes
+app.use('/api/admin', adminRoutes);
+app.use('/api/admin/ev-bunks', bunkRoutes);
+
+// Create HTTP server manually
+const server = http.createServer(app);
+
+// WebSocket Server
+const wss = new WebSocket.Server({ server, path: '/ws' });
 
 wss.on('connection', (ws) => {
-  console.log('Client connected');
+  console.log('WebSocket Client Connected');
 
   ws.on('message', (message) => {
-    console.log(`Received message: ${message}`);
-    // You can handle messages from the client here and broadcast them to other clients if needed
-    ws.send('Message received!'); // Send a response back to the client
+    console.log('Received:', message);
+    ws.send('Message received!');
   });
 
   ws.on('close', () => {
-    console.log('Client disconnected');
+    console.log('WebSocket Client Disconnected');
   });
 });
 
-// Start the server
-app.listen(PORT, () => {
+// Start Server
+server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-app.post('/api/admin/ev-bunks/add', (req, res) => {
-  const bunkData = req.body; // Get data from the frontend
-  console.log(bunkData); // Log to check if the data is received
-
-  // Simulate adding the EV bunk to the database (replace this with actual logic)
-  res.status(201).send({ message: 'EV Bunk added successfully!' });
-});
-
