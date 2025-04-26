@@ -1,4 +1,3 @@
-import EvBunk from "../models/EvBunk.js"; // Import the EvBunk model
 import Admin from "../models/Admin.js"; // Import the Admin model
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -60,47 +59,10 @@ export const loginAdmin = async (req, res) => {
   }
 };
 
-// Get all EV Bunks
-const getAllEvBunks = async (req, res) => {
-  try {
-    const evBunks = await EvBunk.find(); // Fetch all EV bunk locations
-    res.json(evBunks);
-  } catch (error) {
-    console.error('Error fetching EV bunk locations:', error);
-    res.status(500).json({ message: 'Failed to fetch EV bunk locations', error: error.message });
-  }
-};
 
-// Add a new EV Bunk
-export const addEvBunk = async (req, res) => {
-  const { name, address, phone, slotsAvailable, latitude, longitude, operatingHours, connectorTypes } = req.body;
 
-  try {
-    // Create a new EV Bunk entry
-    const newEVBunk = new EvBunk({
-      name,
-      address,
-      phone,
-      slotsAvailable,
-      latitude,
-      longitude,
-      operatingHours: operatingHours || "9:00 AM - 9:00 PM", // Default value if not provided
-      connectorTypes: connectorTypes || ["Type 2", "CCS"], // Default value if not provided
-    });
-
-    // Save the EV Bunk to the database
-    await newEVBunk.save();
-
-    res.status(201).json({ message: "EV Bunk added successfully", data: newEVBunk });
-  } catch (error) {
-    console.error("Error adding EV Bunk:", error);
-    res.status(500).json({ message: "Error adding EV Bunk", error: error.message });
-  }
-};
 
 export default {
   registerAdmin,
   loginAdmin,
-  getAllEvBunks,
-  addEvBunk,
 };

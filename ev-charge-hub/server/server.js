@@ -111,3 +111,11 @@ wss.on('connection', (ws) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+app.post('/api/admin/ev-bunks/add', (req, res) => {
+  const bunkData = req.body; // Get data from the frontend
+  console.log(bunkData); // Log to check if the data is received
+
+  // Simulate adding the EV bunk to the database (replace this with actual logic)
+  res.status(201).send({ message: 'EV Bunk added successfully!' });
+});
+
