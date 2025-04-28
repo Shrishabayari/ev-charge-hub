@@ -1,6 +1,7 @@
-const mongoose = require('mongoose');
+// models/EvBunkSchema.js
+import mongoose from 'mongoose';
 
-const bunkSchema = new mongoose.Schema({
+const evBunkSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
@@ -35,6 +36,6 @@ const bunkSchema = new mongoose.Schema({
   },
 });
 
-const Bunk = mongoose.model('Bunk', bunkSchema);
+const EvBunk = mongoose.model('EvBunk', evBunkSchema);
 
-module.exports = Bunk;
+export default EvBunk;

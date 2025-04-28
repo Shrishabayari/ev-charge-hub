@@ -1,18 +1,21 @@
 import express from 'express';
-import { addEvBunk } from '../controllers/bunkController.js';
+import { addEvBunk, getAllEvBunks, getEvBunkById, updateEvBunk, deleteEvBunk } from '../controllers/evBunkController.js';
 
 const router = express.Router();
 
-// GET all EV bunks
-router.get('/', (req, res) => {
-  // Temporary implementation
-  res.json({ message: "GET all EV bunks endpoint" });
-});
+// Add a new EV Bunk
+router.post('/', addEvBunk);
 
-// POST new EV bunk
-router.post('/add', (req, res) => {
-  // Temporary implementation
-  res.json({ message: "Add new EV bunk endpoint", data: req.body });
-});
+// Get all EV Bunks
+router.get('/', getAllEvBunks);
+
+// Get an EV Bunk by ID
+router.get('/:id', getEvBunkById);
+
+// Update an EV Bunk
+router.put('/:id', updateEvBunk);
+
+// Delete an EV Bunk
+router.delete('/:id', deleteEvBunk);
 
 export default router;
