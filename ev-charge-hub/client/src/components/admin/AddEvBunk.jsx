@@ -35,11 +35,12 @@ const AddEvBunk = () => {
 
     try {
       const response = await axios.post(
-        '/api/admin/ev-bunks/add', // Assuming this is the correct API route
+        '/api/bunks',  // ✅ correct endpoint
         formData,
         {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`, // Token from localStorage
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json',
           },
         }
       );
