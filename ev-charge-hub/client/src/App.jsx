@@ -6,8 +6,11 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
  import AddEvBunk from './components/admin/AddEvBunk'; // Adjust path accordingly
  import ViewBunks from './components/admin/ViewBunks'; // <- New page
  import EditEvBunk from './components/admin/EditEvBunk';
-
+ import AdminBookingsPage from './components/admin/AdminBookingsPage';
+ import MyBookingsPage from './components/admin/MyBookings';
+import BookingPage from './components/admin/BookingPage'
  import WebSocketComponent from './components/admin/WebSocket';
+ 
 
  const App = () => {
   return (
@@ -20,9 +23,11 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
         <Route path="/admin/add-ev-bunk" element={<AddEvBunk />} />
         <Route path="/admin/view-bunks" element={<ViewBunks />} />
         <Route path="/admin/edit-bunk/:id" element={<EditEvBunk />} />
+        <Route path="/admin/view-booking-slots" element={<BookingPage />} />
+        <Route path="/admin/admin-bookings" element={<AdminBookingsPage />} />
+        <Route path="/admin/my-bookings" element={<MyBookingsPage />} />
 
         <Route element={<WebSocketComponent />} />
-        {/* More routes */}
       </Routes>
     </Router>
   );

@@ -3,7 +3,8 @@ import connectDB from './config/db.js';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import adminRoutes from './routes/adminRoutes.js';
-import bunkRoutes from './routes/bunkRoutes.js';
+import bunkRoutes from './routes/bunkRouts.js';
+import bookingRoutes from './routes/bookingRoutes.js';
 import { WebSocketServer } from 'ws';
 import http from 'http';
 
@@ -23,6 +24,7 @@ connectDB();
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/ev-bunks', bunkRoutes); // Admin routes for EV bunks
 app.use('/api/bunks', bunkRoutes); // General routes for EV bunks
+app.use('/api/bookings', bookingRoutes);
 
 // Create HTTP server manually
 const server = http.createServer(app);
