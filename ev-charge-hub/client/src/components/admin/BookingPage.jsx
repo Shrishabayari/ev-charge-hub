@@ -1,64 +1,70 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 
-const BookingPage = ({ userId, bunkId }) => {
+const BookingForm = () => {
+  const [bunks, setBunks] = useState([]);
+  const [selectedBunk, setSelectedBunk] = useState("");
   const [slotTime, setSlotTime] = useState("");
+  const [message, setMessage] = useState("");
 
-  const handleBooking = async () => {
-    if (!slotTime) {
-      alert("Please select a slot time.");
-      return;
-    }
-  
+  useEffect(() => {
+    // Fetch available bunks
+    axios.get("/api/bunks").then(res => setBunks(res.data)).catch(console.error);
+  }, []);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     try {
-      // Step 1: Check slot availability
-      const availabilityRes = await axios.post("/api/bookings/check-availability", {
-        bunkId,
+      await axios.post("/api/bookings", {
+        bunkId: selectedBunk,
         slotTime,
+      }, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
       });
-  
-      if (!availabilityRes.data.available) {
-        alert("This slot is already booked. Please select a different time.");
-        return;
-      }
-  
-      // Step 2: Proceed with booking
-      const bookingRes = await axios.post("/api/bookings/create", {
-        userId,
-        bunkId,
-        slotTime,
-      });
-  
-      alert("Booking successful!");
-      console.log(bookingRes.data.booking);
-      setSlotTime(""); // Reset input
-    } catch (error) {
-      console.error("Booking error:", error);
-      alert("Failed to book slot.");
+      setMessage("Slot booked successfully!");
+    } catch (err) {
+      setMessage("Booking failed.");
+      console.error(err);
     }
   };
-  
 
   return (
-    <div className="p-6 max-w-md mx-auto mt-10 bg-white dark:bg-gray-800 shadow-lg rounded-lg">
-      <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Book a Recharge Slot</h2>
+    <div className="max-w-md mx-auto p-6 bg-white rounded-lg shadow">
+      <h2 className="text-2xl font-semibold mb-4">Book Recharge Slot</h2>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <select
+          value={selectedBunk}
+          onChange={(e) => setSelectedBunk(e.target.value)}
+          className="w-full p-2 border rounded"
+          required
+        >
+          <option value="">Select EV Bunk</option>
+          {bunks.map(bunk => (
+            <option key={bunk._id} value={bunk._id}>
+              {bunk.name} - {bunk.location}
+            </option>
+          ))}
+        </select>
 
-      <label className="block text-gray-700 dark:text-gray-200 mb-2">Select Date & Time:</label>
-      <input
-        type="datetime-local"
-        value={slotTime}
-        onChange={(e) => setSlotTime(e.target.value)}
-        className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded mb-4"
-      />
+        <input
+          type="datetime-local"
+          value={slotTime}
+          onChange={(e) => setSlotTime(e.target.value)}
+          className="w-full p-2 border rounded"
+          required
+        />
 
-      <button
-        onClick={handleBooking}
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-      >
-        Book Now
-      </button>
+        <button
+          type="submit"
+          className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700"
+        >
+          Book Slot
+        </button>
+
+        {message && <p className="text-center mt-2">{message}</p>}
+      </form>
     </div>
   );
 };
 
-export default BookingPage;
+export default BookingForm;
