@@ -3,7 +3,7 @@ import connectDB from './config/db.js';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import adminRoutes from './routes/adminRoutes.js';
-import bunkRoutes from './routes/bunkRouts.js';
+import bunkRoutes from './routes/bunkRoutes.js';
 import { WebSocketServer } from 'ws';
 import http from 'http';
 
