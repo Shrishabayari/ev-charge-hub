@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import adminRoutes from './routes/adminRoutes.js';
 import bunkRoutes from './routes/bunkRouts.js';
 import bookingRoutes from './routes/bookingRoutes.js';
+import userRoutes from './routes/userRoutes.js'
 import { WebSocketServer } from 'ws';
 import http from 'http';
 
@@ -25,6 +26,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/admin/ev-bunks', bunkRoutes); // Admin routes for EV bunks
 app.use('/api/bunks', bunkRoutes); // General routes for EV bunks
 app.use('/api/bookings', bookingRoutes);
+app.use('/api/users', userRoutes); // ✅ added
 
 // Create HTTP server manually
 const server = http.createServer(app);

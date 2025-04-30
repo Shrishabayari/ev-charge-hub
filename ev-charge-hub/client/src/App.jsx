@@ -8,7 +8,10 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
  import EditEvBunk from './components/admin/EditEvBunk';
  import AdminBookingsPage from './components/admin/AdminBookingsPage';
  import MyBookingsPage from './components/admin/MyBookings';
-import BookingPage from './components/admin/BookingPage'
+import BookingPage from './components/admin/BookingPage';
+import Login from './components/user/UserLogin';
+import Register from './components/user/UserRegister';
+import UserDashboard from './components/user/UserDashboard';
  import WebSocketComponent from './components/admin/WebSocket';
  
 
@@ -26,6 +29,9 @@ import BookingPage from './components/admin/BookingPage'
         <Route path="/admin/view-booking-slots" element={<BookingPage />} />
         <Route path="/admin/admin-bookings" element={<AdminBookingsPage />} />
         <Route path="/admin/my-bookings" element={<MyBookingsPage />} />
+        <Route path="/user/login" element={<Login />} />
+        <Route path="/user/register" element={<Register />} />
+        <Route path="/dashboard" element={<UserDashboard />} />
 
         <Route element={<WebSocketComponent />} />
       </Routes>
