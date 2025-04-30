@@ -15,7 +15,7 @@ export default function Register() {
     e.preventDefault();
     try {
       await registerUser(formData);
-      navigate('/login');
+      navigate('/user/login');
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed');
     }
@@ -39,7 +39,7 @@ export default function Register() {
           </button>
         </form>
         <p className="mt-4 text-sm text-center text-gray-500 dark:text-gray-400">
-          Already have an account? <a href="/login" className="text-blue-600 hover:underline">Login</a>
+          Already have an account? <a href="/user/login" className="text-blue-600 hover:underline">Login</a>
         </p>
       </div>
     </div>
