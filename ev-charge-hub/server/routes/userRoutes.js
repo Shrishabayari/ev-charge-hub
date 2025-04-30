@@ -1,14 +1,11 @@
-const express = require("express");
+import express from 'express';
+import { registerUser, loginUser, updateUserProfile } from '../controllers/userController.js';
+import authMiddleware from '../middleware/auth.js'; // Corrected the import to ES Module syntax
+
 const router = express.Router();
-import {
-    registerUser,
-    loginUser,
-    updateUserProfile,
-  } from '../controllers/userController.js';
-  import { protect } from '../middleware/authMiddleware.js';
-  
+
 router.post("/register", registerUser);
 router.post("/login", loginUser);
-router.put('/profile', protect, updateUserProfile); // secure route
+router.put('/profile', authMiddleware, updateUserProfile); // protected route
 
-module.exports = router;
+export default router;

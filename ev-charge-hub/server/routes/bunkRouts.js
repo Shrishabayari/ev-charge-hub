@@ -1,30 +1,21 @@
 import express from 'express';
-import {
-  getBookingsByBunk,
-  createBooking,
-  getUserBookings,
-  cancelBooking,
-  rescheduleBooking,
-  checkSlotAvailability
-} from '../controllers/bookingController.js';
+import { addEvBunk, getAllEvBunks, getEvBunkById, updateEvBunk, deleteEvBunk } from '../controllers/evBunkController.js';
 
 const router = express.Router();
 
-router.get('/bunk/:bunkId', getBookingsByBunk);
+// Add a new EV Bunk
+router.post('/', addEvBunk);
 
-// Create a new booking
-router.post('/create', createBooking);
+// Get all EV Bunks
+router.get('/', getAllEvBunks);
 
-// Get bookings by user
-router.get('/:userId', getUserBookings);
+// Get an EV Bunk by ID
+router.get('/:id', getEvBunkById);
 
-// Cancel a booking
-router.put('/cancel/:id', cancelBooking);
+// Update an EV Bunk
+router.put('/:id', updateEvBunk);
 
-// Reschedule a booking
-router.put('/reschedule/:id', rescheduleBooking);
-
-// Check slot availability
-router.post('/check-availability', checkSlotAvailability);
+// Delete an EV Bunk
+router.delete('/:id', deleteEvBunk);
 
 export default router;
