@@ -17,7 +17,7 @@ export default function Login() {
       const res = await loginUser(formData);
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('user', JSON.stringify(res.data.user));
-      navigate('/dashboard'); // redirect after login
+      navigate('/user/dashboard'); // redirect after login
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed');
     }

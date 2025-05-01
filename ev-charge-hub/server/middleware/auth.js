@@ -1,17 +1,20 @@
 import jwt from 'jsonwebtoken';
 
 const authMiddleware = (req, res, next) => {
-  const token = req.header("Authorization");
+  const authHeader = req.header("Authorization");
 
-  if (!token) {
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res.status(401).json({ msg: "No token, authorization denied" });
   }
 
+  const token = authHeader.split(" ")[1];
+
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET); // Verify token using secret key
-    req.user = decoded.user;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded.user || decoded; // depends on token structure
     next();
   } catch (err) {
+    console.error("JWT error:", err.message);
     res.status(401).json({ msg: "Token is not valid" });
   }
 };

@@ -31,7 +31,7 @@ import UserDashboard from './components/user/UserDashboard';
         <Route path="/admin/my-bookings" element={<MyBookingsPage />} />
         <Route path="/user/login" element={<Login />} />
         <Route path="/user/register" element={<Register />} />
-        <Route path="/dashboard" element={<UserDashboard />} />
+        <Route path="/user/dashboard" element={<UserDashboard />} />
 
         <Route element={<WebSocketComponent />} />
       </Routes>
