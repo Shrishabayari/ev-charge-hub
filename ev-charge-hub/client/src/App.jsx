@@ -12,7 +12,9 @@ import BookingPage from './components/admin/BookingPage';
 import Login from './components/user/UserLogin';
 import Register from './components/user/UserRegister';
 import UserDashboard from './components/user/UserDashboard';
+import BookSlot from './components/user/BookSlot';
  import WebSocketComponent from './components/admin/WebSocket';
+import MyBookings from './components/user/MyBookings';
  
 
  const App = () => {
@@ -32,7 +34,8 @@ import UserDashboard from './components/user/UserDashboard';
         <Route path="/user/login" element={<Login />} />
         <Route path="/user/register" element={<Register />} />
         <Route path="/user/dashboard" element={<UserDashboard />} />
-
+        <Route path="/user/book-slot" element={<BookSlot/>} />
+        <Route path="/user/bookings" element={<MyBookings/>} />
         <Route element={<WebSocketComponent />} />
       </Routes>
     </Router>

@@ -1,39 +1,84 @@
-import { useEffect, useState } from 'react';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 
-export default function MyBookings() {
+const MyBookings = () => {
   const [bookings, setBookings] = useState([]);
+  const [newSlot, setNewSlot] = useState("");
+
+  const fetchBookings = async () => {
+    try {
+      const res = await axios.get("/api/bookings/my", {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      setBookings(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   useEffect(() => {
-    // TODO: Fetch bookings from backend API
-    // Example static data:
-    const sampleBookings = [
-      { id: 1, location: 'Station A', time: '2025-05-03T10:00' },
-      { id: 2, location: 'Station B', time: '2025-05-04T14:30' },
-    ];
-    setBookings(sampleBookings);
+    fetchBookings();
   }, []);
 
+  const cancelBooking = async (id) => {
+    try {
+      await axios.patch(`/api/bookings/${id}/cancel`, {}, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      fetchBookings();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const rescheduleBooking = async (id) => {
+    try {
+      await axios.patch(`/api/bookings/${id}/reschedule`, {
+        slotTime: newSlot,
+      }, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      setNewSlot("");
+      fetchBookings();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-4 text-gray-800 dark:text-white">My Bookings</h2>
-        {bookings.length === 0 ? (
-          <p className="text-gray-600 dark:text-gray-300">No bookings found.</p>
-        ) : (
-          <ul className="space-y-3">
-            {bookings.map((booking) => (
-              <li key={booking.id} className="bg-gray-100 dark:bg-gray-700 p-3 rounded-md">
-                <p className="text-sm text-gray-700 dark:text-gray-200">
-                  <strong>Location:</strong> {booking.location}
-                </p>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                  <strong>Time:</strong> {new Date(booking.time).toLocaleString()}
-                </p>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+    <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow">
+      <h2 className="text-2xl font-semibold mb-4">My Bookings</h2>
+      {bookings.map((booking) => (
+        <div key={booking._id} className="border-b py-4 space-y-2">
+          <p><strong>Bunk:</strong> {booking.bunkId?.name}</p>
+          <p><strong>Time:</strong> {new Date(booking.slotTime).toLocaleString()}</p>
+          <p><strong>Status:</strong> {booking.status}</p>
+
+          <div className="flex gap-2 items-center">
+            <button
+              onClick={() => cancelBooking(booking._id)}
+              className="bg-red-500 text-white px-4 py-1 rounded hover:bg-red-600"
+            >
+              Cancel
+            </button>
+
+            <input
+              type="datetime-local"
+              value={newSlot}
+              onChange={(e) => setNewSlot(e.target.value)}
+              className="border px-2 py-1 rounded"
+            />
+            <button
+              onClick={() => rescheduleBooking(booking._id)}
+              className="bg-yellow-500 text-white px-4 py-1 rounded hover:bg-yellow-600"
+            >
+              Reschedule
+            </button>
+          </div>
+        </div>
+      ))}
     </div>
   );
-}
+};
+
+export default MyBookings;
