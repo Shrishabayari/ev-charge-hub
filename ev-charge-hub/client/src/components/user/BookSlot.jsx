@@ -4,64 +4,210 @@ import axios from "axios";
 const BookingForm = () => {
   const [bunks, setBunks] = useState([]);
   const [selectedBunk, setSelectedBunk] = useState("");
-  const [slotTime, setSlotTime] = useState("");
-  const [message, setMessage] = useState("");
+  const [selectedDate, setSelectedDate] = useState("");
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [selectedSlot, setSelectedSlot] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState({ text: "", type: "" });
 
+  // Fetch all bunks on component mount
   useEffect(() => {
-    // Fetch available bunks
-    axios.get("/api/bunks").then(res => setBunks(res.data)).catch(console.error);
+    const fetchBunks = async () => {
+      try {
+        const res = await axios.get("/api/bunks");
+        setBunks(res.data);
+      } catch (err) {
+        console.error("Error fetching bunks:", err);
+        setMessage({ text: "Failed to load EV bunks", type: "error" });
+      }
+    };
+    
+    fetchBunks();
   }, []);
+
+  // Fetch available slots when bunk or date changes
+  useEffect(() => {
+    const fetchAvailableSlots = async () => {
+      if (!selectedBunk || !selectedDate) return;
+      
+      setLoading(true);
+      try {
+        const res = await axios.get(`/api/bookings/available-slots/${selectedBunk}/${selectedDate}`);
+        setAvailableSlots(res.data.availableSlots || []);
+        setSelectedSlot(""); // Reset selected slot
+      } catch (err) {
+        console.error("Error fetching available slots:", err);
+        setMessage({ text: "Failed to load available slots", type: "error" });
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchAvailableSlots();
+  }, [selectedBunk, selectedDate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!selectedBunk || !selectedSlot) {
+      setMessage({ text: "Please select a bunk and time slot", type: "error" });
+      return;
+    }
+    
+    setLoading(true);
     try {
-      await axios.post("/api/bookings", {
+      // First check if slot is still available
+      const checkRes = await axios.post("/api/bookings/check-availability", {
         bunkId: selectedBunk,
-        slotTime,
+        slotTime: selectedSlot
+      });
+      
+      if (!checkRes.data.available) {
+        setMessage({ text: "Sorry, this slot was just booked. Please select another.", type: "error" });
+        return;
+      }
+      
+      // If available, create the booking
+      await axios.post("/api/bookings/create", {
+        bunkId: selectedBunk,
+        slotTime: selectedSlot
       }, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
       });
-      setMessage("Slot booked successfully!");
+      
+      setMessage({ text: "Slot booked successfully!", type: "success" });
+      
+      // Reset form
+      setSelectedSlot("");
+      
+      // Refresh available slots
+      const res = await axios.get(`/api/bookings/available-slots/${selectedBunk}/${selectedDate}`);
+      setAvailableSlots(res.data.availableSlots || []);
+      
     } catch (err) {
-      setMessage("Booking failed.");
-      console.error(err);
+      console.error("Booking error:", err);
+      
+      if (err.response?.status === 401) {
+        setMessage({ text: "Please log in to book a slot", type: "error" });
+      } else {
+        setMessage({ text: err.response?.data?.message || "Booking failed", type: "error" });
+      }
+    } finally {
+      setLoading(false);
     }
+  };
+
+  // Format time for display (e.g. "14:30" -> "2:30 PM")
+  const formatTimeForDisplay = (isoString) => {
+    if (!isoString) return "";
+    const timePart = isoString.split('T')[1];
+    if (!timePart) return "";
+    
+    const [hours, minutes] = timePart.split(':');
+    const hour = parseInt(hours, 10);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour % 12 || 12;
+    
+    return `${displayHour}:${minutes} ${ampm}`;
   };
 
   return (
     <div className="max-w-md mx-auto p-6 bg-white rounded-lg shadow">
-      <h2 className="text-2xl font-semibold mb-4">Book Recharge Slot</h2>
+      <h2 className="text-2xl font-semibold mb-4">Book EV Charging Slot</h2>
+      
       <form onSubmit={handleSubmit} className="space-y-4">
-        <select
-          value={selectedBunk}
-          onChange={(e) => setSelectedBunk(e.target.value)}
-          className="w-full p-2 border rounded"
-          required
-        >
-          <option value="">Select EV Bunk</option>
-          {bunks.map(bunk => (
-            <option key={bunk._id} value={bunk._id}>
-              {bunk.name} - {bunk.location}
-            </option>
-          ))}
-        </select>
-
-        <input
-          type="datetime-local"
-          value={slotTime}
-          onChange={(e) => setSlotTime(e.target.value)}
-          className="w-full p-2 border rounded"
-          required
-        />
-
+        {/* Bunk Selection */}
+        <div>
+          <label htmlFor="bunk" className="block text-sm font-medium text-gray-700">
+            Select EV Bunk
+          </label>
+          <select
+            id="bunk"
+            value={selectedBunk}
+            onChange={(e) => setSelectedBunk(e.target.value)}
+            className="mt-1 w-full p-2 border rounded"
+            required
+          >
+            <option value="">Select EV Bunk</option>
+            {bunks.map(bunk => (
+              <option key={bunk._id} value={bunk._id}>
+                {bunk.name} - {bunk.location}
+              </option>
+            ))}
+          </select>
+        </div>
+        
+        {/* Date Selection */}
+        <div>
+          <label htmlFor="date" className="block text-sm font-medium text-gray-700">
+            Select Date
+          </label>
+          <input
+            id="date"
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="mt-1 w-full p-2 border rounded"
+            min={new Date().toISOString().split('T')[0]} // Prevent past dates
+            required
+          />
+        </div>
+        
+        {/* Time Slot Selection */}
+        {selectedBunk && selectedDate && (
+          <div>
+            <label htmlFor="slot" className="block text-sm font-medium text-gray-700">
+              Select Time Slot
+            </label>
+            
+            {loading ? (
+              <div className="text-center py-4">Loading available slots...</div>
+            ) : availableSlots.length > 0 ? (
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                {availableSlots.map((slot) => (
+                  <button
+                    key={slot}
+                    type="button"
+                    onClick={() => setSelectedSlot(slot)}
+                    className={`py-2 px-3 text-sm rounded border ${
+                      selectedSlot === slot
+                        ? 'bg-green-600 text-white border-green-600'
+                        : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    {formatTimeForDisplay(slot)}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-4 text-gray-500">
+                No available slots for this date
+              </div>
+            )}
+          </div>
+        )}
+        
+        {/* Submit Button */}
         <button
           type="submit"
-          className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700"
+          disabled={loading || !selectedSlot}
+          className={`w-full py-2 rounded text-white ${
+            loading || !selectedSlot
+              ? 'bg-gray-400 cursor-not-allowed'
+              : 'bg-green-600 hover:bg-green-700'
+          }`}
         >
-          Book Slot
+          {loading ? 'Processing...' : 'Book Slot'}
         </button>
-
-        {message && <p className="text-center mt-2">{message}</p>}
+        
+        {/* Status Message */}
+        {message.text && (
+          <div className={`text-center p-2 rounded ${
+            message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+          }`}>
+            {message.text}
+          </div>
+        )}
       </form>
     </div>
   );
