@@ -14,9 +14,8 @@ import Register from './components/user/UserRegister';
 import UserDashboard from './components/user/UserDashboard';
 import BookSlot from './components/user/BookSlot';
  import WebSocketComponent from './components/admin/WebSocket';
-import UserBookings from './components/user/MyBookings';
- import NewBooking from './pages/user/book';
-
+ import NewBooking from './pages/user/NewBooking';
+import MyBookings from './pages/user/MyBooking';
  const App = () => {
   return (
     <Router>
@@ -35,8 +34,9 @@ import UserBookings from './components/user/MyBookings';
         <Route path="/user/register" element={<Register />} />
         <Route path="/user/dashboard" element={<UserDashboard />} />
         <Route path="/user/book-slot" element={<BookSlot/>} />
-        <Route path="/user/bookings" element={<UserBookings/>} />
-        <Route path='/user/bookings/a' element={<NewBooking/>} />
+        <Route path='/user/bookings/new' element={<NewBooking/>} />
+        <Route path='/user/bookings/my' element={<MyBookings/>} />
+
         <Route element={<WebSocketComponent />} />
       </Routes>
     </Router>

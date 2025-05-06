@@ -21,11 +21,11 @@ export default function UserDashboard() {
   };
 
   const goToBookSlot = () => {
-    navigate('/user/book-slot');
+    navigate('/user/bookings/new');
   };
 
   const goToMyBookings = () => {
-    navigate('/user/bookings');
+    navigate('/user/bookings/my');
   };
 
   return (
