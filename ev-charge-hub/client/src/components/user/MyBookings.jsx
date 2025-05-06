@@ -1,141 +1,150 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
+// components/user/MyBookings.js
+import React from 'react';
 
-const UserBookings = () => {
-  const [bookings, setBookings] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    fetchBookings();
-  }, []);
-
-  const fetchBookings = async () => {
-    setLoading(true);
+const UserBookings = ({ bookings }) => {
+  // Helper function to format dates in a readable way
+  const formatDate = (dateString) => {
     try {
-      const res = await axios.get("/api/bookings/user", {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-      });
-      setBookings(res.data.bookings);
-      setError("");
-    } catch (err) {
-      console.error("Error fetching bookings:", err);
-      setError("Failed to load your bookings");
-    } finally {
-      setLoading(false);
+      const options = { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric', 
+        hour: '2-digit', 
+        minute: '2-digit'
+      };
+      return new Date(dateString).toLocaleDateString('en-US', options);
+    } catch (error) {
+      console.error('Date formatting error:', error);
+      return 'Invalid date';
     }
   };
 
-  const handleCancel = async (id) => {
-    if (!window.confirm("Are you sure you want to cancel this booking?")) return;
-    
-    try {
-      await axios.put(`/api/bookings/cancel/${id}`, {}, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-      });
-      // Update the local state
-      setBookings(bookings.map(booking => 
-        booking._id === id ? { ...booking, status: "cancelled" } : booking
-      ));
-    } catch (err) {
-      console.error("Error cancelling booking:", err);
-      alert("Failed to cancel booking");
-    }
-  };
-
-  const formatDateTime = (dateTimeStr) => {
-    const date = new Date(dateTimeStr);
-    return date.toLocaleString('en-US', {
-      weekday: 'short',
-      month: 'short', 
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    });
-  };
-
-  const isUpcoming = (slotTime) => {
-    return new Date(slotTime) > new Date();
-  };
-
+  // Helper function to get appropriate status badge class
   const getStatusClass = (status) => {
     switch(status) {
-      case 'booked': return 'bg-green-100 text-green-800';
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      case 'rescheduled': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'active':
+        return 'bg-green-100 text-green-800';
+      case 'completed':
+        return 'bg-blue-100 text-blue-800';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
-  return (
-    <div className="max-w-4xl mx-auto p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-semibold">My Bookings</h2>
-        <button 
-          onClick={fetchBookings}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-        >
-          Refresh
-        </button>
-      </div>
+  // Calculate if a booking is upcoming or past
+  const isUpcoming = (startTime) => {
+    try {
+      return new Date(startTime) > new Date();
+    } catch (error) {
+      return false;
+    }
+  };
 
-      {loading ? (
-        <div className="text-center py-8">Loading your bookings...</div>
-      ) : error ? (
-        <div className="text-center py-8 text-red-600">{error}</div>
-      ) : bookings.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">You don't have any bookings yet</div>
-      ) : (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 gap-4">
-            {bookings.map((booking) => (
-              <div 
-                key={booking._id} 
-                className="border rounded-lg overflow-hidden shadow-sm"
-              >
-                <div className="bg-gray-50 px-4 py-3 border-b flex justify-between items-center">
-                  <div>
-                    <h3 className="font-medium">
-                      {booking.bunkId.name}
-                    </h3>
-                    <p className="text-sm text-gray-500">
-                      {booking.bunkId.location}
-                    </p>
-                  </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusClass(booking.status)}`}>
-                    {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-                  </span>
-                </div>
-                
-                <div className="p-4">
-                  <div className="flex flex-col sm:flex-row sm:justify-between">
-                    <div>
-                      <p className="text-gray-700">
-                        <span className="font-medium">Slot Time:</span> {formatDateTime(booking.slotTime)}
-                      </p>
-                      <p className="text-gray-700 text-sm mt-1">
-                        <span className="font-medium">Booked on:</span> {new Date(booking.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                    
-                    {booking.status === 'booked' && isUpcoming(booking.slotTime) && (
-                      <div className="mt-3 sm:mt-0">
-                        <button
-                          onClick={() => handleCancel(booking._id)}
-                          className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
-                        >
-                          Cancel Booking
-                        </button>
+  // If no bookings
+  if (!bookings || bookings.length === 0) {
+    return (
+      <div className="text-center py-12 bg-gray-50 rounded-lg">
+        <p className="text-gray-600 mb-4">You don't have any bookings yet.</p>
+        <a 
+          href="/user/bookings/new" 
+          className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md"
+        >
+          Book Your First Slot
+        </a>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* Upcoming bookings section */}
+      <div className="mb-8">
+        <h2 className="text-lg font-medium mb-4 text-gray-700">Upcoming Bookings</h2>
+        <div className="bg-white rounded-lg overflow-hidden shadow">
+          {bookings.filter(b => isUpcoming(b.startTime)).length > 0 ? (
+            <div className="divide-y divide-gray-200">
+              {bookings
+                .filter(booking => isUpcoming(booking.startTime))
+                .map(booking => (
+                  <div key={booking._id} className="p-4 hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-medium">{booking.bunkId?.name || 'Unknown Station'}</h3>
+                        <div className="text-sm text-gray-500 mt-1">
+                          <div>Start: {formatDate(booking.startTime)}</div>
+                          <div>End: {formatDate(booking.endTime)}</div>
+                        </div>
                       </div>
-                    )}
+                      
+                      <div className="flex items-center space-x-3">
+                        <span className={`px-2 py-1 text-xs rounded-full ${getStatusClass(booking.status)}`}>
+                          {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                        </span>
+                        
+                        {booking.status === 'active' && (
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => window.location.href = `/user/bookings/reschedule/${booking._id}`}
+                              className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+                            >
+                              Reschedule
+                            </button>
+                            <button
+                              onClick={() => window.location.href = `/user/bookings/cancel/${booking._id}`}
+                              className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-4 text-center text-gray-500">
+              No upcoming bookings
+            </div>
+          )}
         </div>
-      )}
+      </div>
+      
+      {/* Past bookings section */}
+      <div>
+        <h2 className="text-lg font-medium mb-4 text-gray-700">Past Bookings</h2>
+        <div className="bg-white rounded-lg overflow-hidden shadow">
+          {bookings.filter(b => !isUpcoming(b.startTime)).length > 0 ? (
+            <div className="divide-y divide-gray-200">
+              {bookings
+                .filter(booking => !isUpcoming(booking.startTime))
+                .map(booking => (
+                  <div key={booking._id} className="p-4 hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-medium">{booking.bunkId?.name || 'Unknown Station'}</h3>
+                        <div className="text-sm text-gray-500 mt-1">
+                          <div>Start: {formatDate(booking.startTime)}</div>
+                          <div>End: {formatDate(booking.endTime)}</div>
+                        </div>
+                      </div>
+                      
+                      <span className={`px-2 py-1 text-xs rounded-full ${getStatusClass(booking.status)}`}>
+                        {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                      </span>
+                    </div>
+                  </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-4 text-center text-gray-500">
+              No past bookings
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

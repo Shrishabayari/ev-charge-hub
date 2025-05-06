@@ -1,43 +1,240 @@
 // src/pages/user/MyBookings.js
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import UserBookings from '../../components/user/MyBookings';
 
 const MyBookings = () => {
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [debugInfo, setDebugInfo] = useState(null);
+  const [useMockData, setUseMockData] = useState(false); // Toggle for mock data
+
+  useEffect(() => {
+    const fetchBookings = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        setDebugInfo(null);
+        
+        // Get the JWT token from localStorage
+        const token = localStorage.getItem('token');
+        console.log('Token exists:', !!token); // Debug log
+        
+        if (!token) {
+          throw new Error('Authentication token not found. Please log in again.');
+        }
+        
+        // Option to use mock data for testing UI when API is not working
+        if (useMockData) {
+          console.log('Using mock data');
+          // Simulate API delay
+          setTimeout(() => {
+            setBookings(MOCK_BOOKINGS);
+            setLoading(false);
+          }, 500);
+          return;
+        }
+        
+        // Make the API request with the token in the Authorization header
+        console.log('Fetching bookings from API...');
+        const response = await fetch('/api/bookings/user', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        console.log('Response status:', response.status); // Debug log
+        
+        // If the response is not ok, try to get more detailed error info
+        if (!response.ok) {
+          let errorData = {};
+          try {
+            errorData = await response.json();
+          } catch (e) {
+            console.error('Error parsing error response:', e);
+            errorData = { message: 'Could not parse error response' };
+          }
+          
+          console.error('Error response:', errorData);
+          setDebugInfo({
+            status: response.status,
+            statusText: response.statusText,
+            errorDetails: errorData
+          });
+          
+          // Handle specific error codes
+          if (response.status === 401) {
+            throw new Error('Your session has expired. Please log in again.');
+          } else {
+            throw new Error(`Server error: ${response.status} ${response.statusText}`);
+          }
+        }
+
+        // Parse the successful response
+        const data = await response.json();
+        console.log('Bookings data received:', data.length); // Debug log
+        
+        // Check if the response is an array (expected format)
+        if (!Array.isArray(data)) {
+          console.error('API did not return an array:', data);
+          setDebugInfo({
+            receivedData: data,
+            dataType: typeof data
+          });
+          throw new Error('Invalid data format received from server');
+        }
+        
+        setBookings(data);
+        setLoading(false);
+      } catch (err) {
+        console.error('Error fetching bookings:', err);
+        setError(`${err.message}`);
+        setLoading(false);
+      }
+    };
+
+    fetchBookings();
+  }, [useMockData]);
+
+  // Function to manually retry fetching
+  const handleRetry = () => {
+    setLoading(true);
+    setError(null);
+    // This will trigger the useEffect hook to run again
+    setUseMockData(useMockData); 
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800">My Bookings</h1>
-          <p className="text-gray-600 mt-1">
-            View and manage your EV charging appointments
-          </p>
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="border-b pb-4 mb-6">
+          <h1 className="text-2xl font-bold text-gray-800">My Bookings</h1>
+          <p className="text-gray-600">View and manage your EV charging appointments</p>
+          
+          {/* Development toggle for mock data */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mt-2">
+              <label className="inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={useMockData}
+                  onChange={() => setUseMockData(!useMockData)}
+                  className="sr-only peer"
+                />
+                <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                <span className="ms-3 text-sm font-medium text-gray-700">Use test data</span>
+              </label>
+            </div>
+          )}
         </div>
         
-        <Link 
-          to="/user/bookings/new" 
-          className="mt-4 sm:mt-0 inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-          </svg>
-          Book New Slot
-        </Link>
-      </div>
-      
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <UserBookings />
-      </div>
-      
-      <div className="mt-8 bg-yellow-50 border border-yellow-200 p-4 rounded-md">
-        <h3 className="text-lg font-medium text-yellow-800">Booking Policies</h3>
-        <p className="mt-2 text-yellow-700">
-          Remember that cancellations less than 2 hours before your appointment may result in a cancellation fee. 
-          If you need to modify your booking frequently, please consider booking flexible time slots.
-        </p>
+        <div className="mb-6 flex justify-end">
+          <Link 
+            to="/user/bookings/new" 
+            className="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-md transition-colors"
+          >
+            Book New Slot
+          </Link>
+        </div>
+
+        {/* Render the UserBookings component with the fetched bookings */}
+        {loading ? (
+          <div className="text-center py-8">
+            <svg className="animate-spin h-8 w-8 mx-auto text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p className="mt-2 text-gray-600">Loading your bookings...</p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-8 bg-red-50 rounded-lg p-6">
+            <svg className="h-12 w-12 mx-auto text-red-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <p className="text-red-600 font-medium text-lg mb-2">Unable to load bookings</p>
+            <p className="text-red-700 mb-4">{error}</p>
+            
+            <button 
+              onClick={handleRetry}
+              className="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-md transition-colors"
+            >
+              Try Again
+            </button>
+            
+            {debugInfo && process.env.NODE_ENV === 'development' && (
+              <div className="mt-4 p-3 bg-gray-100 rounded text-left text-sm">
+                <p className="font-bold mb-2">Debug Information:</p>
+                {debugInfo.status && <p><strong>Status:</strong> {debugInfo.status}</p>}
+                {debugInfo.statusText && <p><strong>Status Text:</strong> {debugInfo.statusText}</p>}
+                {debugInfo.errorDetails && Object.keys(debugInfo.errorDetails).length > 0 && (
+                  <div>
+                    <p><strong>Error Details:</strong></p>
+                    <pre className="bg-gray-800 text-white p-3 rounded overflow-x-auto mt-2">{JSON.stringify(debugInfo.errorDetails, null, 2)}</pre>
+                  </div>
+                )}
+                {debugInfo.receivedData && (
+                  <div>
+                    <p><strong>Received Data:</strong></p>
+                    <pre className="bg-gray-800 text-white p-3 rounded overflow-x-auto mt-2">{JSON.stringify(debugInfo.receivedData, null, 2)}</pre>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        ) : (
+          <UserBookings bookings={bookings} />
+        )}
+
+        <div className="mt-8 bg-blue-50 p-4 rounded-md">
+          <h3 className="font-semibold text-lg mb-2 text-blue-800">Booking Policies</h3>
+          <ul className="text-blue-700 space-y-2">
+            <li>Remember that cancellations less than 2 hours before your appointment may result in a cancellation fee.</li>
+            <li>If you need to modify your booking frequently, please consider booking flexible time slots.</li>
+          </ul>
+        </div>
       </div>
     </div>
   );
 };
+
+// Mock data for testing UI
+const MOCK_BOOKINGS = [
+  {
+    _id: 'mock-booking-1',
+    bunkId: { 
+      _id: 'bunk-1', 
+      name: 'EV Charging Station A'
+    },
+    startTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Tomorrow
+    endTime: new Date(Date.now() + 25 * 60 * 60 * 1000).toISOString(),
+    status: 'active',
+    createdAt: new Date().toISOString()
+  },
+  {
+    _id: 'mock-booking-2',
+    bunkId: { 
+      _id: 'bunk-2', 
+      name: 'EV Charging Station B'
+    },
+    startTime: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(), // 2 days ago
+    endTime: new Date(Date.now() - 47 * 60 * 60 * 1000).toISOString(),
+    status: 'completed',
+    createdAt: new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString()
+  },
+  {
+    _id: 'mock-booking-3',
+    bunkId: { 
+      _id: 'bunk-3', 
+      name: 'EV Charging Station C'
+    },
+    startTime: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // Yesterday
+    endTime: new Date(Date.now() - 23 * 60 * 60 * 1000).toISOString(),
+    status: 'cancelled',
+    createdAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
+  }
+];
 
 export default MyBookings;
