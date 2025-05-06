@@ -13,56 +13,42 @@ const AdminDashboard = () => {
   };
 
   const handleViewBookingSlots = () => {
-    navigate("/admin/view-booking-slots");  // Admin can view available booking slots
+    navigate("/admin/view-booking-slots");
   };
 
   const handleViewMyBookings = () => {
-    navigate("/admin/my-bookings");  // Admin can view their own bookings
+    navigate("/admin/my-bookings");
   };
 
   const handleViewAdminBookings = () => {
-    navigate("/admin/admin-bookings");  // Admin-specific bookings management
+    navigate("/admin/admin-bookings");
+  };
+
+  const handleBookingManagement = () => {
+    navigate("/admin/booking-management"); // Add your route path here
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-8">
-      <h1 className="text-4xl font-bold mb-8 text-center">Admin Dashboard</h1>
-
-      <div className="flex flex-col items-center gap-6">
-        <button
-          onClick={handleAddEvBunk}
-          className="w-60 py-3 px-6 bg-green-600 text-white rounded-md hover:bg-green-700 shadow-md"
-        >
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4">Admin Dashboard</h1>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <button onClick={handleAddEvBunk} className="bg-blue-500 text-white p-3 rounded">
           Add New EV Bunk
         </button>
-
-        <button
-          onClick={handleViewEvBunks}
-          className="w-60 py-3 px-6 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 shadow-md"
-        >
+        <button onClick={handleViewEvBunks} className="bg-green-500 text-white p-3 rounded">
           View EV Bunks
         </button>
-
-        {/* New Buttons for Booking Management */}
-        <button
-          onClick={handleViewBookingSlots}
-          className="w-60 py-3 px-6 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-md"
-        >
+        <button onClick={handleViewBookingSlots} className="bg-purple-500 text-white p-3 rounded">
           View Booking Slots
         </button>
-
-        <button
-          onClick={handleViewMyBookings}
-          className="w-60 py-3 px-6 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 shadow-md"
-        >
+        <button onClick={handleViewMyBookings} className="bg-yellow-500 text-white p-3 rounded">
           View My Bookings
         </button>
-
-        <button
-          onClick={handleViewAdminBookings}
-          className="w-60 py-3 px-6 bg-red-600 text-white rounded-md hover:bg-red-700 shadow-md"
-        >
+        <button onClick={handleViewAdminBookings} className="bg-red-500 text-white p-3 rounded">
           View Admin Bookings
+        </button>
+        <button onClick={handleBookingManagement} className="bg-indigo-500 text-white p-3 rounded">
+          Booking Management
         </button>
       </div>
     </div>

@@ -1,9 +1,8 @@
-// src/pages/admin/Bookings.js
 import React, { useState, useEffect } from 'react';
 import { getAllBookings, getBookingsByBunk } from '../../services/BookingService';
-import { getAllBunks } from '../../services/bunkService';
+import { getAllBunks } from '../../services/BunkService';
 
-const AdminBookings = () => {
+const BookingManagement = () => {
   const [bookings, setBookings] = useState([]);
   const [bunks, setBunks] = useState([]);
   const [selectedBunk, setSelectedBunk] = useState('');
@@ -85,8 +84,6 @@ const AdminBookings = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-gray-800 mb-6">Booking Management</h1>
-      
       {/* Filters */}
       <div className="bg-white p-4 rounded-lg shadow mb-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -166,6 +163,9 @@ const AdminBookings = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Booked On
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -197,6 +197,37 @@ const AdminBookings = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {new Date(booking.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex space-x-2">
+                        <button
+                          className="text-indigo-600 hover:text-indigo-900"
+                          onClick={() => window.location.href = `/admin/bookings/${booking._id}`}
+                        >
+                          View
+                        </button>
+                        {booking.status === 'booked' && (
+                          <>
+                            <button
+                              className="text-yellow-600 hover:text-yellow-900"
+                              onClick={() => window.location.href = `/admin/bookings/${booking._id}/edit`}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              className="text-red-600 hover:text-red-900"
+                              onClick={() => {
+                                if (window.confirm('Are you sure you want to cancel this booking?')) {
+                                  // Handle cancel logic here
+                                  console.log('Cancel booking:', booking._id);
+                                }
+                              }}
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -240,4 +271,4 @@ const AdminBookings = () => {
   );
 };
 
-export default AdminBookings;
+export default BookingManagement;

@@ -6,9 +6,6 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
  import AddEvBunk from './components/admin/AddEvBunk'; // Adjust path accordingly
  import ViewBunks from './components/admin/ViewBunks'; // <- New page
  import EditEvBunk from './components/admin/EditEvBunk';
- import AdminBookingsPage from './components/admin/AdminBookingsPage';
- import MyBookingsPage from './components/admin/MyBookings';
-import BookingPage from './components/admin/BookingPage';
 import Login from './components/user/UserLogin';
 import Register from './components/user/UserRegister';
 import UserDashboard from './components/user/UserDashboard';
@@ -16,6 +13,7 @@ import BookSlot from './components/user/BookSlot';
  import WebSocketComponent from './components/admin/WebSocket';
  import NewBooking from './pages/user/NewBooking';
 import MyBookings from './pages/user/MyBooking';
+import AdminBookings from './components/admin/BookingManagement';
  const App = () => {
   return (
     <Router>
@@ -26,10 +24,8 @@ import MyBookings from './pages/user/MyBooking';
         <Route path='/admin/dashboard' element={<AdminDashboard/>} />
         <Route path="/admin/add-ev-bunk" element={<AddEvBunk />} />
         <Route path="/admin/view-bunks" element={<ViewBunks />} />
+        <Route path='/admin/booking-management' element={<AdminBookings/>} />
         <Route path="/admin/edit-bunk/:id" element={<EditEvBunk />} />
-        <Route path="/admin/view-booking-slots" element={<BookingPage />} />
-        <Route path="/admin/admin-bookings" element={<AdminBookingsPage />} />
-        <Route path="/admin/my-bookings" element={<MyBookingsPage />} />
         <Route path="/user/login" element={<Login />} />
         <Route path="/user/register" element={<Register />} />
         <Route path="/user/dashboard" element={<UserDashboard />} />
