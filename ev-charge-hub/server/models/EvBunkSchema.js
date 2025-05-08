@@ -2,6 +2,10 @@
 import mongoose from 'mongoose';
 
 const evBunkSchema = new mongoose.Schema({
+  bunkId: {
+    type: Number,
+    required: true,
+  },
   name: {
     type: String,
     required: true,

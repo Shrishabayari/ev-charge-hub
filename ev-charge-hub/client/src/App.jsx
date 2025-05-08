@@ -18,25 +18,25 @@ import AdminBookings from './components/admin/BookingManagement';
  const App = () => {
   return (
     <Router>
-  <WebSocketComponent /> {/* This will always be active */}
-  <Routes>
-    <Route path="/" element={<Home />} />
-    <Route path="/admin/login" element={<AdminLogin />} />
-    <Route path="/admin/register" element={<AdminRegister />} />
-    <Route path='/admin/dashboard' element={<AdminDashboard />} />
-    <Route path="/admin/add-ev-bunk" element={<AddEvBunk />} />
-    <Route path="/admin/view-bunks" element={<ViewBunks />} />
-    <Route path='/admin/booking-management' element={<AdminBookings />} />
-    <Route path="/admin/edit-bunk/:id" element={<EditEvBunk />} />
-    <Route path="/user/login" element={<Login />} />
-    <Route path="/user/register" element={<Register />} />
-    <Route path="/user/dashboard" element={<UserDashboard />} />
-    <Route path="/user/book-slot" element={<BookSlot />} />
-    <Route path='/user/bookings/new' element={<NewBooking />} />
-    <Route path='/user/bookings/my' element={<MyBookings />} />
-  </Routes>
-</Router>
+      <Routes>
+        <Route path="/" element={<Home />} />  {/* This should render the Home component */}
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin/register" element={<AdminRegister />} />
+        <Route path='/admin/dashboard' element={<AdminDashboard/>} />
+        <Route path="/admin/add-ev-bunk" element={<AddEvBunk />} />
+        <Route path="/admin/view-bunks" element={<ViewBunks />} />
+        <Route path='/admin/booking-management' element={<AdminBookings/>} />
+        <Route path="/admin/edit-bunk/:id" element={<EditEvBunk />} />
+        <Route path="/user/login" element={<Login />} />
+        <Route path="/user/register" element={<Register />} />
+        <Route path="/user/dashboard" element={<UserDashboard />} />
+        <Route path="/user/book-slot" element={<BookSlot/>} />
+        <Route path='/user/bookings/new' element={<NewBooking/>} />
+        <Route path='/user/bookings/my' element={<MyBookings/>} />
 
+        <Route element={<WebSocketComponent />} />
+      </Routes>
+    </Router>
   );
 };
 

@@ -74,6 +74,7 @@ const ViewBunks = () => {
         {bunks.map((bunk) => (
           <div key={bunk._id} className="p-6 bg-white border rounded-lg shadow hover:shadow-lg transition">
             <h3 className="text-xl font-bold mb-2">{bunk.name}</h3>
+            <p><strong>Id:</strong> {bunk.bunkId}</p>
             <p><strong>Address:</strong> {bunk.address}</p>
             <p><strong>Phone:</strong> {bunk.phone}</p>
             <p><strong>Slots:</strong> {bunk.slotsAvailable}</p>

@@ -3,7 +3,7 @@ import EvBunk from '../models/EvBunkSchema.js';
 // Add a new EV Bunk
 export const addEvBunk = async (req, res) => {
   try {
-    const { name, address, phone, slotsAvailable, latitude, longitude, operatingHours, connectorTypes } = req.body;
+    const { bunkId, name, address, phone, slotsAvailable, latitude, longitude, operatingHours, connectorTypes } = req.body;
 
     // Validate input
     if (!name || !address || !phone || !slotsAvailable || !latitude || !longitude || !operatingHours || !connectorTypes) {
@@ -12,6 +12,7 @@ export const addEvBunk = async (req, res) => {
 
     // Create new EV Bunk
     const newEvBunk = new EvBunk({
+      bunkId,
       name,
       address,
       phone,
