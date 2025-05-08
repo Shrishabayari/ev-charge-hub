@@ -3,12 +3,10 @@ import Booking from '../models/Booking.js';
 import Bunk from '../models/EvBunkSchema.js';
 import { validationResult } from 'express-validator';
 
-// Get bookings by bunk ID
 export const getBookingsByBunk = async (req, res) => {
   try {
     const { bunkId } = req.params;
     
-    // Validate bunkId
     if (!bunkId) {
       return res.status(400).json({ success: false, message: 'Bunk ID is required' });
     }
