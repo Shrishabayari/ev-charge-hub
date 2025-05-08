@@ -1,204 +1,276 @@
+// controllers/bookingController.js
 import Booking from '../models/Booking.js';
-import Bunk from '../models/EvBunkSchema.js'; // Assuming you have a Bunk model
+import Bunk from '../models/EvBunkSchema.js';
+import { validationResult } from 'express-validator';
+
+// Get bookings by bunk ID
+export const getBookingsByBunk = async (req, res) => {
+  try {
+    const { bunkId } = req.params;
+    
+    // Validate bunkId
+    if (!bunkId) {
+      return res.status(400).json({ success: false, message: 'Bunk ID is required' });
+    }
+    
+    const bookings = await Booking.find({ bunkId }).populate('userId', 'name email');
+    
+    res.json({ success: true, data: bookings });
+  } catch (error) {
+    console.error('Error in getBookingsByBunk:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
 
 // Create a new booking
 export const createBooking = async (req, res) => {
   try {
-    const { bunkId, slotTime } = req.body;
-    const userId = req.user.id; // Get userId from the authenticated user
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, errors: errors.array() });
+    }
+
+    const { bunkId, startTime, endTime } = req.body;
     
-    // Check if slot is available
-    const existingBooking = await Booking.findOne({
-      bunkId,
-      slotTime,
-      status: 'booked'
-    });
-    
-    if (existingBooking) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "This slot is already booked" 
-      });
+    // Check if bunk exists
+    const bunk = await Bunk.findById(bunkId);
+    if (!bunk) {
+      return res.status(404).json({ success: false, message: 'Bunk not found' });
     }
     
-    // Create the booking
-    const booking = new Booking({ userId, bunkId, slotTime });
-    await booking.save();
+    // Create new booking
+    const newBooking = new Booking({
+      userId: req.user.id, // From auth middleware
+      bunkId,
+      startTime,
+      endTime,
+      status: 'active'
+    });
     
-    res.status(201).json({ success: true, booking });
+    const savedBooking = await newBooking.save();
+    
+    // Populate the bunk details in the response
+    const populatedBooking = await Booking.findById(savedBooking._id).populate('bunkId', 'name location');
+    
+    res.status(201).json({ 
+      success: true, 
+      message: 'Booking created successfully', 
+      data: populatedBooking 
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('Error in createBooking:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
   }
 };
 
-// Get all bookings for a specific bunk (admin)
-export const getBookingsByBunk = async (req, res) => {
-  try {
-    const bunkId = req.params.bunkId;
-    const bookings = await Booking.find({ bunkId })
-      .populate('userId', 'name email') // Only get necessary user fields
-      .sort({ slotTime: 1 }); // Sort by slot time
-      
-    res.status(200).json({ success: true, bookings });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-// Get all bookings for a user
+// Get all bookings for the current user
 export const getUserBookings = async (req, res) => {
   try {
-    const userId = req.user.id; // Get from authenticated user
+    // Find bookings for the current user
+    const bookings = await Booking.find({ userId: req.user.id })
+      .populate('bunkId', 'name location') // Populate bunk details
+      .sort({ startTime: -1 }); // Sort by startTime descending (newest first)
     
-    const bookings = await Booking.find({ userId })
-      .populate('bunkId', 'name location') // Get bunk details
-      .sort({ slotTime: 1 }); // Sort by slot time
-      
-    res.status(200).json({ success: true, bookings });
+    res.json({ success: true, data: bookings });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('Error in getUserBookings:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
   }
 };
 
 // Cancel a booking
 export const cancelBooking = async (req, res) => {
   try {
-    const booking = await Booking.findById(req.params.id);
+    const { id } = req.params;
+    
+    // Find the booking
+    const booking = await Booking.findById(id);
     
     if (!booking) {
-      return res.status(404).json({ success: false, message: "Booking not found" });
+      return res.status(404).json({ success: false, message: 'Booking not found' });
     }
     
-    // Check if user owns this booking
+    // Check if the booking belongs to the current user
     if (booking.userId.toString() !== req.user.id) {
-      return res.status(401).json({ success: false, message: "Not authorized" });
+      return res.status(403).json({ success: false, message: 'Not authorized to cancel this booking' });
     }
     
+    // Check if booking is already cancelled or completed
+    if (booking.status === 'cancelled' || booking.status === 'completed') {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Booking already ${booking.status}` 
+      });
+    }
+    
+    // Update booking status
     booking.status = 'cancelled';
     await booking.save();
     
-    res.status(200).json({ success: true, booking });
+    res.json({ 
+      success: true, 
+      message: 'Booking cancelled successfully',
+      data: booking
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('Error in cancelBooking:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
   }
 };
 
 // Reschedule a booking
 export const rescheduleBooking = async (req, res) => {
   try {
-    const { newSlotTime } = req.body;
-    const booking = await Booking.findById(req.params.id);
+    const { id } = req.params;
+    const { startTime, endTime } = req.body;
     
-    if (!booking) {
-      return res.status(404).json({ success: false, message: "Booking not found" });
-    }
-    
-    // Check if user owns this booking
-    if (booking.userId.toString() !== req.user.id) {
-      return res.status(401).json({ success: false, message: "Not authorized" });
-    }
-    
-    // Check if new slot is available
-    const existingBooking = await Booking.findOne({
-      bunkId: booking.bunkId,
-      slotTime: newSlotTime,
-      status: 'booked',
-      _id: { $ne: booking._id } // Exclude current booking
-    });
-    
-    if (existingBooking) {
+    if (!startTime || !endTime) {
       return res.status(400).json({ 
         success: false, 
-        message: "New slot is already booked" 
+        message: 'Start time and end time are required' 
       });
     }
     
-    booking.slotTime = newSlotTime;
-    booking.status = 'rescheduled';
+    // Find the booking
+    const booking = await Booking.findById(id);
+    
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Booking not found' });
+    }
+    
+    // Check if the booking belongs to the current user
+    if (booking.userId.toString() !== req.user.id) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Not authorized to reschedule this booking' 
+      });
+    }
+    
+    // Check if booking is already cancelled or completed
+    if (booking.status === 'cancelled' || booking.status === 'completed') {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Cannot reschedule a ${booking.status} booking` 
+      });
+    }
+    
+    // Update booking times
+    booking.startTime = startTime;
+    booking.endTime = endTime;
     await booking.save();
     
-    res.status(200).json({ success: true, booking });
+    // Return the updated booking with populated bunk details
+    const updatedBooking = await Booking.findById(id).populate('bunkId', 'name location');
+    
+    res.json({ 
+      success: true, 
+      message: 'Booking rescheduled successfully',
+      data: updatedBooking
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('Error in rescheduleBooking:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
   }
 };
 
-// Check if a slot is available for booking
+// Check if a slot is available
 export const checkSlotAvailability = async (req, res) => {
   try {
-    const { bunkId, slotTime } = req.body;
+    const { bunkId, startTime, endTime } = req.body;
     
-    // Check if any booking exists at that slot
-    const existingBooking = await Booking.findOne({
-      bunkId,
-      slotTime,
-      status: 'booked',
-    });
-    
-    if (existingBooking) {
-      return res.status(200).json({ 
-        available: false, 
-        message: "Slot already booked" 
+    if (!bunkId || !startTime || !endTime) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Bunk ID, start time, and end time are required' 
       });
     }
     
-    res.status(200).json({ available: true });
-  } catch (error) {
-    res.status(500).json({ 
-      available: false, 
-      message: error.message 
+    // Check for overlapping bookings
+    const overlappingBookings = await Booking.find({
+      bunkId,
+      status: 'active',
+      $or: [
+        // Case 1: startTime falls within an existing booking
+        { startTime: { $lte: startTime }, endTime: { $gt: startTime } },
+        // Case 2: endTime falls within an existing booking
+        { startTime: { $lt: endTime }, endTime: { $gte: endTime } },
+        // Case 3: booking entirely contains the time period
+        { startTime: { $gte: startTime }, endTime: { $lte: endTime } }
+      ]
     });
+    
+    const isAvailable = overlappingBookings.length === 0;
+    
+    res.json({ 
+      success: true, 
+      data: { 
+        available: isAvailable,
+        conflictingBookings: isAvailable ? [] : overlappingBookings
+      }
+    });
+  } catch (error) {
+    console.error('Error in checkSlotAvailability:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
   }
 };
 
-// Get available slots for a bunk
+// Get available slots for a specific bunk and date
 export const getAvailableSlots = async (req, res) => {
   try {
     const { bunkId, date } = req.params;
     
-    // Get the bunk to check its operating hours
-    const bunk = await Bunk.findById(bunkId);
-    if (!bunk) {
-      return res.status(404).json({ success: false, message: "Bunk not found" });
+    if (!bunkId || !date) {
+      return res.status(400).json({ success: false, message: 'Bunk ID and date are required' });
     }
     
-    // Get start and end of the requested date
-    const startDate = new Date(date);
-    startDate.setHours(0, 0, 0, 0);
+    // Parse the date and create start/end of day
+    const selectedDate = new Date(date);
+    if (isNaN(selectedDate.getTime())) {
+      return res.status(400).json({ success: false, message: 'Invalid date format' });
+    }
     
-    const endDate = new Date(date);
-    endDate.setHours(23, 59, 59, 999);
+    const startOfDay = new Date(selectedDate);
+    startOfDay.setHours(0, 0, 0, 0);
     
-    // Get all bookings for this bunk on this date
+    const endOfDay = new Date(selectedDate);
+    endOfDay.setHours(23, 59, 59, 999);
+    
+    // Find all bookings for the bunk on the selected date
     const bookings = await Booking.find({
       bunkId,
-      status: 'booked',
-      slotTime: {
-        $gte: startDate.toISOString().split('T')[0],
-        $lte: endDate.toISOString().split('T')[0]
-      }
-    });
+      status: 'active',
+      $or: [
+        // Start time falls on the selected date
+        { startTime: { $gte: startOfDay, $lte: endOfDay } },
+        // End time falls on the selected date
+        { endTime: { $gte: startOfDay, $lte: endOfDay } },
+        // Booking spans over the selected date
+        { startTime: { $lte: startOfDay }, endTime: { $gte: endOfDay } }
+      ]
+    }).sort({ startTime: 1 });
     
-    // Assuming slots are 30 minutes each and bunk operates from 6AM to 10PM
-    const startHour = 6; // 6 AM
-    const endHour = 22; // 10 PM
-    const slotDuration = 30; // minutes
-    
-    // Generate all possible slots
-    const allSlots = [];
-    for (let hour = startHour; hour < endHour; hour++) {
-      for (let minute = 0; minute < 60; minute += slotDuration) {
-        const slotTime = `${date}T${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-        allSlots.push(slotTime);
-      }
+    // Fetch bunk operating hours (assuming there's a Bunk model with these fields)
+    const bunk = await Bunk.findById(bunkId);
+    if (!bunk) {
+      return res.status(404).json({ success: false, message: 'Bunk not found' });
     }
     
-    // Filter out booked slots
-    const bookedSlotTimes = bookings.map(booking => booking.slotTime);
-    const availableSlots = allSlots.filter(slot => !bookedSlotTimes.includes(slot));
-    
-    res.status(200).json({ success: true, availableSlots });
+    // Return both the bookings and bunk info
+    res.json({
+      success: true,
+      data: {
+        bookings,
+        bunkInfo: {
+          name: bunk.name,
+          operatingHours: bunk.operatingHours || {
+            open: '09:00', // Default open time if not specified
+            close: '18:00'  // Default close time if not specified
+          }
+        }
+      }
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('Error in getAvailableSlots:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
   }
 };

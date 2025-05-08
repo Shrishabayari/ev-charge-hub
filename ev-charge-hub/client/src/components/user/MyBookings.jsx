@@ -1,7 +1,48 @@
 // components/user/MyBookings.js
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 
-const UserBookings = ({ bookings }) => {
+const UserBookings = () => {
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch bookings when component mounts
+  useEffect(() => {
+    const fetchBookings = async () => {
+      try {
+        setLoading(true);
+        // Get the auth token from localStorage or your auth context
+        const token = localStorage.getItem('token');
+        
+        if (!token) {
+          throw new Error('Authentication required');
+        }
+
+        const response = await axios.get('/api/bookings/user', {
+          headers: {
+            'x-auth-token': token
+          }
+        });
+
+        // Check if response has the expected structure
+        if (response.data && response.data.success && Array.isArray(response.data.data)) {
+          setBookings(response.data.data);
+        } else {
+          console.error('Unexpected API response format:', response.data);
+          setError('Received unexpected data format from server');
+        }
+      } catch (err) {
+        console.error('Error fetching bookings:', err);
+        setError(err.response?.data?.message || err.message || 'Failed to load bookings');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBookings();
+  }, []);
+
   // Helper function to format dates in a readable way
   const formatDate = (dateString) => {
     try {
@@ -42,6 +83,62 @@ const UserBookings = ({ bookings }) => {
     }
   };
 
+  // Handle booking cancellation
+  const handleCancelBooking = async (bookingId) => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        throw new Error('Authentication required');
+      }
+      
+      const response = await axios.put(`/api/bookings/cancel/${bookingId}`, {}, {
+        headers: {
+          'x-auth-token': token
+        }
+      });
+      
+      if (response.data && response.data.success) {
+        // Update the bookings state to reflect cancellation
+        setBookings(prevBookings => 
+          prevBookings.map(booking => 
+            booking._id === bookingId 
+              ? { ...booking, status: 'cancelled' } 
+              : booking
+          )
+        );
+      }
+    } catch (err) {
+      console.error('Error cancelling booking:', err);
+      alert(err.response?.data?.message || 'Failed to cancel booking');
+    }
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="text-gray-600">Loading your bookings...</div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="bg-red-50 p-4 rounded-lg text-center">
+        <h3 className="text-red-800 font-medium mb-2">Something went wrong</h3>
+        <p className="text-red-700">{error}</p>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="mt-4 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-md"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
+
   // If no bookings
   if (!bookings || bookings.length === 0) {
     return (
@@ -57,6 +154,11 @@ const UserBookings = ({ bookings }) => {
     );
   }
 
+  // Safe access to properties using optional chaining
+  const getBookingName = (booking) => {
+    return booking?.bunkId?.name || 'Unknown Station';
+  };
+
   return (
     <div>
       {/* Upcoming bookings section */}
@@ -71,7 +173,7 @@ const UserBookings = ({ bookings }) => {
                   <div key={booking._id} className="p-4 hover:bg-gray-50 transition-colors">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="font-medium">{booking.bunkId?.name || 'Unknown Station'}</h3>
+                        <h3 className="font-medium">{getBookingName(booking)}</h3>
                         <div className="text-sm text-gray-500 mt-1">
                           <div>Start: {formatDate(booking.startTime)}</div>
                           <div>End: {formatDate(booking.endTime)}</div>
@@ -85,14 +187,14 @@ const UserBookings = ({ bookings }) => {
                         
                         {booking.status === 'active' && (
                           <div className="flex space-x-2">
-                            <button
-                              onClick={() => window.location.href = `/user/bookings/reschedule/${booking._id}`}
+                            <a
+                              href={`/user/bookings/reschedule/${booking._id}`}
                               className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
                             >
                               Reschedule
-                            </button>
+                            </a>
                             <button
-                              onClick={() => window.location.href = `/user/bookings/cancel/${booking._id}`}
+                              onClick={() => handleCancelBooking(booking._id)}
                               className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700"
                             >
                               Cancel
@@ -124,7 +226,7 @@ const UserBookings = ({ bookings }) => {
                   <div key={booking._id} className="p-4 hover:bg-gray-50 transition-colors">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="font-medium">{booking.bunkId?.name || 'Unknown Station'}</h3>
+                        <h3 className="font-medium">{getBookingName(booking)}</h3>
                         <div className="text-sm text-gray-500 mt-1">
                           <div>Start: {formatDate(booking.startTime)}</div>
                           <div>End: {formatDate(booking.endTime)}</div>
