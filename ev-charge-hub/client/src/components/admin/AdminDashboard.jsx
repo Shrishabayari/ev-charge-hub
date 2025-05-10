@@ -41,8 +41,6 @@ const AdminDashboard = () => {
         <button onClick={handleViewBookingSlots} className="bg-purple-500 text-white p-3 rounded">
           View Booking Slots
         </button>
-        <button onClick={handleViewMyBookings} className="bg-yellow-500 text-white p-3 rounded">
-        </button>
         <button onClick={handleViewAdminBookings} className="bg-red-500 text-white p-3 rounded">
           View Admin Bookings
         </button>
