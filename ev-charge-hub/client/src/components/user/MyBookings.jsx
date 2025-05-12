@@ -18,34 +18,73 @@ const UserBookings = () => {
           return;
         }
     
+        console.log('Token being used:', token); // Log the token
+    
         const response = await axios.get('/api/bookings/user', {
           headers: {
             'Authorization': `Bearer ${token}`,
-            'x-auth-token': token
+            'x-auth-token': token,
+            // Add this to prevent 304 caching
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache',
+            'Expires': '0'
           }
         });
     
-        // More robust response validation
-        console.log('Raw API Response:', response.data);
-        
-        if (!response.data || !response.data.success) {
-          throw new Error(response.data.message || 'Invalid server response');
+        console.log('Full API Response:', response);
+        console.log('Response Data:', response.data);
+    
+        // More aggressive validation
+        if (!response.data) {
+          throw new Error('No data received from server');
         }
     
-        // Validate data structure
+        if (!response.data.success) {
+          throw new Error(response.data.message || 'Server returned unsuccessful response');
+        }
+    
         if (!Array.isArray(response.data.data)) {
-          throw new Error('Unexpected data format');
+          console.error('Invalid data structure:', response.data);
+          throw new Error('Invalid data format received from server');
         }
     
         setBookings(response.data.data);
+        setError(null);
       } catch (err) {
         console.error('Complete Booking Fetch Error:', {
-          errorResponse: err.response,
+          errorObject: err,
+          errorName: err.name,
           errorMessage: err.message,
-          errorName: err.name
+          responseData: err.response?.data,
+          responseStatus: err.response?.status
         });
     
-        setError(err.message || 'Failed to load bookings');
+        // More detailed error handling
+        if (err.response) {
+          // The request was made and the server responded with a status code
+          switch (err.response.status) {
+            case 401:
+              setError('Unauthorized. Please log in again.');
+              break;
+            case 403:
+              setError('You do not have permission to view bookings.');
+              break;
+            case 404:
+              setError('Bookings endpoint not found.');
+              break;
+            case 500:
+              setError('Server error. Please try again later.');
+              break;
+            default:
+              setError(err.response.data.message || 'An unexpected error occurred.');
+          }
+        } else if (err.request) {
+          // The request was made but no response was received
+          setError('No response from server. Check your network connection.');
+        } else {
+          // Something happened in setting up the request
+          setError(err.message || 'Error setting up the request.');
+        }
       } finally {
         setLoading(false);
       }

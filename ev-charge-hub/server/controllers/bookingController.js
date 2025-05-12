@@ -64,26 +64,49 @@ export const createBooking = async (req, res) => {
 export const getUserBookings = async (req, res) => {
   try {
     // Extensive logging to understand the exact data
-    console.log('Authenticated User ID:', req.user.id);
+    console.log('Authenticated User Details:', {
+      userId: req.user.id,
+      userEmail: req.user.email // Add more user details if available
+    });
     
+    // Ensure user ID is valid
+    if (!req.user.id) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid user authentication' 
+      });
+    }
+
     const bookings = await Booking.find({ userId: req.user.id })
-      .populate('bunkId', 'name location')
+      .populate({
+        path: 'bunkId',
+        select: 'name location' // Explicitly select fields to populate
+      })
       .sort({ startTime: -1 });
     
-    console.log('Raw Bookings:', JSON.stringify(bookings, null, 2));
+    console.log('Fetched Bookings:', {
+      count: bookings.length,
+      bookingIds: bookings.map(b => b._id)
+    });
     
-    // Ensure consistent response structure
-    res.json({
+    // Ensure data is serializable
+    const serializedBookings = bookings.map(booking => ({
+      _id: booking._id.toString(),
+      userId: booking.userId.toString(),
+      bunkId: booking.bunkId ? {
+        _id: booking.bunkId._id.toString(),
+        name: booking.bunkId.name,
+        location: booking.bunkId.location
+      } : null,
+      startTime: booking.startTime,
+      endTime: booking.endTime,
+      status: booking.status,
+      createdAt: booking.createdAt
+    }));
+
+    res.json({ 
       success: true,
-      data: bookings.map(booking => ({
-        _id: booking._id,
-        userId: booking.userId,
-        bunkId: booking.bunkId,
-        startTime: booking.startTime,
-        endTime: booking.endTime,
-        status: booking.status,
-        createdAt: booking.createdAt
-      }))
+      data: serializedBookings
     });
   } catch (error) {
     console.error('Detailed Booking Fetch Error:', {
