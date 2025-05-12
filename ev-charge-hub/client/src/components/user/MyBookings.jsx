@@ -11,30 +11,41 @@ const UserBookings = () => {
   useEffect(() => {
     const fetchBookings = async () => {
       try {
-        setLoading(true);
-        // Get the auth token from localStorage or your auth context
         const token = localStorage.getItem('token');
         
         if (!token) {
-          throw new Error('Authentication required');
+          setError('Authentication token missing');
+          return;
         }
-
+    
         const response = await axios.get('/api/bookings/user', {
           headers: {
+            'Authorization': `Bearer ${token}`,
             'x-auth-token': token
           }
         });
-
-        // Check if response has the expected structure
-        if (response.data && response.data.success && Array.isArray(response.data.data)) {
-          setBookings(response.data.data);
-        } else {
-          console.error('Unexpected API response format:', response.data);
-          setError('Received unexpected data format from server');
+    
+        // More robust response validation
+        console.log('Raw API Response:', response.data);
+        
+        if (!response.data || !response.data.success) {
+          throw new Error(response.data.message || 'Invalid server response');
         }
+    
+        // Validate data structure
+        if (!Array.isArray(response.data.data)) {
+          throw new Error('Unexpected data format');
+        }
+    
+        setBookings(response.data.data);
       } catch (err) {
-        console.error('Error fetching bookings:', err);
-        setError(err.response?.data?.message || err.message || 'Failed to load bookings');
+        console.error('Complete Booking Fetch Error:', {
+          errorResponse: err.response,
+          errorMessage: err.message,
+          errorName: err.name
+        });
+    
+        setError(err.message || 'Failed to load bookings');
       } finally {
         setLoading(false);
       }

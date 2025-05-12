@@ -61,18 +61,42 @@ export const createBooking = async (req, res) => {
   }
 };
 
-// Get all bookings for the current user
 export const getUserBookings = async (req, res) => {
   try {
-    // Find bookings for the current user
-    const bookings = await Booking.find({ userId: req.user.id })
-      .populate('bunkId', 'name location') // Populate bunk details
-      .sort({ startTime: -1 }); // Sort by startTime descending (newest first)
+    // Extensive logging to understand the exact data
+    console.log('Authenticated User ID:', req.user.id);
     
-    res.json({ success: true, data: bookings });
+    const bookings = await Booking.find({ userId: req.user.id })
+      .populate('bunkId', 'name location')
+      .sort({ startTime: -1 });
+    
+    console.log('Raw Bookings:', JSON.stringify(bookings, null, 2));
+    
+    // Ensure consistent response structure
+    res.json({
+      success: true,
+      data: bookings.map(booking => ({
+        _id: booking._id,
+        userId: booking.userId,
+        bunkId: booking.bunkId,
+        startTime: booking.startTime,
+        endTime: booking.endTime,
+        status: booking.status,
+        createdAt: booking.createdAt
+      }))
+    });
   } catch (error) {
-    console.error('Error in getUserBookings:', error);
-    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+    console.error('Detailed Booking Fetch Error:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+    
+    res.status(500).json({ 
+      success: false, 
+      message: 'Unable to fetch bookings',
+      error: error.message 
+    });
   }
 };
 
