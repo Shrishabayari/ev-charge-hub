@@ -63,40 +63,31 @@ export const createBooking = async (req, res) => {
 
 export const getUserBookings = async (req, res) => {
   try {
-    // Extensive logging to understand the exact data
-    console.log('Authenticated User Details:', {
-      userId: req.user.id,
-      userEmail: req.user.email // Add more user details if available
-    });
-    
-    // Ensure user ID is valid
-    if (!req.user.id) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Invalid user authentication' 
+    // More robust user ID validation
+    if (!req.user || !req.user.id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid user authentication'
       });
     }
 
+    // Fetch bookings with comprehensive population
     const bookings = await Booking.find({ userId: req.user.id })
       .populate({
         path: 'bunkId',
-        select: 'name location' // Explicitly select fields to populate
+        select: 'name location _id'
       })
-      .sort({ startTime: -1 });
-    
-    console.log('Fetched Bookings:', {
-      count: bookings.length,
-      bookingIds: bookings.map(b => b._id)
-    });
-    
-    // Ensure data is serializable
-    const serializedBookings = bookings.map(booking => ({
+      .sort({ startTime: -1 })
+      .lean(); // Convert to plain JavaScript object
+
+    // Explicit JSON serialization
+    const sanitizedBookings = bookings.map(booking => ({
       _id: booking._id.toString(),
       userId: booking.userId.toString(),
       bunkId: booking.bunkId ? {
         _id: booking.bunkId._id.toString(),
-        name: booking.bunkId.name,
-        location: booking.bunkId.location
+        name: booking.bunkId.name || 'Unknown Station',
+        location: booking.bunkId.location || 'Not specified'
       } : null,
       startTime: booking.startTime,
       endTime: booking.endTime,
@@ -104,17 +95,18 @@ export const getUserBookings = async (req, res) => {
       createdAt: booking.createdAt
     }));
 
+    // Send response with explicit JSON serialization
     res.json({ 
       success: true,
-      data: serializedBookings
+      data: sanitizedBookings
     });
   } catch (error) {
-    console.error('Detailed Booking Fetch Error:', {
+    console.error('Booking Fetch Error:', {
       message: error.message,
-      stack: error.stack,
-      name: error.name
+      name: error.name,
+      stack: error.stack
     });
-    
+
     res.status(500).json({ 
       success: false, 
       message: 'Unable to fetch bookings',
