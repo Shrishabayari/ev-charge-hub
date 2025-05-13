@@ -61,57 +61,18 @@ export const createBooking = async (req, res) => {
   }
 };
 
+// Get all bookings for the current user
 export const getUserBookings = async (req, res) => {
   try {
-    // More robust user ID validation
-    if (!req.user || !req.user.id) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid user authentication'
-      });
-    }
-
-    // Fetch bookings with comprehensive population
+    // Find bookings for the current user
     const bookings = await Booking.find({ userId: req.user.id })
-      .populate({
-        path: 'bunkId',
-        select: 'name location _id'
-      })
-      .sort({ startTime: -1 })
-      .lean(); // Convert to plain JavaScript object
-
-    // Explicit JSON serialization
-    const sanitizedBookings = bookings.map(booking => ({
-      _id: booking._id.toString(),
-      userId: booking.userId.toString(),
-      bunkId: booking.bunkId ? {
-        _id: booking.bunkId._id.toString(),
-        name: booking.bunkId.name || 'Unknown Station',
-        location: booking.bunkId.location || 'Not specified'
-      } : null,
-      startTime: booking.startTime,
-      endTime: booking.endTime,
-      status: booking.status,
-      createdAt: booking.createdAt
-    }));
-
-    // Send response with explicit JSON serialization
-    res.json({ 
-      success: true,
-      data: sanitizedBookings
-    });
+      .populate('bunkId', 'name location') // Populate bunk details
+      .sort({ startTime: -1 }); // Sort by startTime descending (newest first)
+    
+    res.json({ success: true, data: bookings });
   } catch (error) {
-    console.error('Booking Fetch Error:', {
-      message: error.message,
-      name: error.name,
-      stack: error.stack
-    });
-
-    res.status(500).json({ 
-      success: false, 
-      message: 'Unable to fetch bookings',
-      error: error.message 
-    });
+    console.error('Error in getUserBookings:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
   }
 };
 
