@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import UserBookings from '../../components/user/MyBookings';
 
-const MyBookings = () => {
+const MyBookingsPage = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -42,7 +42,9 @@ const MyBookings = () => {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
           }
         });
         
@@ -74,20 +76,33 @@ const MyBookings = () => {
         }
 
         // Parse the successful response
-        const data = await response.json();
-        console.log('Bookings data received:', data.length); // Debug log
+        const result = await response.json();
+        console.log('API response received:', result);
         
-        // Check if the response is an array (expected format)
-        if (!Array.isArray(data)) {
-          console.error('API did not return an array:', data);
+        // Handle the nested data structure correctly
+        let bookingsData;
+        
+        // Check if the data is properly structured with success and data fields
+        if (result && result.success && Array.isArray(result.data)) {
+          bookingsData = result.data;
+          console.log('Bookings data extracted from nested structure:', bookingsData.length);
+        }
+        // Check if it's directly an array
+        else if (Array.isArray(result)) {
+          bookingsData = result;
+          console.log('Bookings data is directly an array:', bookingsData.length);
+        }
+        // Invalid format
+        else {
+          console.error('API did not return expected data format:', result);
           setDebugInfo({
-            receivedData: data,
-            dataType: typeof data
+            receivedData: result,
+            dataType: typeof result
           });
           throw new Error('Invalid data format received from server');
         }
         
-        setBookings(data);
+        setBookings(bookingsData);
         setLoading(false);
       } catch (err) {
         console.error('Error fetching bookings:', err);
@@ -105,6 +120,47 @@ const MyBookings = () => {
     setError(null);
     // This will trigger the useEffect hook to run again
     setUseMockData(useMockData); 
+  };
+
+  // Handle booking cancellation at the page level
+  const handleCancelBooking = async (bookingId) => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        throw new Error('Authentication required');
+      }
+      
+      const response = await fetch(`/api/bookings/cancel/${bookingId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to cancel booking');
+      }
+      
+      const result = await response.json();
+      
+      if (result && result.success) {
+        // Update the bookings state to reflect cancellation
+        setBookings(prevBookings => 
+          prevBookings.map(booking => 
+            booking._id === bookingId 
+              ? { ...booking, status: 'cancelled' } 
+              : booking
+          )
+        );
+      } else {
+        throw new Error(result.message || 'Failed to cancel booking');
+      }
+    } catch (err) {
+      console.error('Error cancelling booking:', err);
+      alert(err.message || 'Failed to cancel booking');
+    }
   };
 
   return (
@@ -185,7 +241,10 @@ const MyBookings = () => {
             )}
           </div>
         ) : (
-          <UserBookings bookings={bookings} />
+          <UserBookings 
+            bookings={bookings} 
+            onCancelBooking={handleCancelBooking} 
+          />
         )}
 
         <div className="mt-8 bg-blue-50 p-4 rounded-md">
@@ -237,4 +296,4 @@ const MOCK_BOOKINGS = [
   }
 ];
 
-export default MyBookings;
+export default MyBookingsPage;
