@@ -1,4 +1,3 @@
-// controllers/bookingController.js
 import Booking from '../models/Booking.js';
 import Bunk from '../models/EvBunkSchema.js';
 import { validationResult } from 'express-validator';
@@ -28,7 +27,21 @@ export const createBooking = async (req, res) => {
       return res.status(400).json({ success: false, errors: errors.array() });
     }
 
-    const { bunkId, startTime, endTime } = req.body;
+    // Handle both formats of request body
+    const { bunkId, slotTime, startTime, endTime } = req.body;
+    
+    // If slotTime is provided, parse it to get startTime and endTime
+    let bookingStartTime = startTime;
+    let bookingEndTime = endTime;
+    
+    if (slotTime && !startTime) {
+      // Parse the slot time to get start time
+      bookingStartTime = new Date(slotTime);
+      
+      // Assume each slot is 1 hour
+      bookingEndTime = new Date(bookingStartTime);
+      bookingEndTime.setHours(bookingEndTime.getHours() + 1);
+    }
     
     // Check if bunk exists
     const bunk = await Bunk.findById(bunkId);
@@ -40,15 +53,16 @@ export const createBooking = async (req, res) => {
     const newBooking = new Booking({
       userId: req.user.id, // From auth middleware
       bunkId,
-      startTime,
-      endTime,
+      startTime: bookingStartTime,
+      endTime: bookingEndTime,
       status: 'active'
     });
     
     const savedBooking = await newBooking.save();
     
     // Populate the bunk details in the response
-    const populatedBooking = await Booking.findById(savedBooking._id).populate('bunkId', 'name location');
+    const populatedBooking = await Booking.findById(savedBooking._id)
+      .populate('bunkId', 'name address');
     
     res.status(201).json({ 
       success: true, 
@@ -75,10 +89,10 @@ export const getUserBookings = async (req, res) => {
     const bookings = await Booking.find({ userId: req.user.id })
       .populate({
         path: 'bunkId',
-        select: 'name location _id'
+        select: 'name address _id'
       })
       .sort({ startTime: -1 })
-      .lean(); // Convert to plain JavaScript object
+      .lean();
 
     // Explicit JSON serialization
     const sanitizedBookings = bookings.map(booking => ({
@@ -87,7 +101,7 @@ export const getUserBookings = async (req, res) => {
       bunkId: booking.bunkId ? {
         _id: booking.bunkId._id.toString(),
         name: booking.bunkId.name || 'Unknown Station',
-        location: booking.bunkId.location || 'Not specified'
+        location: booking.bunkId.address || 'Not specified'
       } : null,
       startTime: booking.startTime,
       endTime: booking.endTime,
@@ -159,9 +173,21 @@ export const cancelBooking = async (req, res) => {
 export const rescheduleBooking = async (req, res) => {
   try {
     const { id } = req.params;
-    const { startTime, endTime } = req.body;
+    const { startTime, endTime, slotTime } = req.body;
     
-    if (!startTime || !endTime) {
+    let bookingStartTime = startTime;
+    let bookingEndTime = endTime;
+    
+    if (slotTime && !startTime) {
+      // Parse the slot time to get start time
+      bookingStartTime = new Date(slotTime);
+      
+      // Assume each slot is 1 hour
+      bookingEndTime = new Date(bookingStartTime);
+      bookingEndTime.setHours(bookingEndTime.getHours() + 1);
+    }
+    
+    if (!bookingStartTime || !bookingEndTime) {
       return res.status(400).json({ 
         success: false, 
         message: 'Start time and end time are required' 
@@ -192,12 +218,12 @@ export const rescheduleBooking = async (req, res) => {
     }
     
     // Update booking times
-    booking.startTime = startTime;
-    booking.endTime = endTime;
+    booking.startTime = bookingStartTime;
+    booking.endTime = bookingEndTime;
     await booking.save();
     
     // Return the updated booking with populated bunk details
-    const updatedBooking = await Booking.findById(id).populate('bunkId', 'name location');
+    const updatedBooking = await Booking.findById(id).populate('bunkId', 'name address');
     
     res.json({ 
       success: true, 
@@ -213,9 +239,21 @@ export const rescheduleBooking = async (req, res) => {
 // Check if a slot is available
 export const checkSlotAvailability = async (req, res) => {
   try {
-    const { bunkId, startTime, endTime } = req.body;
+    const { bunkId, startTime, endTime, slotTime } = req.body;
     
-    if (!bunkId || !startTime || !endTime) {
+    let bookingStartTime = startTime;
+    let bookingEndTime = endTime;
+    
+    if (slotTime && !startTime) {
+      // Parse the slot time to get start time
+      bookingStartTime = new Date(slotTime);
+      
+      // Assume each slot is 1 hour
+      bookingEndTime = new Date(bookingStartTime);
+      bookingEndTime.setHours(bookingEndTime.getHours() + 1);
+    }
+    
+    if (!bunkId || !bookingStartTime || !bookingEndTime) {
       return res.status(400).json({ 
         success: false, 
         message: 'Bunk ID, start time, and end time are required' 
@@ -228,11 +266,11 @@ export const checkSlotAvailability = async (req, res) => {
       status: 'active',
       $or: [
         // Case 1: startTime falls within an existing booking
-        { startTime: { $lte: startTime }, endTime: { $gt: startTime } },
+        { startTime: { $lte: bookingStartTime }, endTime: { $gt: bookingStartTime } },
         // Case 2: endTime falls within an existing booking
-        { startTime: { $lt: endTime }, endTime: { $gte: endTime } },
+        { startTime: { $lt: bookingEndTime }, endTime: { $gte: bookingEndTime } },
         // Case 3: booking entirely contains the time period
-        { startTime: { $gte: startTime }, endTime: { $lte: endTime } }
+        { startTime: { $gte: bookingStartTime }, endTime: { $lte: bookingEndTime } }
       ]
     });
     
@@ -251,7 +289,6 @@ export const checkSlotAvailability = async (req, res) => {
   }
 };
 
-// Get available slots for a specific bunk and date
 export const getAvailableSlots = async (req, res) => {
   try {
     const { bunkId, date } = req.params;
@@ -272,37 +309,86 @@ export const getAvailableSlots = async (req, res) => {
     const endOfDay = new Date(selectedDate);
     endOfDay.setHours(23, 59, 59, 999);
     
-    // Find all bookings for the bunk on the selected date
-    const bookings = await Booking.find({
-      bunkId,
-      status: 'active',
-      $or: [
-        // Start time falls on the selected date
-        { startTime: { $gte: startOfDay, $lte: endOfDay } },
-        // End time falls on the selected date
-        { endTime: { $gte: startOfDay, $lte: endOfDay } },
-        // Booking spans over the selected date
-        { startTime: { $lte: startOfDay }, endTime: { $gte: endOfDay } }
-      ]
-    }).sort({ startTime: 1 });
-    
-    // Fetch bunk operating hours (assuming there's a Bunk model with these fields)
+    // Find the bunk first to check if it exists
     const bunk = await Bunk.findById(bunkId);
     if (!bunk) {
       return res.status(404).json({ success: false, message: 'Bunk not found' });
     }
     
-    // Return both the bookings and bunk info
+    // Find all active bookings for this bunk on this date
+    const bookings = await Booking.find({
+      bunkId,
+      status: 'active',
+      $or: [
+        { startTime: { $gte: startOfDay, $lte: endOfDay } },
+        { endTime: { $gte: startOfDay, $lte: endOfDay } },
+        { startTime: { $lte: startOfDay }, endTime: { $gte: endOfDay } }
+      ]
+    }).sort({ startTime: 1 });
+    
+    // Default operating hours if not specified
+    let operatingHours = bunk.operatingHours || "09:00-18:00";
+    
+    console.log("Operating hours:", operatingHours); // Debug log
+    
+    // Parse operating hours
+    let [openTime, closeTime] = operatingHours.split('-');
+    if (!openTime || !closeTime) {
+      openTime = "09:00";
+      closeTime = "18:00";
+    }
+    
+    const [openHour, openMinute] = openTime.split(':').map(Number);
+    const [closeHour, closeMinute] = closeTime.split(':').map(Number);
+    
+    // Generate time slots (1-hour slots)
+    const availableSlots = [];
+    const startTime = new Date(selectedDate);
+    startTime.setHours(openHour, openMinute, 0, 0);
+    
+    const endTime = new Date(selectedDate);
+    endTime.setHours(closeHour, closeMinute, 0, 0);
+    
+    // Create slots every hour
+    while (startTime < endTime) {
+      const currentSlotStart = new Date(startTime);
+      const currentSlotEnd = new Date(startTime);
+      currentSlotEnd.setHours(currentSlotStart.getHours() + 1);
+      
+      // Check if this time slot conflicts with any booking
+      const isBooked = bookings.some(booking => {
+        const bookingStart = new Date(booking.startTime);
+        const bookingEnd = new Date(booking.endTime);
+        
+        return (
+          // Slot start time falls within booking
+          (currentSlotStart >= bookingStart && currentSlotStart < bookingEnd) ||
+          // Slot end time falls within booking
+          (currentSlotEnd > bookingStart && currentSlotEnd <= bookingEnd) ||
+          // Booking is fully contained in slot
+          (currentSlotStart <= bookingStart && currentSlotEnd >= bookingEnd)
+        );
+      });
+      
+      if (!isBooked) {
+        // Add as available slot
+        availableSlots.push(currentSlotStart.toISOString());
+      }
+      
+      // Move to next slot
+      startTime.setHours(startTime.getHours() + 1);
+    }
+    
+    console.log(`Generated ${availableSlots.length} available slots`); // Debug log
+    
     res.json({
       success: true,
       data: {
         bookings,
+        availableSlots, // These are the slots that are available
         bunkInfo: {
           name: bunk.name,
-          operatingHours: bunk.operatingHours || {
-            open: '09:00', // Default open time if not specified
-            close: '18:00'  // Default close time if not specified
-          }
+          operatingHours
         }
       }
     });

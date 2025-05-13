@@ -1,4 +1,3 @@
-// models/Booking.js
 import mongoose from 'mongoose';
 
 const BookingSchema = new mongoose.Schema({
@@ -9,7 +8,7 @@ const BookingSchema = new mongoose.Schema({
   },
   bunkId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Bunk',
+    ref: 'EvBunk',  // Changed from 'Bunk' to match model name
     required: true
   },
   startTime: {

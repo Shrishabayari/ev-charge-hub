@@ -1,4 +1,3 @@
-// models/EvBunkSchema.js
 import mongoose from 'mongoose';
 
 const evBunkSchema = new mongoose.Schema({
@@ -6,7 +5,7 @@ const evBunkSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  address: {
+  address: {  // Instead of location, used in code
     type: String,
     required: true,
   },
@@ -26,7 +25,7 @@ const evBunkSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
-  operatingHours: {
+  operatingHours: {  // String format like "09:00-18:00"
     type: String,
     required: true,
   },
