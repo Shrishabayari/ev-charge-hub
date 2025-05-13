@@ -1,67 +1,41 @@
-// models/Bunk.js
+// models/EvBunkSchema.js
 import mongoose from 'mongoose';
 
-const OperatingHoursSchema = new mongoose.Schema({
-  open: {
-    type: String,
-    required: true,
-    default: '09:00'
-  },
-  close: {
-    type: String,
-    required: true,
-    default: '18:00'
-  }
-}, { _id: false });
-
-const BunkSchema = new mongoose.Schema({
+const evBunkSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
-    trim: true
   },
-  description: {
-    type: String,
-    required: false,
-    trim: true
-  },
-  location: {
+  address: {
     type: String,
     required: true,
-    trim: true
   },
-  capacity: {
+  phone: {
+    type: String,
+    required: true,
+  },
+  slotsAvailable: {
     type: Number,
     required: true,
-    default: 1
+  },
+  latitude: {
+    type: Number,
+    required: true,
+  },
+  longitude: {
+    type: Number,
+    required: true,
   },
   operatingHours: {
-    type: OperatingHoursSchema,
-    required: true,
-    default: {
-      open: '09:00',
-      close: '18:00'
-    }
-  },
-  amenities: [{
     type: String,
-    trim: true
-  }],
-  isActive: {
-    type: Boolean,
-    default: true
+    required: true,
   },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  }
+  connectorTypes: {
+    type: [String],  // Array of strings
+    required: true,
+  },
 });
 
-// Create indexes for efficient querying
-BunkSchema.index({ name: 1 });
-BunkSchema.index({ location: 1 });
-BunkSchema.index({ isActive: 1 });
+const EvBunk = mongoose.model('EvBunk', evBunkSchema);
 
-const Bunk = mongoose.model('Bunk', BunkSchema);
-
-export default Bunk;
+export default EvBunk;
