@@ -326,20 +326,68 @@ export const getAvailableSlots = async (req, res) => {
       ]
     }).sort({ startTime: 1 });
     
-    // Default operating hours if not specified
+    // Get operating hours from the bunk or use default
     let operatingHours = bunk.operatingHours || "09:00-18:00";
     
     console.log("Operating hours:", operatingHours); // Debug log
     
-    // Parse operating hours
-    let [openTime, closeTime] = operatingHours.split('-');
-    if (!openTime || !closeTime) {
-      openTime = "09:00";
-      closeTime = "18:00";
-    }
+    // Handle different operating hours formats
+    let openHour = 9;
+    let openMinute = 0;
+    let closeHour = 18;
+    let closeMinute = 0;
     
-    const [openHour, openMinute] = openTime.split(':').map(Number);
-    const [closeHour, closeMinute] = closeTime.split(':').map(Number);
+    // Check if format is "HH:MM-HH:MM"
+    if (operatingHours.includes('-') && !operatingHours.includes('AM') && !operatingHours.includes('PM')) {
+      let [openTime, closeTime] = operatingHours.split('-');
+      if (openTime && closeTime) {
+        [openHour, openMinute] = openTime.trim().split(':').map(Number);
+        [closeHour, closeMinute] = closeTime.trim().split(':').map(Number);
+      }
+    } 
+    // Check if format is "H:MM AM - H:MM PM"
+    else if (operatingHours.includes(' - ') || operatingHours.includes('-')) {
+      let parts = operatingHours.split(' - ');
+      // If the split didn't work, try without spaces
+      if (parts.length !== 2) {
+        parts = operatingHours.split('-');
+      }
+      
+      if (parts.length === 2) {
+        let openTimePart = parts[0].trim();
+        let closeTimePart = parts[1].trim();
+        
+        // Parse opening time
+        let openTimeMatch = openTimePart.match(/(\d+):(\d+)\s*(AM|PM)?/i);
+        if (openTimeMatch) {
+          openHour = parseInt(openTimeMatch[1]);
+          openMinute = parseInt(openTimeMatch[2]);
+          // Handle AM/PM
+          if (openTimeMatch[3] && openTimeMatch[3].toUpperCase() === 'PM' && openHour < 12) {
+            openHour += 12;
+          }
+          if (openTimeMatch[3] && openTimeMatch[3].toUpperCase() === 'AM' && openHour === 12) {
+            openHour = 0;
+          }
+        }
+        
+        // Parse closing time
+        let closeTimeMatch = closeTimePart.match(/(\d+):(\d+)\s*(AM|PM)?/i);
+        if (closeTimeMatch) {
+          closeHour = parseInt(closeTimeMatch[1]);
+          closeMinute = parseInt(closeTimeMatch[2]);
+          // Handle AM/PM
+          if (closeTimeMatch[3] && closeTimeMatch[3].toUpperCase() === 'PM' && closeHour < 12) {
+            closeHour += 12;
+          }
+          if (closeTimeMatch[3] && closeTimeMatch[3].toUpperCase() === 'AM' && closeHour === 12) {
+            closeHour = 0;
+          }
+        }
+      }
+    }
+
+    console.log(`Parsed operating hours: ${openHour}:${openMinute} to ${closeHour}:${closeMinute}`); // Debug log
     
     // Generate time slots (1-hour slots)
     const availableSlots = [];

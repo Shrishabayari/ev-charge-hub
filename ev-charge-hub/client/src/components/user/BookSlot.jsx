@@ -15,7 +15,7 @@ const BookingForm = () => {
     const fetchBunks = async () => {
       try {
         const res = await axios.get("/api/bunks");
-        setBunks(res.data.data || []);
+        setBunks(res.data);
       } catch (err) {
         console.error("Error fetching bunks:", err);
         setMessage({ text: "Failed to load EV bunks", type: "error" });
@@ -32,16 +32,8 @@ const BookingForm = () => {
       
       setLoading(true);
       try {
-        console.log(`Fetching slots for bunk ${selectedBunk} on ${selectedDate}`);
-        
         const res = await axios.get(`/api/bookings/available-slots/${selectedBunk}/${selectedDate}`);
-        console.log("API response:", res.data);
-        
-        // Check the exact structure of the response and adjust accordingly
-        const slots = res.data.data?.availableSlots || [];
-        console.log(`Received ${slots.length} available slots`);
-        
-        setAvailableSlots(slots);
+        setAvailableSlots(res.data.availableSlots || []);
         setSelectedSlot(""); // Reset selected slot
       } catch (err) {
         console.error("Error fetching available slots:", err);
@@ -70,7 +62,7 @@ const BookingForm = () => {
         slotTime: selectedSlot
       });
       
-      if (!checkRes.data.data.available) {
+      if (!checkRes.data.available) {
         setMessage({ text: "Sorry, this slot was just booked. Please select another.", type: "error" });
         return;
       }
@@ -90,7 +82,7 @@ const BookingForm = () => {
       
       // Refresh available slots
       const res = await axios.get(`/api/bookings/available-slots/${selectedBunk}/${selectedDate}`);
-      setAvailableSlots(res.data.data.availableSlots || []);
+      setAvailableSlots(res.data.availableSlots || []);
       
     } catch (err) {
       console.error("Booking error:", err);
@@ -108,13 +100,13 @@ const BookingForm = () => {
   // Format time for display (e.g. "14:30" -> "2:30 PM")
   const formatTimeForDisplay = (isoString) => {
     if (!isoString) return "";
-    const dateObj = new Date(isoString);
-    if (isNaN(dateObj.getTime())) return "";
+    const timePart = isoString.split('T')[1];
+    if (!timePart) return "";
     
-    const hours = dateObj.getHours();
-    const minutes = dateObj.getMinutes().toString().padStart(2, '0');
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    const displayHour = hours % 12 || 12;
+    const [hours, minutes] = timePart.split(':');
+    const hour = parseInt(hours, 10);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour % 12 || 12;
     
     return `${displayHour}:${minutes} ${ampm}`;
   };
@@ -139,7 +131,7 @@ const BookingForm = () => {
             <option value="">Select EV Bunk</option>
             {bunks.map(bunk => (
               <option key={bunk._id} value={bunk._id}>
-                {bunk.name} - {bunk.address}
+                {bunk.name} - {bunk.location}
               </option>
             ))}
           </select>
