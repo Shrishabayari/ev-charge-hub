@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import RescheduleBookingForm from "../../components/user/ResheduleSlot";
+import { useNavigate } from 'react-router-dom';
 
 const BookingsList = () => {
+  const navigate = useNavigate();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -110,7 +112,14 @@ const BookingsList = () => {
   return (
     <div className="max-w-4xl mx-auto p-4">
       <h2 className="text-2xl font-semibold mb-6">Your EV Charging Bookings</h2>
-      
+      <div className="mb-8">
+        <button
+          onClick={() => navigate('/user/bookings/my')}
+          className="py-2 px-4 bg-gray-700 text-white rounded hover:bg-gray-800"
+        >
+          ← Back
+        </button>
+      </div>
       {bookings.length === 0 ? (
         <div className="text-center py-10 bg-gray-50 rounded-lg">
           <p className="text-gray-600">You don't have any active bookings.</p>
