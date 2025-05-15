@@ -14,6 +14,8 @@ import BookSlot from './components/user/BookSlot';
  import NewBooking from './pages/user/NewBooking';
 import MyBookings from './pages/user/MyBooking';
 import AdminBookings from './components/admin/BookingManagement';
+import BookingsList from './components/user/BookingList';
+import RescheduleBookingForm from './components/user/ResheduleSlot';
 
  const App = () => {
   return (
@@ -33,6 +35,8 @@ import AdminBookings from './components/admin/BookingManagement';
         <Route path="/user/book-slot" element={<BookSlot/>} />
         <Route path='/user/bookings/new' element={<NewBooking/>} />
         <Route path='/user/bookings/my' element={<MyBookings/>} />
+        <Route path='/user/bookings/list' element={<BookingsList/>} />
+        <Route path='/user/bookings/reshedule' element={<RescheduleBookingForm/>} />
 
         <Route element={<WebSocketComponent />} />
       </Routes>
