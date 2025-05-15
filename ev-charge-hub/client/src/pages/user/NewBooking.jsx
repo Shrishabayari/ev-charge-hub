@@ -1,10 +1,21 @@
 // src/pages/user/NewBooking.js
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import BookingForm from '../../components/user/BookSlot';
 
 const NewBooking = () => {
+    const navigate = useNavigate();
+  
   return (
     <div className="container mx-auto px-4 py-8">
+      <div className="mb-8">
+        <button
+          onClick={() => navigate('/user/dashboard')}
+          className="py-2 px-4 bg-gray-700 text-white rounded hover:bg-gray-800"
+        >
+          ← Back
+        </button>
+      </div>
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-800">Book an EV Charging Slot</h1>
         <p className="text-gray-600 mt-2">

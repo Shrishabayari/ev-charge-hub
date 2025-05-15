@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import RescheduleBookingForm from "../../components/user/ResheduleSlot";
 import { useNavigate } from 'react-router-dom';
@@ -8,49 +8,55 @@ const BookingsList = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [message, setMessage] = useState({ type: "", text: "" });
   const [rescheduleBooking, setRescheduleBooking] = useState(null);
 
-  useEffect(() => {
-    fetchBookings();
+  const showMessage = useCallback((type, text) => {
+    setMessage({ type, text });
+    setTimeout(() => {
+      setMessage({ type: "", text: "" });
+    }, 4000);
   }, []);
 
-  const fetchBookings = async () => {
+  const fetchBookings = useCallback(async () => {
     setLoading(true);
     try {
       const response = await axios.get("/api/bookings/user", {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
       });
-      
-      // Filter out only active bookings
+
       const activeBookings = response.data.data.filter(
         booking => booking.status === "active"
       );
-      
+
       setBookings(activeBookings);
       setError("");
     } catch (err) {
       console.error("Error fetching bookings:", err);
       setError("Failed to load your bookings. Please try again later.");
+      showMessage("error", "Failed to fetch bookings.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [showMessage]);
+
+  useEffect(() => {
+    fetchBookings();
+  }, [fetchBookings]);
 
   const handleCancelBooking = async (bookingId) => {
-    if (!window.confirm("Are you sure you want to cancel this booking?")) {
-      return;
-    }
+    if (!window.confirm("Are you sure you want to cancel this booking?")) return;
 
     try {
       await axios.put(`/api/bookings/cancel/${bookingId}`, {}, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
       });
-      
-      // Refresh bookings list after cancellation
+
       fetchBookings();
+      showMessage("success", "Booking cancelled successfully.");
     } catch (err) {
       console.error("Error cancelling booking:", err);
-      alert("Failed to cancel booking. Please try again.");
+      showMessage("error", "Failed to cancel booking. Please try again.");
     }
   };
 
@@ -59,36 +65,32 @@ const BookingsList = () => {
   };
 
   const handleRescheduleSuccess = (updatedBooking) => {
-    // Update the booking in the list
-    setBookings(prevBookings => 
-      prevBookings.map(booking => 
+    setBookings(prev =>
+      prev.map(booking =>
         booking._id === updatedBooking._id ? updatedBooking : booking
       )
     );
-    
-    // Close the reschedule form
     setRescheduleBooking(null);
+    showMessage("success", "Booking rescheduled successfully.");
   };
 
   const formatDateTime = (dateTimeStr) => {
     if (!dateTimeStr) return "N/A";
-    
     const date = new Date(dateTimeStr);
-    const dateOptions = { year: 'numeric', month: 'short', day: 'numeric' };
-    const timeOptions = { hour: 'numeric', minute: '2-digit', hour12: true };
-    
-    return `${date.toLocaleDateString(undefined, dateOptions)} at ${date.toLocaleTimeString(undefined, timeOptions)}`;
+    return `${date.toLocaleDateString(undefined, {
+      year: 'numeric', month: 'short', day: 'numeric'
+    })} at ${date.toLocaleTimeString(undefined, {
+      hour: 'numeric', minute: '2-digit', hour12: true
+    })}`;
   };
 
-  if (loading) {
-    return <div className="text-center py-10">Loading your bookings...</div>;
-  }
+  if (loading) return <div className="text-center py-10">Loading your bookings...</div>;
 
   if (error) {
     return (
       <div className="text-center py-10">
         <p className="text-red-600">{error}</p>
-        <button 
+        <button
           onClick={fetchBookings}
           className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
         >
@@ -98,10 +100,9 @@ const BookingsList = () => {
     );
   }
 
-  // If reschedule form is open, show only that
   if (rescheduleBooking) {
     return (
-      <RescheduleBookingForm 
+      <RescheduleBookingForm
         booking={rescheduleBooking}
         onRescheduleSuccess={handleRescheduleSuccess}
         onCancel={() => setRescheduleBooking(null)}
@@ -120,11 +121,23 @@ const BookingsList = () => {
           ← Back
         </button>
       </div>
+
+      {message.text && (
+        <div
+          className={`mb-4 px-4 py-2 rounded ${message.type === "success"
+            ? "bg-green-100 text-green-800"
+            : "bg-red-100 text-red-800"
+            }`}
+        >
+          {message.text}
+        </div>
+      )}
+
       {bookings.length === 0 ? (
         <div className="text-center py-10 bg-gray-50 rounded-lg">
           <p className="text-gray-600">You don't have any active bookings.</p>
-          <a 
-            href="/book" 
+          <a
+            href="/book"
             className="mt-4 inline-block px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
           >
             Book a Slot
@@ -132,9 +145,9 @@ const BookingsList = () => {
         </div>
       ) : (
         <div className="space-y-4">
-          {bookings.map(booking => (
-            <div 
-              key={booking._id} 
+          {bookings.map((booking) => (
+            <div
+              key={booking._id}
               className="border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition"
             >
               <div className="flex justify-between items-start">
@@ -142,18 +155,14 @@ const BookingsList = () => {
                   <h3 className="font-medium text-lg">
                     {booking.bunkId?.name || "Unknown Station"}
                   </h3>
-                  <p className="text-gray-600">{booking.bunkId?.location || "Location not specified"}</p>
-                  
+                  <p className="text-gray-600">
+                    {booking.bunkId?.location || "Location not specified"}
+                  </p>
                   <div className="mt-2">
-                    <p>
-                      <span className="text-gray-600">Start:</span> {formatDateTime(booking.startTime)}
-                    </p>
-                    <p>
-                      <span className="text-gray-600">End:</span> {formatDateTime(booking.endTime)}
-                    </p>
+                    <p><span className="text-gray-600">Start:</span> {formatDateTime(booking.startTime)}</p>
+                    <p><span className="text-gray-600">End:</span> {formatDateTime(booking.endTime)}</p>
                   </div>
                 </div>
-                
                 <div className="flex space-x-2">
                   <button
                     onClick={() => handleRescheduleClick(booking)}
@@ -169,7 +178,6 @@ const BookingsList = () => {
                   </button>
                 </div>
               </div>
-              
               <div className="mt-2 pt-2 border-t text-sm text-gray-500">
                 Booked on {formatDateTime(booking.createdAt)}
               </div>
