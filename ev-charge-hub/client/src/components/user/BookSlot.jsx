@@ -33,7 +33,8 @@ const BookingForm = () => {
       setLoading(true);
       try {
         const res = await axios.get(`/api/bookings/available-slots/${selectedBunk}/${selectedDate}`);
-        setAvailableSlots(res.data.availableSlots || []);
+        // Fix: Access the availableSlots from the correct path in the response
+        setAvailableSlots(res.data.data.availableSlots || []);
         setSelectedSlot(""); // Reset selected slot
       } catch (err) {
         console.error("Error fetching available slots:", err);
@@ -62,7 +63,7 @@ const BookingForm = () => {
         slotTime: selectedSlot
       });
       
-      if (!checkRes.data.available) {
+      if (!checkRes.data.data.available) {
         setMessage({ text: "Sorry, this slot was just booked. Please select another.", type: "error" });
         return;
       }
@@ -82,7 +83,7 @@ const BookingForm = () => {
       
       // Refresh available slots
       const res = await axios.get(`/api/bookings/available-slots/${selectedBunk}/${selectedDate}`);
-      setAvailableSlots(res.data.availableSlots || []);
+      setAvailableSlots(res.data.data.availableSlots || []);
       
     } catch (err) {
       console.error("Booking error:", err);
