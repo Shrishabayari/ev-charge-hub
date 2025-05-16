@@ -445,3 +445,363 @@ export const getAvailableSlots = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server Error', error: error.message });
   }
 };
+
+export const getAllBookings = async (req, res) => {
+  try {
+    // Pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    
+    // Filtering parameters
+    const { status, startDate, endDate, userId, bunkId, search } = req.query;
+    
+    // Build filter object
+    const filter = {};
+    
+    if (status) {
+      filter.status = status;
+    }
+    
+    if (startDate && endDate) {
+      filter.startTime = { $gte: new Date(startDate) };
+      filter.endTime = { $lte: new Date(endDate) };
+    } else if (startDate) {
+      filter.startTime = { $gte: new Date(startDate) };
+    } else if (endDate) {
+      filter.endTime = { $lte: new Date(endDate) };
+    }
+    
+    if (userId) {
+      filter.userId = userId;
+    }
+    
+    if (bunkId) {
+      filter.bunkId = bunkId;
+    }
+    
+    // If search parameter is provided
+    if (search) {
+      // We'll need to join with the users and bunks collections to search
+      // This will be handled in the aggregation pipeline
+    }
+    
+    // Count total documents for pagination
+    const totalBookings = await Booking.countDocuments(filter);
+    
+    // Create base query
+    let bookingsQuery = Booking.find(filter)
+      .sort({ startTime: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate('userId', 'name email phone')
+      .populate('bunkId', 'name address');
+    
+    // If there's a search parameter, use aggregation instead
+    if (search) {
+      const aggregationPipeline = [
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'userId',
+            foreignField: '_id',
+            as: 'userDetails'
+          }
+        },
+        {
+          $lookup: {
+            from: 'evbunks', // Use your actual collection name for bunks
+            localField: 'bunkId',
+            foreignField: '_id',
+            as: 'bunkDetails'
+          }
+        },
+        {
+          $match: {
+            $or: [
+              { 'userDetails.name': { $regex: search, $options: 'i' } },
+              { 'userDetails.email': { $regex: search, $options: 'i' } },
+              { 'bunkDetails.name': { $regex: search, $options: 'i' } },
+              { 'bunkDetails.address': { $regex: search, $options: 'i' } }
+            ],
+            ...filter
+          }
+        },
+        {
+          $project: {
+            _id: 1,
+            userId: 1,
+            bunkId: 1,
+            startTime: 1,
+            endTime: 1,
+            status: 1,
+            createdAt: 1,
+            user: { $arrayElemAt: ['$userDetails', 0] },
+            bunk: { $arrayElemAt: ['$bunkDetails', 0] }
+          }
+        },
+        { $skip: skip },
+        { $limit: limit },
+        { $sort: { startTime: -1 } }
+      ];
+      
+      const bookings = await Booking.aggregate(aggregationPipeline);
+      
+      return res.json({
+        success: true,
+        data: {
+          bookings,
+          pagination: {
+            total: totalBookings,
+            page,
+            limit,
+            pages: Math.ceil(totalBookings / limit)
+          }
+        }
+      });
+    }
+    
+    // Execute the query
+    const bookings = await bookingsQuery.exec();
+    
+    // Send the response
+    res.json({
+      success: true,
+      data: {
+        bookings,
+        pagination: {
+          total: totalBookings,
+          page,
+          limit,
+          pages: Math.ceil(totalBookings / limit)
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error in getAllBookings:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+// Get booking statistics for admin dashboard
+export const getBookingStats = async (req, res) => {
+  try {
+    const { timeframe } = req.query; // 'daily', 'weekly', 'monthly'
+    
+    // Get the current date and time
+    const now = new Date();
+    let startDate;
+    
+    // Set the start date based on the timeframe
+    if (timeframe === 'weekly') {
+      // Get data for the past 7 days
+      startDate = new Date(now);
+      startDate.setDate(now.getDate() - 7);
+    } else if (timeframe === 'monthly') {
+      // Get data for the past 30 days
+      startDate = new Date(now);
+      startDate.setDate(now.getDate() - 30);
+    } else {
+      // Default to daily (past 24 hours)
+      startDate = new Date(now);
+      startDate.setDate(now.getDate() - 1);
+    }
+    
+    // Get counts by status
+    const statusCount = await Booking.aggregate([
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+    
+    // Format status count
+    const bookingsByStatus = statusCount.reduce((acc, item) => {
+      acc[item._id] = item.count;
+      return acc;
+    }, { active: 0, cancelled: 0, completed: 0 });
+    
+    // Get counts by bunk
+    const bunkCount = await Booking.aggregate([
+      {
+        $lookup: {
+          from: 'evbunks', // Use your actual collection name
+          localField: 'bunkId',
+          foreignField: '_id',
+          as: 'bunkDetails'
+        }
+      },
+      {
+        $group: {
+          _id: '$bunkId',
+          count: { $sum: 1 },
+          bunkName: { $first: { $arrayElemAt: ['$bunkDetails.name', 0] } }
+        }
+      },
+      {
+        $project: {
+          _id: 1,
+          count: 1,
+          bunkName: 1
+        }
+      },
+      {
+        $sort: { count: -1 }
+      },
+      {
+        $limit: 5
+      }
+    ]);
+    
+    // Get bookings over time for chart
+    let timeGrouping;
+    let dateFormat;
+    
+    if (timeframe === 'monthly') {
+      timeGrouping = { $dateToString: { format: '%Y-%m-%d', date: '$startTime' } };
+      dateFormat = '%Y-%m-%d';
+    } else if (timeframe === 'weekly') {
+      timeGrouping = { $dateToString: { format: '%Y-%m-%d', date: '$startTime' } };
+      dateFormat = '%Y-%m-%d';
+    } else {
+      // Daily view - group by hour
+      timeGrouping = { $dateToString: { format: '%Y-%m-%d %H:00', date: '$startTime' } };
+      dateFormat = '%Y-%m-%d %H:00';
+    }
+    
+    const bookingsOverTime = await Booking.aggregate([
+      {
+        $match: {
+          startTime: { $gte: startDate }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            timeGroup: timeGrouping,
+            status: '$status'
+          },
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $sort: { '_id.timeGroup': 1 }
+      }
+    ]);
+    
+    // Process the time series data
+    const timeSeriesData = {};
+    
+    bookingsOverTime.forEach(item => {
+      const timeKey = item._id.timeGroup;
+      const status = item._id.status;
+      
+      if (!timeSeriesData[timeKey]) {
+        timeSeriesData[timeKey] = {
+          timePoint: timeKey,
+          active: 0,
+          cancelled: 0,
+          completed: 0
+        };
+      }
+      
+      timeSeriesData[timeKey][status] = item.count;
+    });
+    
+    // Convert to array
+    const chartData = Object.values(timeSeriesData);
+    
+    // Get total bookings count
+    const totalBookings = await Booking.countDocuments();
+    
+    // Get today's bookings count
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+    
+    const todayBookings = await Booking.countDocuments({
+      startTime: { $gte: todayStart, $lte: todayEnd }
+    });
+    
+    // Send the response
+    res.json({
+      success: true,
+      data: {
+        totalBookings,
+        todayBookings,
+        bookingsByStatus,
+        topBunks: bunkCount,
+        chartData
+      }
+    });
+  } catch (error) {
+    console.error('Error in getBookingStats:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+// Admin function to update booking status
+export const updateBookingStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    
+    // Validate status
+    const validStatuses = ['active', 'cancelled', 'completed'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid status value. Status must be active, cancelled, or completed' 
+      });
+    }
+    
+    // Find the booking
+    const booking = await Booking.findById(id);
+    
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Booking not found' });
+    }
+    
+    // Update booking status
+    booking.status = status;
+    await booking.save();
+    
+    // Get updated booking with populated user and bunk details
+    const updatedBooking = await Booking.findById(id)
+      .populate('userId', 'name email')
+      .populate('bunkId', 'name address');
+    
+    res.json({ 
+      success: true, 
+      message: `Booking status updated to ${status}`,
+      data: updatedBooking
+    });
+  } catch (error) {
+    console.error('Error in updateBookingStatus:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+// Admin function to get a specific booking with detailed info
+export const getBookingDetails = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const booking = await Booking.findById(id)
+      .populate('userId', 'name email phone') // Include whatever user fields you need
+      .populate('bunkId', 'name address coordinates');
+    
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Booking not found' });
+    }
+    
+    res.json({ success: true, data: booking });
+  } catch (error) {
+    console.error('Error in getBookingDetails:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};

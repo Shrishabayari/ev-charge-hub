@@ -1,231 +1,267 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
 
 const AdminBookingDetail = () => {
-  const { bookingId } = useParams();
+  const { id } = useParams();
   const navigate = useNavigate();
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState({ type: "", text: "" });
-
+  const [error, setError] = useState(null);
+  
   useEffect(() => {
     const fetchBookingDetails = async () => {
-      setLoading(true);
       try {
-        const response = await axios.get(`/api/admin/bookings/${bookingId}`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-        });
-        setBooking(response.data.data);
-      } catch (err) {
-        console.error("Error fetching booking details:", err);
-        setError("Failed to load booking details. Please try again later.");
-        if (err.response && err.response.status === 403) {
-          setMessage({ type: "error", text: "You don't have permission to access this resource." });
-          setTimeout(() => navigate('/dashboard'), 2000);
+        setLoading(true);
+        const response = await axios.get(`/api/admin/bookings/${id}`);
+        
+        if (response.data.success) {
+          setBooking(response.data.data);
+        } else {
+          setError('Failed to fetch booking details');
         }
+      } catch (err) {
+        console.error('Error fetching booking details:', err);
+        setError(err.response?.data?.message || 'An error occurred while fetching booking details');
       } finally {
         setLoading(false);
       }
     };
-
+    
     fetchBookingDetails();
-  }, [bookingId, navigate]);
-
-  const handleCancelBooking = async () => {
-    if (!window.confirm("Are you sure you want to cancel this booking?")) return;
-
+  }, [id]);
+  
+  // Format date for display
+  const formatDate = (dateString) => {
     try {
-      await axios.put(`/api/admin/bookings/cancel/${bookingId}`, {}, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-      });
-
-      // Update the local booking state
-      setBooking(prev => ({
-        ...prev,
-        status: "cancelled"
-      }));
-      
-      setMessage({ type: "success", text: "Booking cancelled successfully." });
+      return format(new Date(dateString), 'MMMM dd, yyyy HH:mm:ss');
     } catch (err) {
-      console.error("Error cancelling booking:", err);
-      setMessage({ type: "error", text: "Failed to cancel booking. Please try again." });
+      return 'Invalid date';
     }
   };
-
-  const formatDateTime = (dateTimeStr) => {
-    if (!dateTimeStr) return "N/A";
-    const date = new Date(dateTimeStr);
-    return `${date.toLocaleDateString(undefined, {
-      year: 'numeric', month: 'short', day: 'numeric'
-    })} at ${date.toLocaleTimeString(undefined, {
-      hour: 'numeric', minute: '2-digit', hour12: true
-    })}`;
+  
+  // Update booking status
+  const updateStatus = async (newStatus) => {
+    try {
+      const response = await axios.patch(`/api/admin/bookings/${id}/status`, {
+        status: newStatus
+      });
+      
+      if (response.data.success) {
+        // Update the booking in the state
+        setBooking({
+          ...booking,
+          status: newStatus
+        });
+      }
+    } catch (err) {
+      console.error('Error updating booking status:', err);
+      alert(err.response?.data?.message || 'Failed to update booking status');
+    }
   };
-
-  if (loading) return <div className="text-center py-10">Loading booking details...</div>;
-
+  
+  // Handle status badge styling
+  const getStatusBadgeClass = (status) => {
+    switch (status) {
+      case 'active':
+        return 'bg-green-100 text-green-800';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800';
+      case 'completed':
+        return 'bg-blue-100 text-blue-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+  
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
+        <p className="ml-2">Loading booking details...</p>
+      </div>
+    );
+  }
+  
   if (error) {
     return (
-      <div className="text-center py-10">
-        <p className="text-red-600">{error}</p>
+      <div className="container mx-auto px-4 py-8">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md">
+          <p className="font-bold">Error</p>
+          <p>{error}</p>
+        </div>
         <button
           onClick={() => navigate('/admin/bookings')}
-          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
         >
           Back to Bookings
         </button>
       </div>
     );
   }
-
-  if (!booking) return null;
-
-  return (
-    <div className="max-w-4xl mx-auto p-4">
-      <div className="mb-6">
+  
+  if (!booking) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded-md">
+          <p>Booking not found</p>
+        </div>
         <button
           onClick={() => navigate('/admin/bookings')}
-          className="py-2 px-4 bg-gray-700 text-white rounded hover:bg-gray-800"
+          className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
         >
-          ← Back to Bookings
+          Back to Bookings
         </button>
       </div>
-
-      {message.text && (
-        <div
-          className={`mb-4 px-4 py-2 rounded ${
-            message.type === "success"
-              ? "bg-green-100 text-green-800"
-              : "bg-red-100 text-red-800"
-          }`}
+    );
+  }
+  
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Booking Details</h1>
+        <button
+          onClick={() => navigate('/admin/bookings')}
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
         >
-          {message.text}
-        </div>
-      )}
-
-      <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-        <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
-          <div>
-            <h3 className="text-lg leading-6 font-medium text-gray-900">
-              Booking Details
-            </h3>
-            <p className="mt-1 max-w-2xl text-sm text-gray-500">
-              Detailed information about the booking.
-            </p>
-          </div>
-          <div>
-            <span
-              className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                booking.status === "active"
-                  ? "bg-green-100 text-green-800"
-                  : "bg-red-100 text-red-800"
-              }`}
-            >
-              {booking.status.toUpperCase()}
+          Back to Bookings
+        </button>
+      </div>
+      
+      <div className="bg-white shadow-md rounded-lg overflow-hidden mb-6">
+        <div className="px-6 py-4 border-b">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold text-gray-800">
+              Booking #{booking._id}
+            </h2>
+            <span className={`px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full ${getStatusBadgeClass(booking.status)}`}>
+              {booking.status}
             </span>
           </div>
         </div>
-        <div className="border-t border-gray-200">
-          <dl>
-            <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500">Booking ID</dt>
-              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                {booking._id}
-              </dd>
+        
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-12">
+            {/* Booking Information */}
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Booking Information</h3>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Booking ID</p>
+                  <p className="mt-1 text-sm text-gray-900">{booking._id}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Status</p>
+                  <div className="mt-1">
+                    <select
+                      value={booking.status}
+                      onChange={(e) => updateStatus(e.target.value)}
+                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    >
+                      <option value="active">Active</option>
+                      <option value="cancelled">Cancelled</option>
+                      <option value="completed">Completed</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Start Time</p>
+                  <p className="mt-1 text-sm text-gray-900">{formatDate(booking.startTime)}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">End Time</p>
+                  <p className="mt-1 text-sm text-gray-900">{formatDate(booking.endTime)}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Created At</p>
+                  <p className="mt-1 text-sm text-gray-900">{formatDate(booking.createdAt)}</p>
+                </div>
+              </div>
             </div>
             
-            <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500">User</dt>
-              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+            {/* User Information */}
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">User Information</h3>
+              <div className="space-y-3">
                 <div>
-                  <strong>Name:</strong> {booking.userId?.firstName || ""} {booking.userId?.lastName || ""}
+                  <p className="text-sm font-medium text-gray-500">User ID</p>
+                  <p className="mt-1 text-sm text-gray-900">{booking.userId?._id || 'N/A'}</p>
                 </div>
                 <div>
-                  <strong>Email:</strong> {booking.userId?.email || "No email"}
+                  <p className="text-sm font-medium text-gray-500">Name</p>
+                  <p className="mt-1 text-sm text-gray-900">{booking.userId?.name || 'N/A'}</p>
                 </div>
                 <div>
-                  <strong>Phone:</strong> {booking.userId?.phone || "No phone number"}
+                  <p className="text-sm font-medium text-gray-500">Email</p>
+                  <p className="mt-1 text-sm text-gray-900">{booking.userId?.email || 'N/A'}</p>
                 </div>
-              </dd>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Phone</p>
+                  <p className="mt-1 text-sm text-gray-900">{booking.userId?.phone || 'N/A'}</p>
+                </div>
+              </div>
             </div>
             
-            <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500">Charging Station</dt>
-              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+            {/* EV Bunk Information */}
+            <div className="md:col-span-2">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">EV Bunk Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-6">
                 <div>
-                  <strong>Name:</strong> {booking.bunkId?.name || "Unknown Station"}
+                  <p className="text-sm font-medium text-gray-500">Bunk ID</p>
+                  <p className="mt-1 text-sm text-gray-900">{booking.bunkId?._id || 'N/A'}</p>
                 </div>
                 <div>
-                  <strong>Location:</strong> {booking.bunkId?.location || "No location"}
+                  <p className="text-sm font-medium text-gray-500">Bunk Name</p>
+                  <p className="mt-1 text-sm text-gray-900">{booking.bunkId?.name || 'N/A'}</p>
                 </div>
-                {booking.bunkId?.connectorType && (
-                  <div>
-                    <strong>Connector:</strong> {booking.bunkId.connectorType}
+                <div className="md:col-span-2">
+                  <p className="text-sm font-medium text-gray-500">Address</p>
+                  <p className="mt-1 text-sm text-gray-900">{booking.bunkId?.address || 'N/A'}</p>
+                </div>
+                {booking.bunkId?.coordinates && (
+                  <div className="md:col-span-2">
+                    <p className="text-sm font-medium text-gray-500">Coordinates</p>
+                    <p className="mt-1 text-sm text-gray-900">
+                      Lat: {booking.bunkId.coordinates.lat || 'N/A'}, 
+                      Lng: {booking.bunkId.coordinates.lng || 'N/A'}
+                    </p>
                   </div>
                 )}
-              </dd>
-            </div>
-            
-            <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500">Time Slot</dt>
-              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                <div><strong>Start:</strong> {formatDateTime(booking.startTime)}</div>
-                <div><strong>End:</strong> {formatDateTime(booking.endTime)}</div>
-                <div className="text-xs text-gray-500 mt-1">
-                  Duration: {booking.duration || "N/A"} minutes
-                </div>
-              </dd>
-            </div>
-            
-            <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500">Booking Details</dt>
-              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                <div><strong>Created:</strong> {formatDateTime(booking.createdAt)}</div>
-                {booking.updatedAt && (
-                  <div><strong>Last Updated:</strong> {formatDateTime(booking.updatedAt)}</div>
-                )}
-                {booking.cancelledAt && (
-                  <div><strong>Cancelled On:</strong> {formatDateTime(booking.cancelledAt)}</div>
-                )}
-              </dd>
-            </div>
-            
-            {booking.vehicleInfo && (
-              <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                <dt className="text-sm font-medium text-gray-500">Vehicle Information</dt>
-                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                  <div><strong>Model:</strong> {booking.vehicleInfo.model || "N/A"}</div>
-                  {booking.vehicleInfo.licensePlate && (
-                    <div><strong>License Plate:</strong> {booking.vehicleInfo.licensePlate}</div>
-                  )}
-                </dd>
               </div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="px-6 py-4 bg-gray-50 border-t flex justify-end">
+          <div className="space-x-3">
+            {booking.status === 'active' && (
+              <>
+                <button
+                  onClick={() => updateStatus('completed')}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                >
+                  Mark as Completed
+                </button>
+                <button
+                  onClick={() => updateStatus('cancelled')}
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Cancel Booking
+                </button>
+              </>
             )}
-            
-            {booking.notes && (
-              <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                <dt className="text-sm font-medium text-gray-500">Notes</dt>
-                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                  {booking.notes}
-                </dd>
-              </div>
+            {booking.status === 'cancelled' && (
+              <button
+                onClick={() => updateStatus('active')}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                Reactivate Booking
+              </button>
             )}
-          </dl>
+          </div>
         </div>
       </div>
-
-      {booking.status === "active" && (
-        <div className="mt-6 flex justify-end">
-          <button
-            onClick={handleCancelBooking}
-            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-          >
-            Cancel Booking
-          </button>
-        </div>
-      )}
     </div>
   );
 };
