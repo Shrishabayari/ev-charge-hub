@@ -13,7 +13,7 @@ const AdminDashboard = () => {
   };
 
   const handleViewBookingSlots = () => {
-    navigate("/admin/view-booking-slots");
+    navigate("/admin/booking/list");
   };
 
   const handleViewMyBookings = () => {

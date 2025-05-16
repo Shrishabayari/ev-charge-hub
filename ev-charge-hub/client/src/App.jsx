@@ -16,8 +16,10 @@ import MyBookings from './pages/user/MyBooking';
 import AdminBookings from './components/admin/BookingManagement';
 import BookingsList from './components/user/BookingList';
 import RescheduleBookingForm from './components/user/ResheduleSlot';
+import AdminBookingDetail from './components/admin/AdminBookingDetails';
+import AdminBookingsList from './components/admin/AdminBookingList';
 
- const App = () => {
+const App = () => {
   return (
     <Router>
       <Routes>
@@ -37,6 +39,8 @@ import RescheduleBookingForm from './components/user/ResheduleSlot';
         <Route path='/user/bookings/my' element={<MyBookings/>} />
         <Route path='/user/bookings/list' element={<BookingsList/>} />
         <Route path='/user/bookings/reshedule' element={<RescheduleBookingForm/>} />
+        <Route path='/admin/booking/list' element={<AdminBookingsList/>} />
+        <Route path='/admin/booking/details' element={<AdminBookingDetail/>} />
 
         <Route element={<WebSocketComponent />} />
       </Routes>
