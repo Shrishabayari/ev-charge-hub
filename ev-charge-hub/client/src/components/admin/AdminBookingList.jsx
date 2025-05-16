@@ -13,7 +13,7 @@ const AdminBookingsList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalBookings, setTotalBookings] = useState(0);
-  const [limit] = useState(10);
+  const [limit, setLimit] = useState(10);
 
   // Filter state
   const [filters, setFilters] = useState({
