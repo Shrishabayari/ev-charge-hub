@@ -1,4 +1,4 @@
-import React, { useState, useEffect , useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -13,7 +13,7 @@ const AdminBookingsList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalBookings, setTotalBookings] = useState(0);
-const [limit] = useState(10); // Remove setLimit if not needed
+  const [limit] = useState(10); // Remove setLimit if not needed
 
   // Filter state
   const [filters, setFilters] = useState({
@@ -22,47 +22,96 @@ const [limit] = useState(10); // Remove setLimit if not needed
     endDate: '',
     search: ''
   });
-// Function to fetch bookings
-const fetchBookings = useCallback(async () => {
-  try {
-    setLoading(true);
-    setError(null);
 
-    // Construct query params
-    const params = new URLSearchParams();
-    params.append('page', currentPage);
-    params.append('limit', limit);
+  // Function to fetch bookings
+  const fetchBookings = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-    // Add filters if they exist
-    if (filters.status) params.append('status', filters.status);
-    if (filters.startDate) params.append('startDate', filters.startDate);
-    if (filters.endDate) params.append('endDate', filters.endDate);
-    if (filters.search) params.append('search', filters.search);
+      // Get the token from localStorage (or wherever you store it)
+      // Check for different possible token keys - sometimes the key might vary
+      const token = localStorage.getItem('authToken') || 
+                    localStorage.getItem('token') || 
+                    localStorage.getItem('userToken') ||
+                    sessionStorage.getItem('authToken');
+      
+      // For debugging - remove in production
+      console.log("Authentication token:", token ? "Found" : "Not found");
+      
+      if (!token) {
+        console.warn("No authentication token found in storage");
+        // Instead of showing error, you can redirect to login page
+        // navigate('/login');
+        // Or continue without authentication for development purposes
+        // Comment out the next 3 lines if you want to test without authentication
+        setError('You are not authenticated. Please log in again.');
+        setLoading(false);
+        return;
+      }
 
-    // Fixed API endpoint URL with query parameters
-    const response = await axios.get(`/api/bookings?${params.toString()}`);
+      // Construct query params
+      const params = new URLSearchParams();
+      params.append('page', currentPage);
+      params.append('limit', limit);
+      
+      // Add filters if they exist
+      if (filters.status) params.append('status', filters.status);
+      if (filters.startDate) params.append('startDate', filters.startDate);
+      if (filters.endDate) params.append('endDate', filters.endDate);
+      if (filters.search) params.append('search', filters.search);
 
-    if (response.data.success) {
-      setBookings(response.data.data.bookings);
-      setTotalPages(response.data.data.pagination.pages);
-      setTotalBookings(response.data.data.pagination.total);
-    } else {
-      setError('Failed to fetch bookings');
+      // Make API call with the token in the Authorization header
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+      
+      // Only add Authorization header if token exists
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+      
+      // For development/testing purposes - you might need to adjust the API endpoint
+      // const API_BASE_URL = process.env.REACT_APP_API_URL || '';
+      const response = await axios.get(`/api/bookings?${params.toString()}`, { headers });
+      
+      console.log("API response:", response.data);  // For debugging
+      
+      // Update state with the response data
+      setBookings(response.data.bookings || []);
+      setTotalPages(response.data.totalPages || 1);
+      setTotalBookings(response.data.totalCount || 0);
+      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching bookings:', err);
+      setError(err.response?.data?.message || 'Failed to fetch bookings');
+      setLoading(false);
     }
-  } catch (err) {
-    console.error('Error fetching bookings:', err);
-    setError(err.response?.data?.message || 'An error occurred while fetching bookings');
-  } finally {
-    setLoading(false);
-  }
-}, [currentPage, limit, filters]); // Added all dependencies
+  }, [currentPage, limit, filters]);
 
-// Fetch bookings when component mounts or filters/pagination changes
-useEffect(() => {
-  fetchBookings();
-}, [fetchBookings]); // Since fetchBookings already depends on currentPage and filters
-// 
-// // Handle filter changes
+  // Fetch bookings when component mounts or dependencies change
+  useEffect(() => {
+    // Check if user is logged in before fetching
+    const checkAuthAndFetch = async () => {
+      const token = localStorage.getItem('authToken') || 
+                    localStorage.getItem('token') || 
+                    localStorage.getItem('userToken') ||
+                    sessionStorage.getItem('authToken');
+                    
+      if (!token && process.env.NODE_ENV === 'development') {
+        console.warn('⚠️ Development mode: No auth token found. You might need to log in first.');
+        // For development, you might want to use mock data
+        // setBookings(mockBookings);
+        // setLoading(false);
+      } else {
+        fetchBookings();
+      }
+    };
+    
+    checkAuthAndFetch();
+  }, [fetchBookings]);
+
+  // Handle filter changes
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters(prev => ({
@@ -110,10 +159,30 @@ useEffect(() => {
   // Update booking status
   const updateStatus = async (bookingId, newStatus) => {
     try {
+      // Get the token
+      const token = localStorage.getItem('authToken') || 
+                  localStorage.getItem('token') || 
+                  localStorage.getItem('userToken') ||
+                  sessionStorage.getItem('authToken');
+                  
+      if (!token) {
+        alert('You are not authenticated. Please log in again.');
+        return;
+      }
+      
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+      
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+      
       // Fixed API endpoint for updating status
-      const response = await axios.patch(`/api/bookings/${bookingId}/status`, {
-        status: newStatus
-      });
+      const response = await axios.patch(`/api/bookings/${bookingId}/status`, 
+        { status: newStatus },
+        { headers }
+      );
 
       if (response.data.success) {
         // Update the booking in the state
@@ -130,7 +199,7 @@ useEffect(() => {
       alert(err.response?.data?.message || 'Failed to update booking status');
     }
   };
-
+    
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6">Booking Management</h1>
@@ -226,6 +295,16 @@ useEffect(() => {
       {error && !loading && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md mb-4">
           <p>{error}</p>
+          {!localStorage.getItem('authToken') && !localStorage.getItem('token') && (
+            <div className="mt-2">
+              <button 
+                onClick={() => navigate('/login')}
+                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+              >
+                Go to Login
+              </button>
+            </div>
+          )}
         </div>
       )}
 
