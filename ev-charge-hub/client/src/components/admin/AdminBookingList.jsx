@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect , useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -13,7 +13,7 @@ const AdminBookingsList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalBookings, setTotalBookings] = useState(0);
-  const [limit, setLimit] = useState(10);
+const [limit] = useState(10); // Remove setLimit if not needed
 
   // Filter state
   const [filters, setFilters] = useState({
@@ -22,47 +22,47 @@ const AdminBookingsList = () => {
     endDate: '',
     search: ''
   });
+// Function to fetch bookings
+const fetchBookings = useCallback(async () => {
+  try {
+    setLoading(true);
+    setError(null);
 
-  // Function to fetch bookings
-  const fetchBookings = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+    // Construct query params
+    const params = new URLSearchParams();
+    params.append('page', currentPage);
+    params.append('limit', limit);
 
-      // Construct query params
-      const params = new URLSearchParams();
-      params.append('page', currentPage);
-      params.append('limit', limit);
+    // Add filters if they exist
+    if (filters.status) params.append('status', filters.status);
+    if (filters.startDate) params.append('startDate', filters.startDate);
+    if (filters.endDate) params.append('endDate', filters.endDate);
+    if (filters.search) params.append('search', filters.search);
 
-      // Add filters if they exist
-      if (filters.status) params.append('status', filters.status);
-      if (filters.startDate) params.append('startDate', filters.startDate);
-      if (filters.endDate) params.append('endDate', filters.endDate);
-      if (filters.search) params.append('search', filters.search);
+    // Fixed API endpoint URL with query parameters
+    const response = await axios.get(`/api/bookings?${params.toString()}`);
 
-      const response = await axios.get(`/api/bookings/`);
-
-      if (response.data.success) {
-        setBookings(response.data.data.bookings);
-        setTotalPages(response.data.data.pagination.pages);
-        setTotalBookings(response.data.data.pagination.total);
-      } else {
-        setError('Failed to fetch bookings');
-      }
-    } catch (err) {
-      console.error('Error fetching bookings:', err);
-      setError(err.response?.data?.message || 'An error occurred while fetching bookings');
-    } finally {
-      setLoading(false);
+    if (response.data.success) {
+      setBookings(response.data.data.bookings);
+      setTotalPages(response.data.data.pagination.pages);
+      setTotalBookings(response.data.data.pagination.total);
+    } else {
+      setError('Failed to fetch bookings');
     }
-  };
+  } catch (err) {
+    console.error('Error fetching bookings:', err);
+    setError(err.response?.data?.message || 'An error occurred while fetching bookings');
+  } finally {
+    setLoading(false);
+  }
+}, [currentPage, limit, filters]); // Added all dependencies
 
-  // Fetch bookings when component mounts or filters/pagination changes
-  useEffect(() => {
-    fetchBookings();
-  }, [currentPage, limit, filters]);
-
-  // Handle filter changes
+// Fetch bookings when component mounts or filters/pagination changes
+useEffect(() => {
+  fetchBookings();
+}, [fetchBookings]); // Since fetchBookings already depends on currentPage and filters
+// 
+// // Handle filter changes
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters(prev => ({
@@ -110,6 +110,7 @@ const AdminBookingsList = () => {
   // Update booking status
   const updateStatus = async (bookingId, newStatus) => {
     try {
+      // Fixed API endpoint for updating status
       const response = await axios.patch(`/api/bookings/${bookingId}/status`, {
         status: newStatus
       });
@@ -285,13 +286,13 @@ const AdminBookingsList = () => {
                           {booking._id}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {booking.user?.name || 'N/A'}
+                          {booking.userId?.name || booking.user?.name || 'N/A'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {booking.evBunk?.name || 'N/A'}
+                          {booking.bunkId?.name || booking.bunk?.name || 'N/A'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {booking.slot ? formatDate(booking.slot) : 'N/A'}
+                          {booking.startTime ? formatDate(booking.startTime) : (booking.slot ? formatDate(booking.slot) : 'N/A')}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span
