@@ -71,16 +71,48 @@ const AdminBookingsList = () => {
         headers.Authorization = `Bearer ${token}`;
       }
       
-      // For development/testing purposes - you might need to adjust the API endpoint
-      // const API_BASE_URL = process.env.REACT_APP_API_URL || '';
-      const response = await axios.get(`/api/bookings?${params.toString()}`, { headers });
+      console.log("Fetching bookings with URL:", `/api/bookings?${params.toString()}`);
+      
+      // Call the correct API endpoint based on your routes
+      const response = await axios.get(`/api/bookings`, { 
+        headers,
+        params: {
+          page: currentPage,
+          limit,
+          ...(filters.status && { status: filters.status }),
+          ...(filters.startDate && { startDate: filters.startDate }),
+          ...(filters.endDate && { endDate: filters.endDate }),
+          ...(filters.search && { search: filters.search })
+        }
+      });
       
       console.log("API response:", response.data);  // For debugging
       
       // Update state with the response data
-      setBookings(response.data.bookings || []);
-      setTotalPages(response.data.totalPages || 1);
-      setTotalBookings(response.data.totalCount || 0);
+      console.log("Processing response data structure:", response.data);
+      
+      // Handle different response structures
+      let bookingsData = [], totalPagesCount = 1, totalBookingsCount = 0;
+      
+      if (response.data.data && response.data.data.bookings) {
+        // Format from the controller code you shared
+        bookingsData = response.data.data.bookings;
+        totalPagesCount = response.data.data.pagination?.pages || 1;
+        totalBookingsCount = response.data.data.pagination?.total || 0;
+      } else if (response.data.bookings) {
+        // Alternative format
+        bookingsData = response.data.bookings;
+        totalPagesCount = response.data.totalPages || 1;
+        totalBookingsCount = response.data.totalCount || 0;
+      } else {
+        // Fallback - try to use whatever data is available
+        bookingsData = Array.isArray(response.data) ? response.data : [];
+        console.warn("Unexpected response format:", response.data);
+      }
+      
+      setBookings(bookingsData);
+      setTotalPages(totalPagesCount);
+      setTotalBookings(totalBookingsCount);
       setLoading(false);
     } catch (err) {
       console.error('Error fetching bookings:', err);
@@ -153,7 +185,9 @@ const AdminBookingsList = () => {
 
   // Navigate to booking details
   const viewBookingDetails = (bookingId) => {
+    // Update the route based on your actual route structure
     navigate(`/admin/bookings/${bookingId}`);
+    console.log(`Navigating to booking details for ID: ${bookingId}`);
   };
 
   // Update booking status
@@ -178,7 +212,9 @@ const AdminBookingsList = () => {
         headers.Authorization = `Bearer ${token}`;
       }
       
-      // Fixed API endpoint for updating status
+      console.log(`Updating booking ${bookingId} status to ${newStatus}`);
+      
+      // Fixed API endpoint for updating status - based on your routes
       const response = await axios.patch(`/api/bookings/${bookingId}/status`, 
         { status: newStatus },
         { headers }
@@ -362,7 +398,7 @@ const AdminBookingsList = () => {
                     bookings.map((booking) => (
                       <tr key={booking._id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {booking._id}
+                          {booking._id?.substring(0, 8) || 'N/A'}...
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {booking.userId?.name || booking.user?.name || 'N/A'}
