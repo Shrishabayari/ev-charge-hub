@@ -40,7 +40,7 @@ const App = () => {
         <Route path='/user/bookings/list' element={<BookingsList/>} />
         <Route path='/user/bookings/reshedule' element={<RescheduleBookingForm/>} />
         <Route path='/admin/booking/list' element={<AdminBookingsList/>} />
-        <Route path='/admin/booking/details' element={<AdminBookingDetail/>} />
+        <Route path='/admin/bookings/:id' element={<AdminBookingDetail/>} />
 
         <Route element={<WebSocketComponent />} />
       </Routes>
