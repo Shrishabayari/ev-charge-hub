@@ -1,30 +1,32 @@
+// routes/refreshTokenRoute.js - Create a new refresh token endpoint
 import express from 'express';
 import jwt from 'jsonwebtoken';
-import { validateTokenStructure } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Generic refresh token route that works for both user and admin tokens
-router.post('/', validateTokenStructure, (req, res) => {
+// Refresh token endpoint
+router.post('/', (req, res) => {
+  const { token } = req.body;
+  
+  if (!token) {
+    return res.status(400).json({ msg: "Token is required" });
+  }
+  
   try {
-    const decoded = req.decodedToken;
+    // Verify the token structure but ignore expiration
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, { ignoreExpiration: true });
     
-    // Determine what type of token we're dealing with
+    // Determine token structure (user or admin)
     let payload;
-    
     if (decoded.user) {
       // User token structure
       payload = { user: decoded.user };
-    } else if (decoded.id && decoded.email) {
-      // Admin token structure
-      payload = { id: decoded.id, email: decoded.email };
     } else {
-      return res.status(400).json({ 
-        msg: "Unknown token structure" 
-      });
+      // Admin token or other structure
+      payload = decoded;
     }
     
-    // Generate a new token with the same payload but fresh expiration
+    // Create a new token with the same payload
     const newToken = jwt.sign(
       payload,
       process.env.JWT_SECRET,
@@ -32,13 +34,10 @@ router.post('/', validateTokenStructure, (req, res) => {
     );
     
     // Return the new token
-    res.json({
-      msg: "Token refreshed successfully",
-      token: newToken
-    });
-  } catch (error) {
-    console.error("Token refresh error:", error);
-    res.status(500).json({ msg: "Server error during token refresh" });
+    return res.json({ token: newToken });
+  } catch (err) {
+    console.error('Token refresh error:', err);
+    return res.status(401).json({ msg: "Invalid token format" });
   }
 });
 
