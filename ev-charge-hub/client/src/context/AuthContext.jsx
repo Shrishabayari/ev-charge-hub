@@ -1,6 +1,7 @@
-// src/context/AuthContext.js
-import React, { createContext, useState, useEffect } from 'react';
+// Updated AuthContext.js - Modified to work with the new centralized refresh token endpoint
+import React, { createContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import jwtDecode from 'jwt-decode'; // Add this dependency: npm install jwt-decode
 
 export const AuthContext = createContext();
 
@@ -9,38 +10,115 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [userType, setUserType] = useState(null); // Add user type state (admin/user)
+  const [userType, setUserType] = useState(null);
+  
+  // Token refresh function
+  const refreshToken = useCallback(async () => {
+    try {
+      const currentToken = localStorage.getItem('token');
+      if (!currentToken) return false;
+      
+      // Use the centralized token refresh endpoint
+      const res = await axios.post('/api/refresh-token', {
+        token: currentToken
+      });
+      
+      if (res.data.token) {
+        localStorage.setItem('token', res.data.token);
+        axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Token refresh failed:', err);
+      return false;
+    }
+  }, []);
+  
+  // Check token expiration time
+  const isTokenExpiring = useCallback(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return false;
+    
+    try {
+      const decoded = jwtDecode(token);
+      // Refresh when token has less than 1 day left (in seconds)
+      return decoded.exp - (Date.now() / 1000) < 86400;
+    } catch (err) {
+      return false;
+    }
+  }, []);
 
   // Setup axios interceptor for token expiration
   useEffect(() => {
+    // Add request interceptor to check token before requests
+    const requestInterceptor = axios.interceptors.request.use(
+      async (config) => {
+        // Skip token check for refresh token requests to avoid infinite loops
+        if (config.url === '/api/refresh-token') {
+          return config;
+        }
+        
+        // If token is expiring soon but still valid, try to refresh it
+        if (isTokenExpiring() && isAuthenticated) {
+          const refreshed = await refreshToken();
+          if (refreshed) {
+            const newToken = localStorage.getItem('token');
+            config.headers.Authorization = `Bearer ${newToken}`;
+          }
+        }
+        return config;
+      },
+      (error) => Promise.reject(error)
+    );
+    
     // Add response interceptor to handle token expiration
-    const interceptor = axios.interceptors.response.use(
+    const responseInterceptor = axios.interceptors.response.use(
       response => response,
-      error => {
-        // Check if error is due to expired token
+      async (error) => {
+        const originalRequest = error.config;
+        
+        // Avoid infinite loops - don't retry refresh-token requests
+        if (originalRequest.url === '/api/refresh-token') {
+          return Promise.reject(error);
+        }
+        
+        // If error is due to expired token and we haven't tried refreshing yet
         if (error.response && 
             error.response.status === 401 && 
-            error.response.data.expired) {
+            error.response.data.expired &&
+            !originalRequest._retry) {
           
-          // Automatically logout user
-          logout();
+          originalRequest._retry = true;
           
-          // Set error message for expired token
-          setError('Your session has expired. Please log in again.');
+          // Try to refresh the token
+          const refreshed = await refreshToken();
           
-          // Redirect to appropriate login page
-          window.location.href = userType === 'admin' ? '/admin/login' : '/user/login';
+          if (refreshed) {
+            // Retry the original request with new token
+            const newToken = localStorage.getItem('token');
+            originalRequest.headers.Authorization = `Bearer ${newToken}`;
+            return axios(originalRequest);
+          } else {
+            // If refresh failed, logout user
+            logout();
+            setError('Your session has expired. Please log in again.');
+            
+            // Redirect to appropriate login page
+            window.location.href = userType === 'admin' ? '/admin/login' : '/login';
+          }
         }
         
         return Promise.reject(error);
       }
     );
 
-    // Clean up interceptor on unmount
+    // Clean up interceptors on unmount
     return () => {
-      axios.interceptors.response.eject(interceptor);
+      axios.interceptors.request.eject(requestInterceptor);
+      axios.interceptors.response.eject(responseInterceptor);
     };
-  }, [userType]); // Re-run when userType changes
+  }, [isAuthenticated, userType, refreshToken, isTokenExpiring]);
 
   // Load user from token on initial render
   useEffect(() => {
@@ -59,8 +137,15 @@ export const AuthProvider = ({ children }) => {
       }
 
       try {
+        // Check if token is expiring and refresh if needed
+        if (isTokenExpiring()) {
+          const refreshed = await refreshToken();
+          if (!refreshed) throw new Error('Token refresh failed');
+        }
+        
         // Set default headers for all requests
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        const currentToken = localStorage.getItem('token');
+        axios.defaults.headers.common['Authorization'] = `Bearer ${currentToken}`;
         
         // Use the correct endpoint based on user type
         const endpoint = storedUserType === 'admin' ? '/api/admin/profile' : '/api/users/profile';
@@ -79,9 +164,9 @@ export const AuthProvider = ({ children }) => {
     };
 
     loadUser();
-  }, []);
+  }, [refreshToken, isTokenExpiring]);
 
-  // User login
+  // Login function
   const loginUser = async (email, password) => {
     try {
       setLoading(true);
@@ -114,57 +199,13 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('userType', 'admin');
       axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
       
-      setUser(res.data.user || { email }); // Some admin endpoints might not return full user data
+      setUser(res.data.user || { email });
       setIsAuthenticated(true);
       setUserType('admin');
       setError(null);
       return res.data;
     } catch (err) {
       setError(err.response?.data?.message || 'Admin login failed');
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Register user
-  const register = async (userData) => {
-    try {
-      setLoading(true);
-      const res = await axios.post('/api/users/register', userData);
-      
-      // If registration returns a token, store it
-      if (res.data.token) {
-        localStorage.setItem('token', res.data.token);
-        localStorage.setItem('userType', 'user');
-        axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
-        
-        setUser(res.data.user);
-        setIsAuthenticated(true);
-        setUserType('user');
-      }
-      
-      setError(null);
-      return res.data.user;
-    } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed');
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Register admin
-  const registerAdmin = async (adminData) => {
-    try {
-      setLoading(true);
-      const res = await axios.post('/api/admin/register', adminData);
-      
-      // Admin registration might not automatically log in
-      setError(null);
-      return res.data;
-    } catch (err) {
-      setError(err.response?.data?.message || 'Admin registration failed');
       throw err;
     } finally {
       setLoading(false);
@@ -191,9 +232,8 @@ export const AuthProvider = ({ children }) => {
         userType,
         loginUser,
         loginAdmin,
-        register,
-        registerAdmin,
-        logout
+        logout,
+        refreshToken
       }}
     >
       {children}
