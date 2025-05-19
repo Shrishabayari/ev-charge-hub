@@ -9,30 +9,69 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [userType, setUserType] = useState(null); // Add user type state (admin/user)
+
+  // Setup axios interceptor for token expiration
+  useEffect(() => {
+    // Add response interceptor to handle token expiration
+    const interceptor = axios.interceptors.response.use(
+      response => response,
+      error => {
+        // Check if error is due to expired token
+        if (error.response && 
+            error.response.status === 401 && 
+            error.response.data.expired) {
+          
+          // Automatically logout user
+          logout();
+          
+          // Set error message for expired token
+          setError('Your session has expired. Please log in again.');
+          
+          // Redirect to appropriate login page
+          window.location.href = userType === 'admin' ? '/admin/login' : '/user/login';
+        }
+        
+        return Promise.reject(error);
+      }
+    );
+
+    // Clean up interceptor on unmount
+    return () => {
+      axios.interceptors.response.eject(interceptor);
+    };
+  }, [userType]); // Re-run when userType changes
 
   // Load user from token on initial render
   useEffect(() => {
     const loadUser = async () => {
       const token = localStorage.getItem('token');
+      const storedUserType = localStorage.getItem('userType');
       
       if (!token) {
         setLoading(false);
         return;
       }
 
+      // Set user type from localStorage
+      if (storedUserType) {
+        setUserType(storedUserType);
+      }
+
       try {
         // Set default headers for all requests
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         
-        const res = await axios.get('/api/auth/user');
+        // Use the correct endpoint based on user type
+        const endpoint = storedUserType === 'admin' ? '/api/admin/profile' : '/api/users/profile';
+        const res = await axios.get(endpoint);
         
         setUser(res.data);
         setIsAuthenticated(true);
         setError(null);
       } catch (err) {
         console.error('Error loading user:', err);
-        localStorage.removeItem('token');
-        delete axios.defaults.headers.common['Authorization'];
+        logout();
         setError('Authentication failed');
       } finally {
         setLoading(false);
@@ -42,17 +81,19 @@ export const AuthProvider = ({ children }) => {
     loadUser();
   }, []);
 
-  // Login user
-  const login = async (email, password) => {
+  // User login
+  const loginUser = async (email, password) => {
     try {
       setLoading(true);
-      const res = await axios.post('/api/auth/login', { email, password });
+      const res = await axios.post('/api/users/login', { email, password });
       
       localStorage.setItem('token', res.data.token);
+      localStorage.setItem('userType', 'user');
       axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
       
       setUser(res.data.user);
       setIsAuthenticated(true);
+      setUserType('user');
       setError(null);
       return res.data.user;
     } catch (err) {
@@ -63,17 +104,46 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Admin login
+  const loginAdmin = async (email, password) => {
+    try {
+      setLoading(true);
+      const res = await axios.post('/api/admin/login', { email, password });
+      
+      localStorage.setItem('token', res.data.token);
+      localStorage.setItem('userType', 'admin');
+      axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
+      
+      setUser(res.data.user || { email }); // Some admin endpoints might not return full user data
+      setIsAuthenticated(true);
+      setUserType('admin');
+      setError(null);
+      return res.data;
+    } catch (err) {
+      setError(err.response?.data?.message || 'Admin login failed');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Register user
   const register = async (userData) => {
     try {
       setLoading(true);
-      const res = await axios.post('/api/auth/register', userData);
+      const res = await axios.post('/api/users/register', userData);
       
-      localStorage.setItem('token', res.data.token);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
+      // If registration returns a token, store it
+      if (res.data.token) {
+        localStorage.setItem('token', res.data.token);
+        localStorage.setItem('userType', 'user');
+        axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
+        
+        setUser(res.data.user);
+        setIsAuthenticated(true);
+        setUserType('user');
+      }
       
-      setUser(res.data.user);
-      setIsAuthenticated(true);
       setError(null);
       return res.data.user;
     } catch (err) {
@@ -84,12 +154,31 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Register admin
+  const registerAdmin = async (adminData) => {
+    try {
+      setLoading(true);
+      const res = await axios.post('/api/admin/register', adminData);
+      
+      // Admin registration might not automatically log in
+      setError(null);
+      return res.data;
+    } catch (err) {
+      setError(err.response?.data?.message || 'Admin registration failed');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Logout
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('userType');
     delete axios.defaults.headers.common['Authorization'];
     setUser(null);
     setIsAuthenticated(false);
+    setUserType(null);
   };
 
   return (
@@ -99,8 +188,11 @@ export const AuthProvider = ({ children }) => {
         isAuthenticated,
         loading,
         error,
-        login,
+        userType,
+        loginUser,
+        loginAdmin,
         register,
+        registerAdmin,
         logout
       }}
     >
