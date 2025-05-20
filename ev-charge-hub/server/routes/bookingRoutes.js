@@ -7,7 +7,8 @@ import {
   cancelBooking,
   rescheduleBooking,
   checkSlotAvailability,
-  getAvailableSlots , getAllBookings, 
+  getAvailableSlots,
+  getAllBookings, 
   getBookingStats, 
   updateBookingStatus, 
   getBookingDetails 
@@ -25,14 +26,17 @@ router.post('/create', authMiddleware, createBooking);
 router.get('/user', authMiddleware, getUserBookings);
 router.put('/cancel/:id', authMiddleware, cancelBooking);
 router.put('/reschedule/:id', authMiddleware, rescheduleBooking);
-router.get('/', authMiddleware, getAllBookings);
+
+// Admin routes
+router.get('/', authMiddleware, getAllBookings); // Consider adding adminMiddleware for admin-only access
 
 // Get booking statistics for admin dashboard
-router.get('/bookings/stats', authMiddleware, getBookingStats);
+router.get('/stats', authMiddleware, getBookingStats); // URL path fixed
 
 // Get details of a specific booking
-router.get('/bookings/:id', authMiddleware, getBookingDetails);
+router.get('/:id', authMiddleware, getBookingDetails); // URL path fixed
 
 // Update booking status (active, cancelled, completed)
-router.patch('/bookings/:id/status', authMiddleware, updateBookingStatus);
+router.patch('/:id/status', authMiddleware, updateBookingStatus); // URL path fixed
+
 export default router;
