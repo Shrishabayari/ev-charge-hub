@@ -1,22 +1,42 @@
+// auth/middleware/authMiddleware.js
 import jwt from 'jsonwebtoken';
 
-const authMiddleware = (req, res, next) => {
-  const authHeader = req.header("Authorization");
-
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ msg: "No token, authorization denied" });
+// Authentication middleware function
+const auth = (req, res, next) => {
+  // Get token from header
+  const token = req.header('x-auth-token');
+  
+  // Check if no token
+  if (!token) {
+    return res.status(401).json({ 
+      msg: 'No authentication token, authorization denied',
+      isExpired: false,
+      requiresLogin: true
+    });
   }
-
-  const token = authHeader.split(" ")[1];
-
+  
+  // Verify token
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded.user || decoded; // depends on token structure
+    req.user = decoded.user || decoded.admin;
+    req.isAdmin = !!decoded.admin;
     next();
   } catch (err) {
-    console.error("JWT error:", err.message);
-    res.status(401).json({ msg: "Token is not valid" });
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({
+        msg: 'Token has expired, please refresh or login again',
+        isExpired: true,
+        requiresRefresh: true
+      });
+    } else {
+      return res.status(401).json({ 
+        msg: 'Token is not valid',
+        isExpired: false,
+        requiresLogin: true,
+        error: err.message
+      });
+    }
   }
 };
 
-export default authMiddleware;
+export default auth;
