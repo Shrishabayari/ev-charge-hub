@@ -8,7 +8,6 @@ import bookingRoutes from './routes/bookingRoutes.js';
 import userRoutes from './routes/userRoutes.js'
 import { WebSocketServer } from 'ws';
 import http from 'http';
-import refreshTokenRoutes from './routes/refreshToken.js';
 
 dotenv.config();
 
@@ -28,7 +27,6 @@ app.use('/api/admin/ev-bunks', bunkRoutes); // Admin routes for EV bunks
 app.use('/api/bunks', bunkRoutes); // General routes for EV bunks
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/users', userRoutes); // ✅ added
-app.use('/api/refresh-token', refreshTokenRoutes);
 
 // Create HTTP server manually
 const server = http.createServer(app);
