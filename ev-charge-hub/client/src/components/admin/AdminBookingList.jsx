@@ -420,11 +420,11 @@ const AdminBookingsList = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                          <button
-                            onClick={() => navigate(`/admin/bookings/${booking._id}`)}
-                            className="text-indigo-600 hover:text-indigo-900"
-                          >
-                            View Details
-                          </button>
+  onClick={() => navigate(`/admin/bookings/${booking._id}`)}
+  className="text-indigo-600 hover:text-indigo-900"
+>
+  View Details
+</button>
                           <select
                             value={booking.status}
                             onChange={(e) => updateStatus(booking._id, e.target.value)}
