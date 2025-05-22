@@ -1,6 +1,5 @@
-// auth.js - Make sure your middleware is working properly
 import jwt from 'jsonwebtoken';
-import User from '../models/User.js'; // Adjust path as needed
+import User from '../models/User.js';
 
 const authMiddleware = async (req, res, next) => {
   try {
@@ -38,16 +37,21 @@ const authMiddleware = async (req, res, next) => {
         });
       }
       
-      // Check if admin for certain routes
-      if (req.path === '/bookings' && !user.isAdmin) {
-        return res.status(403).json({ 
-          success: false, 
-          message: 'Access denied: Admin privileges required' 
-        });
-      }
+      // Add user info to request for controllers to use
+      req.user = {
+        id: user._id.toString(),
+        email: user.email,
+        name: user.name,
+        isAdmin: user.isAdmin || false
+      };
       
-      // Add user to request
-      req.user = user;
+      console.log('Auth middleware - User authenticated:', {
+        id: req.user.id,
+        email: req.user.email,
+        isAdmin: req.user.isAdmin,
+        route: req.path
+      });
+      
       next();
     } catch (err) {
       console.error('JWT verification error:', err);

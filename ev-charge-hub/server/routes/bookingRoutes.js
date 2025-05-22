@@ -1,5 +1,5 @@
-import express from 'express'; 
-import authMiddleware from '../middleware/auth.js'; 
+import express from 'express';
+import authMiddleware from '../middleware/auth.js';
 import {
   getBookingsByBunk,
   createBooking,
@@ -7,15 +7,16 @@ import {
   cancelBooking,
   rescheduleBooking,
   checkSlotAvailability,
-  getAvailableSlots , getAllBookings, 
-  getBookingStats, 
-  updateBookingStatus, 
-  getBookingDetails 
+  getAvailableSlots,
+  getAllBookings,
+  getBookingStats,
+  updateBookingStatus,
+  getBookingDetails
 } from '../controllers/bookingController.js';
 
 const router = express.Router();
 
-// Public routes 
+// Public routes
 router.get('/bunk/:bunkId', getBookingsByBunk);
 router.post('/check-availability', checkSlotAvailability);
 router.get('/available-slots/:bunkId/:date', getAvailableSlots);
@@ -25,14 +26,13 @@ router.post('/create', authMiddleware, createBooking);
 router.get('/user', authMiddleware, getUserBookings);
 router.put('/cancel/:id', authMiddleware, cancelBooking);
 router.put('/reschedule/:id', authMiddleware, rescheduleBooking);
+
+// Admin routes - moved to correct order and paths
+router.get('/stats', authMiddleware, getBookingStats);
+router.get('/:id', authMiddleware, getBookingDetails);
+router.patch('/:id/status', authMiddleware, updateBookingStatus);
+
+// This should be last to avoid conflicts with specific routes above
 router.get('/', authMiddleware, getAllBookings);
 
-// Get booking statistics for admin dashboard
-router.get('/bookings/stats', authMiddleware, getBookingStats);
-
-// Get details of a specific booking
-router.get('/bookings/:id', authMiddleware, getBookingDetails);
-
-// Update booking status (active, cancelled, completed)
-router.patch('/bookings/:id/status', authMiddleware, updateBookingStatus);
 export default router;

@@ -448,6 +448,8 @@ export const getAvailableSlots = async (req, res) => {
 
 export const getAllBookings = async (req, res) => {
   try {
+    console.log('getAllBookings called by user:', req.user);
+    
     // Pagination parameters
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
@@ -455,6 +457,8 @@ export const getAllBookings = async (req, res) => {
     
     // Filtering parameters
     const { status, startDate, endDate, userId, bunkId, search } = req.query;
+    
+    console.log('Query parameters:', { status, startDate, endDate, userId, bunkId, search, page, limit });
     
     // Build filter object
     const filter = {};
@@ -464,12 +468,14 @@ export const getAllBookings = async (req, res) => {
     }
     
     if (startDate && endDate) {
-      filter.startTime = { $gte: new Date(startDate) };
-      filter.endTime = { $lte: new Date(endDate) };
+      filter.startTime = { 
+        $gte: new Date(startDate),
+        $lte: new Date(endDate)
+      };
     } else if (startDate) {
       filter.startTime = { $gte: new Date(startDate) };
     } else if (endDate) {
-      filter.endTime = { $lte: new Date(endDate) };
+      filter.startTime = { $lte: new Date(endDate) };
     }
     
     if (userId) {
@@ -480,25 +486,18 @@ export const getAllBookings = async (req, res) => {
       filter.bunkId = bunkId;
     }
     
-    // If search parameter is provided
-    if (search) {
-      // We'll need to join with the users and bunks collections to search
-      // This will be handled in the aggregation pipeline
-    }
+    console.log('Applied filter:', filter);
     
     // Count total documents for pagination
     const totalBookings = await Booking.countDocuments(filter);
+    console.log('Total bookings found:', totalBookings);
     
-    // Create base query
-    let bookingsQuery = Booking.find(filter)
-      .sort({ startTime: -1 })
-      .skip(skip)
-      .limit(limit)
-      .populate('userId', 'name email phone')
-      .populate('bunkId', 'name address');
+    let bookings;
     
-    // If there's a search parameter, use aggregation instead
-    if (search) {
+    // If there's a search parameter, use aggregation
+    if (search && search.trim()) {
+      console.log('Using search aggregation for:', search);
+      
       const aggregationPipeline = [
         {
           $lookup: {
@@ -510,7 +509,7 @@ export const getAllBookings = async (req, res) => {
         },
         {
           $lookup: {
-            from: 'evbunks', // Use your actual collection name for bunks
+            from: 'evbunks', // Make sure this matches your actual collection name
             localField: 'bunkId',
             foreignField: '_id',
             as: 'bunkDetails'
@@ -518,51 +517,68 @@ export const getAllBookings = async (req, res) => {
         },
         {
           $match: {
-            $or: [
-              { 'userDetails.name': { $regex: search, $options: 'i' } },
-              { 'userDetails.email': { $regex: search, $options: 'i' } },
-              { 'bunkDetails.name': { $regex: search, $options: 'i' } },
-              { 'bunkDetails.address': { $regex: search, $options: 'i' } }
-            ],
-            ...filter
+            $and: [
+              filter, // Apply other filters
+              {
+                $or: [
+                  { 'userDetails.name': { $regex: search, $options: 'i' } },
+                  { 'userDetails.email': { $regex: search, $options: 'i' } },
+                  { 'bunkDetails.name': { $regex: search, $options: 'i' } },
+                  { 'bunkDetails.address': { $regex: search, $options: 'i' } }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          $addFields: {
+            userId: { $arrayElemAt: ['$userDetails', 0] },
+            bunkId: { $arrayElemAt: ['$bunkDetails', 0] }
           }
         },
         {
           $project: {
             _id: 1,
-            userId: 1,
-            bunkId: 1,
+            userId: {
+              _id: '$userId._id',
+              name: '$userId.name',
+              email: '$userId.email'
+            },
+            bunkId: {
+              _id: '$bunkId._id',
+              name: '$bunkId.name',
+              address: '$bunkId.address'
+            },
             startTime: 1,
             endTime: 1,
             status: 1,
             createdAt: 1,
-            user: { $arrayElemAt: ['$userDetails', 0] },
-            bunk: { $arrayElemAt: ['$bunkDetails', 0] }
+            updatedAt: 1
           }
         },
+        { $sort: { startTime: -1 } },
         { $skip: skip },
-        { $limit: limit },
-        { $sort: { startTime: -1 } }
+        { $limit: limit }
       ];
       
-      const bookings = await Booking.aggregate(aggregationPipeline);
+      bookings = await Booking.aggregate(aggregationPipeline);
+    } else {
+      // Regular query without search
+      console.log('Using regular query without search');
       
-      return res.json({
-        success: true,
-        data: {
-          bookings,
-          pagination: {
-            total: totalBookings,
-            page,
-            limit,
-            pages: Math.ceil(totalBookings / limit)
-          }
-        }
-      });
+      bookings = await Booking.find(filter)
+        .sort({ startTime: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate('userId', 'name email phone')
+        .populate('bunkId', 'name address coordinates')
+        .lean(); // Use lean() for better performance
     }
     
-    // Execute the query
-    const bookings = await bookingsQuery.exec();
+    console.log(`Found ${bookings.length} bookings for current page`);
+    
+    // Calculate pagination info
+    const totalPages = Math.ceil(totalBookings / limit);
     
     // Send the response
     res.json({
@@ -573,13 +589,19 @@ export const getAllBookings = async (req, res) => {
           total: totalBookings,
           page,
           limit,
-          pages: Math.ceil(totalBookings / limit)
+          pages: totalPages,
+          hasNextPage: page < totalPages,
+          hasPrevPage: page > 1
         }
       }
     });
   } catch (error) {
     console.error('Error in getAllBookings:', error);
-    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server Error', 
+      error: error.message 
+    });
   }
 };
 
@@ -587,6 +609,8 @@ export const getAllBookings = async (req, res) => {
 export const getBookingStats = async (req, res) => {
   try {
     const { timeframe } = req.query; // 'daily', 'weekly', 'monthly'
+    
+    console.log('Getting booking stats for timeframe:', timeframe);
     
     // Get the current date and time
     const now = new Date();
@@ -727,6 +751,8 @@ export const getBookingStats = async (req, res) => {
       startTime: { $gte: todayStart, $lte: todayEnd }
     });
     
+    console.log('Booking stats generated successfully');
+    
     // Send the response
     res.json({
       success: true,
@@ -750,6 +776,8 @@ export const updateBookingStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
     
+    console.log(`Updating booking ${id} status to ${status} by user:`, req.user);
+    
     // Validate status
     const validStatuses = ['active', 'cancelled', 'completed'];
     if (!validStatuses.includes(status)) {
@@ -759,30 +787,35 @@ export const updateBookingStatus = async (req, res) => {
       });
     }
     
-    // Find the booking
-    const booking = await Booking.findById(id);
+    // Find and update the booking
+    const booking = await Booking.findByIdAndUpdate(
+      id,
+      { status },
+      { new: true, runValidators: true }
+    ).populate('userId', 'name email')
+     .populate('bunkId', 'name address');
     
     if (!booking) {
-      return res.status(404).json({ success: false, message: 'Booking not found' });
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Booking not found' 
+      });
     }
     
-    // Update booking status
-    booking.status = status;
-    await booking.save();
-    
-    // Get updated booking with populated user and bunk details
-    const updatedBooking = await Booking.findById(id)
-      .populate('userId', 'name email')
-      .populate('bunkId', 'name address');
+    console.log('Booking status updated successfully:', booking);
     
     res.json({ 
       success: true, 
       message: `Booking status updated to ${status}`,
-      data: updatedBooking
+      data: booking
     });
   } catch (error) {
     console.error('Error in updateBookingStatus:', error);
-    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server Error', 
+      error: error.message 
+    });
   }
 };
 
@@ -791,17 +824,32 @@ export const getBookingDetails = async (req, res) => {
   try {
     const { id } = req.params;
     
+    console.log(`Getting booking details for ID: ${id} by user:`, req.user);
+    
     const booking = await Booking.findById(id)
-      .populate('userId', 'name email phone') // Include whatever user fields you need
-      .populate('bunkId', 'name address coordinates');
+      .populate('userId', 'name email phone')
+      .populate('bunkId', 'name address coordinates operatingHours')
+      .lean();
     
     if (!booking) {
-      return res.status(404).json({ success: false, message: 'Booking not found' });
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Booking not found' 
+      });
     }
     
-    res.json({ success: true, data: booking });
+    console.log('Booking details found:', booking);
+    
+    res.json({ 
+      success: true, 
+      data: booking 
+    });
   } catch (error) {
     console.error('Error in getBookingDetails:', error);
-    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server Error', 
+      error: error.message 
+    });
   }
 };

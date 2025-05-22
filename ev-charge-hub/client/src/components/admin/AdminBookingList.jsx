@@ -13,7 +13,7 @@ const AdminBookingsList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalBookings, setTotalBookings] = useState(0);
-  const [limit] = useState(10); // Remove setLimit if not needed
+  const [limit] = useState(10);
 
   // Filter state
   const [filters, setFilters] = useState({
@@ -23,28 +23,26 @@ const AdminBookingsList = () => {
     search: ''
   });
 
+  // Function to get auth token
+  const getAuthToken = () => {
+    return localStorage.getItem('authToken') || 
+           localStorage.getItem('token') || 
+           localStorage.getItem('userToken') ||
+           sessionStorage.getItem('authToken');
+  };
+
   // Function to fetch bookings
   const fetchBookings = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Get the token from localStorage (or wherever you store it)
-      // Check for different possible token keys - sometimes the key might vary
-      const token = localStorage.getItem('authToken') || 
-                    localStorage.getItem('token') || 
-                    localStorage.getItem('userToken') ||
-                    sessionStorage.getItem('authToken');
+      const token = getAuthToken();
       
-      // For debugging - remove in production
       console.log("Authentication token:", token ? "Found" : "Not found");
       
       if (!token) {
         console.warn("No authentication token found in storage");
-        // Instead of showing error, you can redirect to login page
-        // navigate('/login');
-        // Or continue without authentication for development purposes
-        // Comment out the next 3 lines if you want to test without authentication
         setError('You are not authenticated. Please log in again.');
         setLoading(false);
         return;
@@ -52,8 +50,8 @@ const AdminBookingsList = () => {
 
       // Construct query params
       const params = new URLSearchParams();
-      params.append('page', currentPage);
-      params.append('limit', limit);
+      params.append('page', currentPage.toString());
+      params.append('limit', limit.toString());
       
       // Add filters if they exist
       if (filters.status) params.append('status', filters.status);
@@ -61,86 +59,52 @@ const AdminBookingsList = () => {
       if (filters.endDate) params.append('endDate', filters.endDate);
       if (filters.search) params.append('search', filters.search);
 
-      // Make API call with the token in the Authorization header
       const headers = {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
       };
       
-      // Only add Authorization header if token exists
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
+      const apiUrl = `/api/bookings?${params.toString()}`;
+      console.log("Fetching bookings with URL:", apiUrl);
       
-      console.log("Fetching bookings with URL:", `/api/bookings?${params.toString()}`);
+      const response = await axios.get(apiUrl, { headers });
       
-      // Call the correct API endpoint based on your routes
-      const response = await axios.get(`/api/bookings`, { 
-        headers,
-        params: {
-          page: currentPage,
-          limit,
-          ...(filters.status && { status: filters.status }),
-          ...(filters.startDate && { startDate: filters.startDate }),
-          ...(filters.endDate && { endDate: filters.endDate }),
-          ...(filters.search && { search: filters.search })
-        }
-      });
+      console.log("API response:", response.data);
       
-      console.log("API response:", response.data);  // For debugging
-      
-      // Update state with the response data
-      console.log("Processing response data structure:", response.data);
-      
-      // Handle different response structures
-      let bookingsData = [], totalPagesCount = 1, totalBookingsCount = 0;
-      
-      if (response.data.data && response.data.data.bookings) {
-        // Format from the controller code you shared
-        bookingsData = response.data.data.bookings;
-        totalPagesCount = response.data.data.pagination?.pages || 1;
-        totalBookingsCount = response.data.data.pagination?.total || 0;
-      } else if (response.data.bookings) {
-        // Alternative format
-        bookingsData = response.data.bookings;
-        totalPagesCount = response.data.totalPages || 1;
-        totalBookingsCount = response.data.totalCount || 0;
+      // Handle response data
+      if (response.data.success) {
+        const responseData = response.data.data;
+        
+        setBookings(responseData.bookings || []);
+        setTotalPages(responseData.pagination?.pages || 1);
+        setTotalBookings(responseData.pagination?.total || 0);
+        
+        console.log("Successfully loaded bookings:", responseData.bookings?.length || 0);
       } else {
-        // Fallback - try to use whatever data is available
-        bookingsData = Array.isArray(response.data) ? response.data : [];
-        console.warn("Unexpected response format:", response.data);
+        setError(response.data.message || 'Failed to fetch bookings');
       }
       
-      setBookings(bookingsData);
-      setTotalPages(totalPagesCount);
-      setTotalBookings(totalBookingsCount);
       setLoading(false);
     } catch (err) {
       console.error('Error fetching bookings:', err);
-      setError(err.response?.data?.message || 'Failed to fetch bookings');
+      
+      if (err.response?.status === 401) {
+        setError('Session expired. Please log in again.');
+        // Optionally redirect to login
+        // navigate('/login');
+      } else if (err.response?.status === 403) {
+        setError('Access denied. Admin privileges required.');
+      } else {
+        setError(err.response?.data?.message || 'Failed to fetch bookings');
+      }
+      
       setLoading(false);
     }
   }, [currentPage, limit, filters]);
 
   // Fetch bookings when component mounts or dependencies change
   useEffect(() => {
-    // Check if user is logged in before fetching
-    const checkAuthAndFetch = async () => {
-      const token = localStorage.getItem('authToken') || 
-                    localStorage.getItem('token') || 
-                    localStorage.getItem('userToken') ||
-                    sessionStorage.getItem('authToken');
-                    
-      if (!token && process.env.NODE_ENV === 'development') {
-        console.warn('⚠️ Development mode: No auth token found. You might need to log in first.');
-        // For development, you might want to use mock data
-        // setBookings(mockBookings);
-        // setLoading(false);
-      } else {
-        fetchBookings();
-      }
-    };
-    
-    checkAuthAndFetch();
+    fetchBookings();
   }, [fetchBookings]);
 
   // Handle filter changes
@@ -150,28 +114,29 @@ const AdminBookingsList = () => {
       ...prev,
       [name]: value
     }));
-    // Reset to page 1 when filters change
-    setCurrentPage(1);
+    setCurrentPage(1); // Reset to page 1 when filters change
   };
 
   // Handle search input submit
   const handleSearch = (e) => {
     e.preventDefault();
-    // fetchBookings will be triggered by filters dependency in useEffect
+    fetchBookings();
   };
 
   // Format date for display
   const formatDate = (dateString) => {
     try {
+      if (!dateString) return 'N/A';
       return format(new Date(dateString), 'MMM dd, yyyy HH:mm');
     } catch (err) {
+      console.error('Date formatting error:', err);
       return 'Invalid date';
     }
   };
 
   // Handle status badge styling
   const getStatusBadgeClass = (status) => {
-    switch (status) {
+    switch (status?.toLowerCase()) {
       case 'active':
         return 'bg-green-100 text-green-800';
       case 'cancelled':
@@ -185,7 +150,6 @@ const AdminBookingsList = () => {
 
   // Navigate to booking details
   const viewBookingDetails = (bookingId) => {
-    // Update the route based on your actual route structure
     navigate(`/admin/bookings/${bookingId}`);
     console.log(`Navigating to booking details for ID: ${bookingId}`);
   };
@@ -193,11 +157,7 @@ const AdminBookingsList = () => {
   // Update booking status
   const updateStatus = async (bookingId, newStatus) => {
     try {
-      // Get the token
-      const token = localStorage.getItem('authToken') || 
-                  localStorage.getItem('token') || 
-                  localStorage.getItem('userToken') ||
-                  sessionStorage.getItem('authToken');
+      const token = getAuthToken();
                   
       if (!token) {
         alert('You are not authenticated. Please log in again.');
@@ -205,16 +165,12 @@ const AdminBookingsList = () => {
       }
       
       const headers = {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
       };
-      
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
       
       console.log(`Updating booking ${bookingId} status to ${newStatus}`);
       
-      // Fixed API endpoint for updating status - based on your routes
       const response = await axios.patch(`/api/bookings/${bookingId}/status`, 
         { status: newStatus },
         { headers }
@@ -229,11 +185,22 @@ const AdminBookingsList = () => {
               : booking
           )
         );
+        
+        console.log('Booking status updated successfully');
+      } else {
+        alert(response.data.message || 'Failed to update booking status');
       }
     } catch (err) {
       console.error('Error updating booking status:', err);
       alert(err.response?.data?.message || 'Failed to update booking status');
     }
+  };
+
+  // Helper function to safely get nested properties
+  const safeGet = (obj, path, defaultValue = 'N/A') => {
+    return path.split('.').reduce((current, key) => 
+      current && current[key] !== undefined ? current[key] : defaultValue, obj
+    );
   };
     
   return (
@@ -331,7 +298,7 @@ const AdminBookingsList = () => {
       {error && !loading && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md mb-4">
           <p>{error}</p>
-          {!localStorage.getItem('authToken') && !localStorage.getItem('token') && (
+          {!getAuthToken() && (
             <div className="mt-2">
               <button 
                 onClick={() => navigate('/login')}
@@ -352,37 +319,22 @@ const AdminBookingsList = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Booking ID
                     </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       User
                     </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       EV Bunk
                     </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Slot Time
                     </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
                     </th>
-                    <th scope="col" className="relative px-6 py-3">
+                    <th className="relative px-6 py-3">
                       <span className="sr-only">Actions</span>
                     </th>
                   </tr>
@@ -390,8 +342,11 @@ const AdminBookingsList = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {bookings.length === 0 ? (
                     <tr>
-                      <td colSpan="6" className="text-center py-4 text-gray-500">
-                        No bookings found.
+                      <td colSpan="6" className="text-center py-8 text-gray-500">
+                        <div className="flex flex-col items-center">
+                          <p className="text-lg mb-2">No bookings found</p>
+                          <p className="text-sm">Try adjusting your filters or search terms</p>
+                        </div>
                       </td>
                     </tr>
                   ) : (
@@ -401,40 +356,59 @@ const AdminBookingsList = () => {
                           {booking._id?.substring(0, 8) || 'N/A'}...
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {booking.userId?.name || booking.user?.name || 'N/A'}
+                          <div>
+                            <div className="font-medium">
+                              {safeGet(booking, 'userId.name') || safeGet(booking, 'user.name')}
+                            </div>
+                            <div className="text-gray-500 text-xs">
+                              {safeGet(booking, 'userId.email') || safeGet(booking, 'user.email')}
+                            </div>
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {booking.bunkId?.name || booking.bunk?.name || 'N/A'}
+                          <div>
+                            <div className="font-medium">
+                              {safeGet(booking, 'bunkId.name') || safeGet(booking, 'bunk.name')}
+                            </div>
+                            <div className="text-gray-500 text-xs">
+                              {safeGet(booking, 'bunkId.address') || safeGet(booking, 'bunk.address')}
+                            </div>
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {booking.startTime ? formatDate(booking.startTime) : (booking.slot ? formatDate(booking.slot) : 'N/A')}
+                          <div>
+                            <div>Start: {formatDate(booking.startTime)}</div>
+                            <div className="text-xs text-gray-500">
+                              End: {formatDate(booking.endTime)}
+                            </div>
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span
-                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeClass(
-                              booking.status
-                            )}`}
+                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeClass(booking.status)}`}
                           >
-                            {booking.status}
+                            {booking.status || 'Unknown'}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                         <button
-                            onClick={() => navigate(`/admin/bookings/${booking._id}`)}
-                            className="text-indigo-600 hover:text-indigo-900"
-                          >
-                            View Details
-                          </button>
-                          <select
-                            value={booking.status}
-                            onChange={(e) => updateStatus(booking._id, e.target.value)}
-                            className="border border-gray-300 rounded-md p-1 text-sm"
-                            aria-label="Update booking status"
-                          >
-                            <option value="active">Active</option>
-                            <option value="cancelled">Cancelled</option>
-                            <option value="completed">Completed</option>
-                          </select>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-y-2">
+                          <div className="flex flex-col space-y-2">
+                            <button
+                              onClick={() => viewBookingDetails(booking._id)}
+                              className="text-indigo-600 hover:text-indigo-900 text-sm font-medium"
+                            >
+                              View Details
+                            </button>
+                            <select
+                              value={booking.status || 'active'}
+                              onChange={(e) => updateStatus(booking._id, e.target.value)}
+                              className="border border-gray-300 rounded-md p-1 text-xs"
+                              aria-label="Update booking status"
+                            >
+                              <option value="active">Active</option>
+                              <option value="cancelled">Cancelled</option>
+                              <option value="completed">Completed</option>
+                            </select>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -447,13 +421,13 @@ const AdminBookingsList = () => {
           {/* Pagination Controls */}
           <div className="flex justify-between items-center mt-4">
             <p className="text-sm text-gray-600">
-              Showing {bookings.length} of {totalBookings} bookings
+              Showing {bookings.length} of {totalBookings} bookings (Page {currentPage} of {totalPages})
             </p>
             <div className="space-x-2">
               <button
-                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
-                className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+                className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Prev
               </button>
@@ -461,9 +435,9 @@ const AdminBookingsList = () => {
                 {currentPage} / {totalPages}
               </span>
               <button
-                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages}
-                className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+                className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Next
               </button>
