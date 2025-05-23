@@ -43,7 +43,7 @@ router.post('/', (req, res) => {
     const newToken = jwt.sign(
       payload,
       process.env.JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: '365d' }
     );
     
     // Return the new token
