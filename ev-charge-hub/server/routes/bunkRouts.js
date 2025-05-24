@@ -1,8 +1,17 @@
-
 import express from 'express';
-import { addEvBunk, getAllEvBunks, getEvBunkById, updateEvBunk, deleteEvBunk } from '../controllers/evBunkController.js';
+import { 
+  addEvBunk, 
+  getAllEvBunks, 
+  getEvBunkById, 
+  updateEvBunk, 
+  deleteEvBunk,
+  getBunkLocations // New controller function
+} from '../controllers/evBunkController.js';
 
 const router = express.Router();
+
+// Get all EV Bunk locations (for map display)
+router.get('/locations', getBunkLocations);
 
 // Add a new EV Bunk
 router.post('/', addEvBunk);

@@ -1,302 +1,329 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
+import { MapPin, Zap, Star, Clock, DollarSign, Wifi, Car, Coffee, Loader } from 'lucide-react';
 
-const EvBunkAdminMap = () => {
-  const [bunks, setBunks] = useState([]);
-  const [selectedBunk, setSelectedBunk] = useState(null);
+const EVBunkLocationsMap = () => {
+  const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [mapLoaded, setMapLoaded] = useState(false);
+  const [error, setError] = useState(null);
+  const [selectedBunk, setSelectedBunk] = useState(null);
+  const [userLocation, setUserLocation] = useState(null);
 
-  // Sample data - replace with your API call
-  const sampleBunks = [
-    {
-      _id: '1',
-      name: 'Downtown EV Station',
-      address: '123 Main St, Downtown',
-      phone: '+1-555-0123',
-      slotsAvailable: 8,
-      latitude: 40.7589,
-      longitude: -73.9851,
-      operatingHours: '06:00-22:00',
-      connectorTypes: ['Type 2', 'CCS', 'CHAdeMO']
-    },
-    {
-      _id: '2',
-      name: 'Mall Charging Hub',
-      address: '456 Shopping Blvd, Mall Area',
-      phone: '+1-555-0456',
-      slotsAvailable: 12,
-      latitude: 40.7505,
-      longitude: -73.9934,
-      operatingHours: '24/7',
-      connectorTypes: ['Type 2', 'CCS']
-    },
-    {
-      _id: '3',
-      name: 'Airport EV Center',
-      address: '789 Airport Rd, Terminal 1',
-      phone: '+1-555-0789',
-      slotsAvailable: 15,
-      latitude: 40.7614,
-      longitude: -73.9776,
-      operatingHours: '05:00-23:00',
-      connectorTypes: ['Type 2', 'CCS', 'CHAdeMO', 'Tesla']
+  // Fetch bunk locations from your API
+  const fetchBunkLocations = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/bunks/locations', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.success) {
+        setLocations(result.data);
+        setError(null);
+      } else {
+        throw new Error(result.message || 'Failed to fetch locations');
+      }
+    } catch (err) {
+      console.error('Error fetching bunk locations:', err);
+      setError(err.message);
+      // Fallback to sample data for demonstration
+      setLocations([
+        {
+          id: '1',
+          name: 'Downtown EV Hub',
+          address: '123 Main St, Downtown',
+          latitude: 40.7128,
+          longitude: -74.0060,
+          totalSlots: 20,
+          availableSlots: 12,
+          pricePerHour: 15,
+          amenities: ['wifi', 'cafe', 'restroom'],
+          rating: 4.5
+        },
+        {
+          id: '2',
+          name: 'Mall Charging Station',
+          address: '456 Shopping Blvd, Mall Area',
+          latitude: 40.7589,
+          longitude: -73.9851,
+          totalSlots: 15,
+          availableSlots: 8,
+          pricePerHour: 12,
+          amenities: ['wifi', 'shopping'],
+          rating: 4.2
+        }
+      ]);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  // Get user's current location
+  const getUserLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+        },
+        (error) => {
+          console.error('Error getting user location:', error);
+        }
+      );
+    }
+  };
 
   useEffect(() => {
-    // Simulate API call - replace with actual API endpoint
-    const fetchBunks = async () => {
-      try {
-        setLoading(true);
-        // Replace this with your actual API call
-        // const response = await fetch('/api/ev-bunks');
-        // const data = await response.json();
-        
-        // Using sample data for demonstration
-        setTimeout(() => {
-          setBunks(sampleBunks);
-          setLoading(false);
-        }, 1000);
-      } catch (error) {
-        console.error('Error fetching bunks:', error);
-        setLoading(false);
-      }
-    };
-
-    fetchBunks();
+    fetchBunkLocations();
+    getUserLocation();
   }, []);
 
-  useEffect(() => {
-    // Load Google Maps API
-    const loadGoogleMaps = () => {
-      if (window.google) {
-        setMapLoaded(true);
+  // Calculate distance between two points (rough approximation)
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
+
+  // Get amenity icon
+  const getAmenityIcon = (amenity) => {
+    switch (amenity.toLowerCase()) {
+      case 'wifi': return <Wifi className="w-4 h-4" />;
+      case 'cafe': case 'coffee': return <Coffee className="w-4 h-4" />;
+      case 'parking': return <Car className="w-4 h-4" />;
+      default: return <Zap className="w-4 h-4" />;
+    }
+  };
+
+  // Book a charging slot
+  const handleBooking = async (bunkId) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('Please login to book a charging slot');
         return;
       }
 
-      const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyDozw7FDv161gMDT9lE-U0cSGZuWjYhyvw&libraries=geometry`;
-      script.async = true;
-      script.defer = true;
-      script.onload = () => setMapLoaded(true);
-      script.onerror = () => {
-        console.error('Failed to load Google Maps API');
-        setMapLoaded(false);
-      };
-      document.head.appendChild(script);
-    };
-
-    loadGoogleMaps();
-  }, []);
-
-  const initializeMap = useCallback(() => {
-    const map = new window.google.maps.Map(document.getElementById('map'), {
-      zoom: 12,
-      center: { lat: 40.7589, lng: -73.9851 },
-      mapTypeId: 'roadmap',
-      styles: [
-        {
-          featureType: 'poi',
-          elementType: 'labels',
-          stylers: [{ visibility: 'off' }]
-        }
-      ]
-    });
-
-    const bounds = new window.google.maps.LatLngBounds();
-
-    bunks.forEach((bunk) => {
-      const position = { lat: bunk.latitude, lng: bunk.longitude };
-      
-      const marker = new window.google.maps.Marker({
-        position,
-        map,
-        title: bunk.name,
-        icon: {
-          url: 'data:image/svg+xml;base64,' + btoa(`
-            <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="16" cy="16" r="14" fill="#10B981" stroke="#059669" stroke-width="2"/>
-              <path d="M12 10h8v4h-2v8h-4v-8h-2z" fill="white"/>
-            </svg>
-          `),
-          scaledSize: new window.google.maps.Size(32, 32)
-        }
-      });
-
-      marker.addListener('click', () => {
-        setSelectedBunk(bunk);
-        map.panTo(position);
-        map.setZoom(15);
-      });
-
-      bounds.extend(position);
-    });
-
-    if (bunks.length > 1) {
-      map.fitBounds(bounds);
+      // Redirect to booking page or show booking modal
+      window.location.href = `/book/${bunkId}`;
+    } catch (error) {
+      console.error('Booking error:', error);
+      alert('Error initiating booking. Please try again.');
     }
-  }, [bunks]);
-
-  useEffect(() => {
-    if (mapLoaded && bunks.length > 0) {
-      initializeMap();
-    }
-  }, [mapLoaded, bunks, initializeMap]);
-
-  const formatOperatingHours = (hours) => {
-    if (hours === '24/7') return '24/7';
-    const [start, end] = hours.split('-');
-    return `${start} - ${end}`;
-  };
-
-  const getStatusColor = (slotsAvailable) => {
-    if (slotsAvailable === 0) return 'text-red-600 bg-red-50';
-    if (slotsAvailable <= 3) return 'text-yellow-600 bg-yellow-50';
-    return 'text-green-600 bg-green-50';
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading EV Bunks...</p>
+          <Loader className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
+          <p className="text-gray-600">Loading charging stations...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b px-6 py-4">
-        <h1 className="text-2xl font-bold text-gray-900">EV Bunk Admin Dashboard</h1>
-        <p className="text-gray-600 mt-1">Manage and monitor all EV charging stations</p>
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">EV Charging Stations</h1>
+              <p className="text-gray-600 mt-1">Find and book charging slots near you</p>
+            </div>
+            <div className="flex items-center space-x-2 text-sm text-gray-500">
+              <MapPin className="w-4 h-4" />
+              <span>{locations.length} stations available</span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar */}
-        <div className="w-80 bg-white shadow-lg overflow-y-auto">
-          <div className="p-4 border-b bg-gray-50">
-            <h2 className="font-semibold text-gray-900">All Locations ({bunks.length})</h2>
-          </div>
-          
-          <div className="divide-y">
-            {bunks.map((bunk) => (
-              <div
-                key={bunk._id}
-                className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors ${
-                  selectedBunk?._id === bunk._id ? 'bg-blue-50 border-r-4 border-blue-500' : ''
-                }`}
-                onClick={() => setSelectedBunk(bunk)}
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <h3 className="font-medium text-gray-900 text-sm">{bunk.name}</h3>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(bunk.slotsAvailable)}`}>
-                    {bunk.slotsAvailable} slots
-                  </span>
-                </div>
-                
-                <div className="space-y-1 text-xs text-gray-600">
-                  <div className="flex items-start">
-                  <span className="inline-block w-4 h-4 text-gray-500 text-center text-xs mt-0.5 mr-2 flex-shrink-0">📍</span>
-                  <span className="text-sm text-gray-700">{bunk.address}</span>
-                </div>
-                
-                <div className="flex items-center">
-                  <span className="inline-block w-4 h-4 text-gray-500 text-center text-xs mr-2">🕒</span>
-                  <span className="text-sm text-gray-700">{formatOperatingHours(bunk.operatingHours)}</span>
-                </div>
-                
-                <div className="flex items-center">
-                  <span className="inline-block w-4 h-4 text-gray-500 text-center text-xs mr-2">⚡</span>
-                  <span>{bunk.connectorTypes.join(', ')}</span>
-                </div>
-                </div>
+      {/* Error Message */}
+      {error && (
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Map Container */}
-        <div className="flex-1 relative">
-          <div id="map" className="w-full h-full"></div>
-          
-          {!mapLoaded && (
-            <div className="absolute inset-0 bg-gray-200 flex items-center justify-center">
-              <div className="text-center">
-                <div className="animate-pulse bg-gray-300 h-8 w-48 rounded mb-2 mx-auto"></div>
-                <p className="text-gray-500">Loading Google Maps...</p>
-                <p className="text-sm text-red-500 mt-2">Note: Add your Google Maps API key</p>
+              <div className="ml-3">
+                <p className="text-sm text-yellow-800">
+                  Warning: Using sample data. API Error: {error}
+                </p>
               </div>
             </div>
-          )}
+          </div>
+        </div>
+      )}
 
-          {/* Selected Bunk Info Panel */}
-          {selectedBunk && (
-            <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg p-4 w-80 max-h-96 overflow-y-auto">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-bold text-gray-900">{selectedBunk.name}</h3>
-                <button
-                  onClick={() => setSelectedBunk(null)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  ×
-                </button>
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Map Placeholder */}
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+              <div className="h-96 bg-gradient-to-br from-blue-100 to-green-100 flex items-center justify-center relative">
+                <div className="text-center">
+                  <MapPin className="w-16 h-16 text-blue-600 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-800 mb-2">Interactive Map</h3>
+                  <p className="text-gray-600">Integrate with Google Maps or Mapbox to show actual locations</p>
+                </div>
+                
+                {/* Sample location markers */}
+                {locations.map((location, index) => (
+                  <div
+                    key={location.id}
+                    className={`absolute cursor-pointer transform -translate-x-1/2 -translate-y-1/2 ${
+                      index === 0 ? 'top-1/3 left-1/4' : 
+                      index === 1 ? 'top-1/2 left-3/4' : 
+                      'top-2/3 left-1/2'
+                    }`}
+                    onClick={() => setSelectedBunk(location)}
+                  >
+                    <div className="bg-blue-600 text-white p-2 rounded-full shadow-lg hover:bg-blue-700 transition-colors">
+                      <Zap className="w-4 h-4" />
+                    </div>
+                    {selectedBunk?.id === location.id && (
+                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 bg-white p-2 rounded shadow-lg min-w-48 z-10">
+                        <p className="font-semibold text-sm">{location.name}</p>
+                        <p className="text-xs text-gray-600">{location.availableSlots}/{location.totalSlots} available</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
-              
-              <div className="space-y-3">
-                <div className="flex items-start">
-                  <span className="inline-block w-4 h-4 text-gray-500 text-center text-xs mt-0.5 mr-2 flex-shrink-0">📍</span>
-                  <span className="text-sm text-gray-700">{selectedBunk.address}</span>
-                </div>
-                
-                <div className="flex items-center">
-                  <span className="inline-block w-4 h-4 text-gray-500 text-center text-xs mr-2">📞</span>
-                  <span className="text-sm text-gray-700">{selectedBunk.phone}</span>
-                </div>
-                
-                <div className="flex items-center">
-                  <span className="inline-block w-4 h-4 text-gray-500 text-center text-xs mr-2">🕒</span>
-                  <span className="text-sm text-gray-700">{formatOperatingHours(selectedBunk.operatingHours)}</span>
-                </div>
-                
-                <div className="flex items-center">
-                  <span className="inline-block w-4 h-4 text-gray-500 text-center text-xs mr-2">👥</span>
-                  <span className={`text-sm font-medium ${
-                    selectedBunk.slotsAvailable === 0 ? 'text-red-600' :
-                    selectedBunk.slotsAvailable <= 3 ? 'text-yellow-600' : 'text-green-600'
-                  }`}>
-                    {selectedBunk.slotsAvailable} slots available
-                  </span>
-                </div>
-                
-                <div className="flex items-start">
-                  <span className="inline-block w-4 h-4 text-gray-500 text-center text-xs mt-0.5 mr-2 flex-shrink-0">⚡</span>
-                  <div className="flex flex-wrap gap-1">
-                    {selectedBunk.connectorTypes.map((type, index) => (
-                      <span
-                        key={index}
-                        className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded"
-                      >
-                        {type}
-                      </span>
-                    ))}
+            </div>
+          </div>
+
+          {/* Station List */}
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Available Stations</h2>
+            
+            {locations.map((location) => (
+              <div key={location.id} className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">{location.name}</h3>
+                    <p className="text-sm text-gray-600 flex items-center mt-1">
+                      <MapPin className="w-4 h-4 mr-1" />
+                      {location.address}
+                    </p>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                    <span className="text-sm font-medium">{location.rating}</span>
                   </div>
                 </div>
-              </div>
-              
-              <div className="mt-4 pt-3 border-t">
-                <button className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors text-sm font-medium">
-                  Edit Location
+
+                {/* Availability Status */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-4">
+                    <div className="flex items-center">
+                      <div className={`w-3 h-3 rounded-full mr-2 ${
+                        location.availableSlots > 0 ? 'bg-green-400' : 'bg-red-400'
+                      }`}></div>
+                      <span className="text-sm font-medium">
+                        {location.availableSlots}/{location.totalSlots} Available
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center text-sm text-gray-600">
+                    <DollarSign className="w-4 h-4 mr-1" />
+                    ${location.pricePerHour}/hr
+                  </div>
+                </div>
+
+                {/* Amenities */}
+                {location.amenities && location.amenities.length > 0 && (
+                  <div className="mb-4">
+                    <div className="flex flex-wrap gap-2">
+                      {location.amenities.map((amenity, index) => (
+                        <div key={index} className="flex items-center bg-gray-100 rounded-full px-3 py-1 text-xs">
+                          {getAmenityIcon(amenity)}
+                          <span className="ml-1 capitalize">{amenity}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Distance (if user location available) */}
+                {userLocation && (
+                  <div className="mb-4 text-sm text-gray-600">
+                    <Clock className="w-4 h-4 inline mr-1" />
+                    {calculateDistance(
+                      userLocation.lat, 
+                      userLocation.lng, 
+                      location.latitude, 
+                      location.longitude
+                    ).toFixed(1)} km away
+                  </div>
+                )}
+
+                {/* Book Button */}
+                <button
+                  onClick={() => handleBooking(location.id)}
+                  disabled={location.availableSlots === 0}
+                  className={`w-full py-2 px-4 rounded-lg font-medium transition-colors ${
+                    location.availableSlots > 0
+                      ? 'bg-blue-600 text-white hover:bg-blue-700'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  {location.availableSlots > 0 ? 'Book Now' : 'Fully Booked'}
                 </button>
               </div>
-            </div>
-          )}
+            ))}
+
+            {locations.length === 0 && !loading && (
+              <div className="text-center py-8">
+                <Zap className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">No charging stations found</p>
+              </div>
+            )}
+          </div>
         </div>
+      </div>
+
+      {/* Refresh Button */}
+      <div className="fixed bottom-6 right-6">
+        <button
+          onClick={() => {
+            setLoading(true);
+            fetchBunkLocations();
+          }}
+          className="bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700 transition-colors"
+          title="Refresh locations"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        </button>
       </div>
     </div>
   );
 };
 
-export default EvBunkAdminMap;
+export default EVBunkLocationsMap;

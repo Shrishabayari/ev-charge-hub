@@ -120,3 +120,51 @@ export const deleteEvBunk = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+export const getBunkLocations = async (req, res) => {
+  try {
+    // Fetch only the location-related fields from your EV bunks
+    const locations = await EvBunk.find(
+      { status: 'active' }, // Only get active bunks
+      {
+        _id: 1,
+        name: 1,
+        address: 1,
+        latitude: 1,
+        longitude: 1,
+        totalSlots: 1,
+        availableSlots: 1,
+        pricePerHour: 1,
+        amenities: 1,
+        rating: 1
+      }
+    );
+
+    // Transform the data to match map requirements
+    const formattedLocations = locations.map(bunk => ({
+      id: bunk._id,
+      name: bunk.name,
+      address: bunk.address,
+      latitude: parseFloat(bunk.latitude),
+      longitude: parseFloat(bunk.longitude),
+      totalSlots: bunk.totalSlots,
+      availableSlots: bunk.availableSlots,
+      pricePerHour: bunk.pricePerHour,
+      amenities: bunk.amenities,
+      rating: bunk.rating
+    }));
+
+    res.status(200).json({
+      success: true,
+      count: formattedLocations.length,
+      data: formattedLocations
+    });
+
+  } catch (error) {
+    console.error('Error fetching bunk locations:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching bunk locations',
+      error: error.message
+    });
+  }
+};
