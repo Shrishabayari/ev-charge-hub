@@ -5,15 +5,10 @@ dotenv.config();
 
 const connectDB = async () => {
   try {
-    // Option 1: Define uri first
     const uri = process.env.MONGO_URI;
     
-    // Option 2: Use the connection string directly
-    await mongoose.connect(uri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true
-      // Remove edTopology if it's present
-    });
+    // Remove deprecated options - they're not needed in MongoDB driver v4.0.0+
+    await mongoose.connect(uri);
     
     console.log('MongoDB connected successfully!');
   } catch (error) {
