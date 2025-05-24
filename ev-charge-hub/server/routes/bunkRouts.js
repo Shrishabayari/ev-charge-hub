@@ -5,27 +5,27 @@ import {
   getEvBunkById, 
   updateEvBunk, 
   deleteEvBunk,
-  getBunkLocations // New controller function
+  getAvailableEvBunks,
+  getNearbyEvBunks,
+  searchEvBunks,
+  getEvBunksByConnector 
 } from '../controllers/evBunkController.js';
 
 const router = express.Router();
 
-// Get all EV Bunk locations (for map display)
-router.get('/locations', getBunkLocations);
+// IMPORTANT: Order matters! Put specific routes BEFORE parameterized routes
 
-// Add a new EV Bunk
-router.post('/', addEvBunk);
+// Special functionality routes (MUST come before /:id)
+router.get('/available', getAvailableEvBunks);
+router.get('/nearby', getNearbyEvBunks);
+router.get('/search', searchEvBunks);
+router.get('/connector', getEvBunksByConnector);
 
-// Get all EV Bunks
-router.get('/', getAllEvBunks);
-
-// Get an EV Bunk by ID
-router.get('/:id', getEvBunkById);
-
-// Update an EV Bunk
-router.put('/:id', updateEvBunk);
-
-// Delete an EV Bunk
-router.delete('/:id', deleteEvBunk);
+// Basic CRUD routes
+router.post('/', addEvBunk);           // POST /api/ev-bunks
+router.get('/', getAllEvBunks);        // GET /api/ev-bunks
+router.get('/:id', getEvBunkById);     // GET /api/ev-bunks/:id (MUST be last)
+router.put('/:id', updateEvBunk);      // PUT /api/ev-bunks/:id
+router.delete('/:id', deleteEvBunk);   // DELETE /api/ev-bunks/:id
 
 export default router;
