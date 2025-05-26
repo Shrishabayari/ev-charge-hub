@@ -42,7 +42,7 @@ const App = () => {
         <Route path='/user/bookings/reshedule' element={<RescheduleBookingForm/>} />
         <Route path='/admin/booking/list' element={<AdminBookingsList/>} />
         <Route path='/admin/bookings/:id' element={<AdminBookingDetail/>} />
-        <Route path='/admin/bunk' element={<EvBunkAdminMap/>} />
+        <Route path='/admin/bunk-locations' element={<EvBunkAdminMap/>} />
         <Route element={<WebSocketComponent />} />
       </Routes>
     </Router>

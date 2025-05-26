@@ -17,7 +17,7 @@ const AdminDashboard = () => {
   };
 
   const handleViewMyBookings = () => {
-    navigate("/admin/my-bookings");
+    navigate("/admin/bunk-locations");
   };
 
   const handleViewAdminBookings = () => {
@@ -42,7 +42,7 @@ const AdminDashboard = () => {
           View Booking Slots
         </button>
         <button onClick={handleViewMyBookings} className="bg-yellow-500 text-white p-3 rounded">
-          View My Booking
+          View Bunk locations
         </button>
         <button onClick={handleViewAdminBookings} className="bg-red-500 text-white p-3 rounded">
           View Admin Bookings

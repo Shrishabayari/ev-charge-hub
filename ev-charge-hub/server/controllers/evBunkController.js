@@ -51,18 +51,14 @@ export const getAllEvBunks = async (req, res) => {
     // Fetch all EV Bunks
     const evBunks = await EvBunk.find();
 
-    res.status(200).json({
-      success: true,
-      count: evBunks.length,
-      data: evBunks
-    });
+    if (evBunks.length === 0) {
+      return res.status(404).json({ message: 'No EV Bunks found.' });
+    }
+
+    res.status(200).json(evBunks);
   } catch (error) {
     console.error('Error fetching EV Bunks:', error);
-    res.status(500).json({ 
-      success: false,
-      message: 'Server error', 
-      error: error.message 
-    });
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
@@ -71,37 +67,17 @@ export const getEvBunkById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    console.log('Received ID:', id); // Debug log
-
-    // Validate ObjectId format
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ 
-        success: false,
-        message: 'Invalid EV Bunk ID format. Must be a valid MongoDB ObjectId.' 
-      });
-    }
-
     // Fetch the EV Bunk by ID
     const evBunk = await EvBunk.findById(id);
 
     if (!evBunk) {
-      return res.status(404).json({ 
-        success: false,
-        message: 'EV Bunk not found.' 
-      });
+      return res.status(404).json({ message: 'EV Bunk not found.' });
     }
 
-    res.status(200).json({
-      success: true,
-      data: evBunk
-    });
+    res.status(200).json(evBunk);
   } catch (error) {
     console.error('Error fetching EV Bunk by ID:', error);
-    res.status(500).json({ 
-      success: false,
-      message: 'Server error', 
-      error: error.message 
-    });
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
