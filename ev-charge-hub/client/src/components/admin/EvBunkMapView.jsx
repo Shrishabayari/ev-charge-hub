@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MapPin, Zap, Clock, Phone, Map, List } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { MapPin, Zap, Clock, Phone, Map, List, Edit3 } from 'lucide-react';
 
 const EvBunkMapView = () => {
   const [bunkLocations, setBunkLocations] = useState([]);
@@ -11,6 +12,7 @@ const EvBunkMapView = () => {
   const [markers, setMarkers] = useState([]);
   const mapRef = useRef(null);
   const infoWindowRef = useRef(null);
+  const navigate = useNavigate();
 
   const GOOGLE_MAPS_API_KEY = 'AIzaSyDozw7FDv161gMDT9lE-U0cSGZuWjYhyvw';
 
@@ -213,6 +215,12 @@ const EvBunkMapView = () => {
     }
   };
 
+  // Handle edit button click
+  const handleEditBunk = (bunkId) => {
+    navigate(`/admin/edit-bunk/${bunkId}`);
+  };
+
+
   useEffect(() => {
     fetchBunkLocations();
   }, []);
@@ -353,13 +361,22 @@ const EvBunkMapView = () => {
                     <MapPin className="h-5 w-5 text-blue-600 mr-2 flex-shrink-0" />
                     <h3 className="font-semibold text-lg text-gray-800">{bunk.name}</h3>
                   </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    bunk.slotsAvailable > 0 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-red-100 text-red-800'
-                  }`}>
-                    {bunk.slotsAvailable > 0 ? 'Available' : 'Full'}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleEditBunk(bunk._id)}
+                      className="p-1 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                      title="Edit Station"
+                    >
+                      <Edit3 className="h-4 w-4" />
+                    </button>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      bunk.slotsAvailable > 0 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {bunk.slotsAvailable > 0 ? 'Available' : 'Full'}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="space-y-3">
@@ -408,6 +425,13 @@ const EvBunkMapView = () => {
                     View Details
                   </button>
                   <button 
+                    onClick={() => handleEditBunk(bunk._id)}
+                    className="bg-orange-600 text-white py-2 px-4 rounded hover:bg-orange-700 transition-colors flex items-center gap-1"
+                  >
+                    <Edit3 className="h-4 w-4" />
+                    Edit
+                  </button>
+                  <button 
                     onClick={() => {
                       setViewMode('map');
                       // Center map on this bunk after a short delay to ensure map is loaded
@@ -435,12 +459,21 @@ const EvBunkMapView = () => {
           <div className="bg-white rounded-lg max-w-md w-full p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold">{selectedBunk.name}</h2>
-              <button 
-                onClick={() => setSelectedBunk(null)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                ✕
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleEditBunk(selectedBunk._id)}
+                  className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                  title="Edit Station"
+                >
+                  <Edit3 className="h-4 w-4" />
+                </button>
+                <button 
+                  onClick={() => setSelectedBunk(null)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
             
             <div className="space-y-3">
@@ -476,6 +509,13 @@ const EvBunkMapView = () => {
                 className="flex-1 bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition-colors"
               >
                 Get Directions
+              </button>
+              <button
+                onClick={() => handleEditBunk(selectedBunk._id)}
+                className="bg-orange-600 text-white py-2 px-4 rounded hover:bg-orange-700 transition-colors flex items-center gap-1"
+              >
+                <Edit3 className="h-4 w-4" />
+                Edit
               </button>
               <button
                 onClick={() => setSelectedBunk(null)}

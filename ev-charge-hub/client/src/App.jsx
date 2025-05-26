@@ -19,6 +19,7 @@ import RescheduleBookingForm from './components/user/ResheduleSlot';
 import AdminBookingDetail from './components/admin/AdminBookingDetails';
 import AdminBookingsList from './components/admin/AdminBookingList';
 import EvBunkAdminMap from './components/admin/EvBunkMapView';
+import EvBunkAdminMaps from './components/user/EvBunkMapView';
 
 const App = () => {
   return (
@@ -43,6 +44,8 @@ const App = () => {
         <Route path='/admin/booking/list' element={<AdminBookingsList/>} />
         <Route path='/admin/bookings/:id' element={<AdminBookingDetail/>} />
         <Route path='/admin/bunk-locations' element={<EvBunkAdminMap/>} />
+        <Route path='/user/bunk-locations' element={<EvBunkAdminMaps/>} />
+
         <Route element={<WebSocketComponent />} />
       </Routes>
     </Router>
