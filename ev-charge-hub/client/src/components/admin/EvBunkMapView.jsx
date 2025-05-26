@@ -14,7 +14,7 @@ const EvBunkMapView = () => {
       setError(null);
       
       // Updated API endpoint - make sure this matches your backend
-      const response = await fetch('/api/ev-bunks', {
+      const response = await fetch('/api/bunks', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -51,7 +51,7 @@ const EvBunkMapView = () => {
       setLoading(true);
       setError(null);
       
-      const response = await fetch('/api/ev-bunks/available');
+      const response = await fetch('/api/bunks/available');
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -73,7 +73,7 @@ const EvBunkMapView = () => {
       setLoading(true);
       setError(null);
       
-      const response = await fetch(`/api/ev-bunks/nearby?latitude=${lat}&longitude=${lng}&radius=${radius}`);
+      const response = await fetch(`/api/bunks/nearby?latitude=${lat}&longitude=${lng}&radius=${radius}`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
