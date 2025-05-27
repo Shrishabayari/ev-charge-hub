@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { format } from 'date-fns';
+import AdminNavbar from "../common/navbars/AdminNavbar";
 
 const AdminBookingDetail = () => {
   const { id } = useParams();
@@ -262,293 +263,296 @@ const AdminBookingDetail = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Booking Details</h1>
-          <p className="text-gray-600 mt-1">View and manage booking information</p>
+    <div>
+      <AdminNavbar/>
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Booking Details</h1>
+            <p className="text-gray-600 mt-1">View and manage booking information</p>
+          </div>
+          <button
+            onClick={() => navigate('/admin/booking/list')}
+            className="flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition duration-200"
+          >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to Bookings
+          </button>
         </div>
-        <button
-          onClick={() => navigate('/admin/booking/list')}
-          className="flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition duration-200"
-        >
-          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          Back to Bookings
-        </button>
-      </div>
 
-      <div className="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-200">
-        {/* Header section with ID and status */}
-        <div className="border-b border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100 px-8 py-6">
-          <div className="flex flex-wrap items-center justify-between">
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900">
-                Booking #{booking._id || 'Unknown'}
-              </h2>
-              <p className="text-sm text-gray-600 mt-1">
-                Created on {formatDate(booking.createdAt)}
-              </p>
-            </div>
-            <div className="flex items-center space-x-4 mt-4 sm:mt-0">
-              <span
-                className={`inline-flex px-4 py-2 text-sm font-semibold rounded-full border ${getStatusBadgeClass(booking.status)}`}
-              >
-                {booking.status || 'Unknown'}
-              </span>
+        <div className="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-200">
+          {/* Header section with ID and status */}
+          <div className="border-b border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100 px-8 py-6">
+            <div className="flex flex-wrap items-center justify-between">
               <div>
-                <label htmlFor="status-select" className="sr-only">Update booking status</label>
-                <select
-                  id="status-select"
-                  value={booking.status || ''}
-                  onChange={(e) => updateStatus(e.target.value)}
-                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Booking #{booking._id || 'Unknown'}
+                </h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  Created on {formatDate(booking.createdAt)}
+                </p>
+              </div>
+              <div className="flex items-center space-x-4 mt-4 sm:mt-0">
+                <span
+                  className={`inline-flex px-4 py-2 text-sm font-semibold rounded-full border ${getStatusBadgeClass(booking.status)}`}
                 >
-                  <option value="active">Active</option>
-                  <option value="cancelled">Cancelled</option>
-                  <option value="completed">Completed</option>
-                </select>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Main content */}
-        <div className="p-8">
-          {/* User information */}
-          <div className="mb-10">
-            <h3 className="text-lg font-semibold mb-6 text-gray-900 border-b border-gray-200 pb-3">
-              👤 User Information
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="text-sm text-gray-500 font-medium">Full Name</p>
-                <p className="font-semibold text-gray-900 mt-1">
-                  {booking.userId?.name || booking.user?.name || 'N/A'}
-                </p>
-              </div>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="text-sm text-gray-500 font-medium">Email Address</p>
-                <p className="font-semibold text-gray-900 mt-1">
-                  {booking.userId?.email || booking.user?.email || 'N/A'}
-                </p>
-              </div>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="text-sm text-gray-500 font-medium">Phone Number</p>
-                <p className="font-semibold text-gray-900 mt-1">
-                  {booking.userId?.phone || booking.user?.phone || booking.phoneNumber || 'N/A'}
-                </p>
-              </div>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="text-sm text-gray-500 font-medium">User ID</p>
-                <p className="font-semibold text-gray-900 mt-1 font-mono text-sm">
-                  {booking.userId?._id || booking.user?._id || booking.userId || 'N/A'}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Charging Station Information */}
-          <div className="mb-10">
-            <h3 className="text-lg font-semibold mb-6 text-gray-900 border-b border-gray-200 pb-3">
-              🔌 Charging Station Information
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <p className="text-sm text-blue-600 font-medium">Station Name</p>
-                <p className="font-semibold text-gray-900 mt-1">
-                  {booking.bunkId?.name || booking.bunk?.name || 'N/A'}
-                </p>
-              </div>
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <p className="text-sm text-blue-600 font-medium">Location</p>
-                <p className="font-semibold text-gray-900 mt-1">
-                  {booking.bunkId?.address || booking.bunk?.address || booking.bunkId?.location || booking.bunk?.location || 'N/A'}
-                </p>
-              </div>
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <p className="text-sm text-blue-600 font-medium">Operating Hours</p>
-                <p className="font-semibold text-gray-900 mt-1">
-                  {booking.bunkId?.operatingHours || booking.bunk?.operatingHours || 'N/A'}
-                </p>
-              </div>
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <p className="text-sm text-blue-600 font-medium">Station ID</p>
-                <p className="font-semibold text-gray-900 mt-1 font-mono text-sm">
-                  {booking.bunkId?._id || booking.bunk?._id || booking.bunkId || 'N/A'}
-                </p>
-              </div>
-            </div>
-          </div>
-          
-          {/* Booking & Slot Details */}
-          <div className="mb-10">
-            <h3 className="text-lg font-semibold mb-6 text-gray-900 border-b border-gray-200 pb-3">
-              📅 Booking & Slot Details
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-green-50 p-4 rounded-lg">
-                <p className="text-sm text-green-600 font-medium">Start Time</p>
-                <p className="font-semibold text-gray-900 mt-1">
-                  {booking.startTime ? formatDate(booking.startTime) : 
-                   (booking.slot?.startTime ? formatDate(booking.slot.startTime) : 'N/A')}
-                </p>
-              </div>
-              <div className="bg-green-50 p-4 rounded-lg">
-                <p className="text-sm text-green-600 font-medium">End Time</p>
-                <p className="font-semibold text-gray-900 mt-1">
-                  {booking.endTime ? formatDate(booking.endTime) : 
-                   (booking.slot?.endTime ? formatDate(booking.slot.endTime) : 'N/A')}
-                </p>
-              </div>
-              <div className="bg-green-50 p-4 rounded-lg">
-                <p className="text-sm text-green-600 font-medium">Duration</p>
-                <p className="font-semibold text-gray-900 mt-1">
-                  {booking.duration || calculateDuration(booking.startTime, booking.endTime)}
-                </p>
-              </div>
-              <div className="bg-green-50 p-4 rounded-lg">
-                <p className="text-sm text-green-600 font-medium">Slot ID</p>
-                <p className="font-semibold text-gray-900 mt-1 font-mono text-sm">
-                  {booking.slotId || booking.slot?._id || 'N/A'}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Vehicle Information */}
-          {(booking.vehicle || booking.vehicleId || booking.vehicleModel || booking.vehicleNumber) && (
-            <div className="mb-10">
-              <h3 className="text-lg font-semibold mb-6 text-gray-900 border-b border-gray-200 pb-3">
-                🚗 Vehicle Information
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {(booking.vehicleModel || booking.vehicle?.model) && (
-                  <div className="bg-purple-50 p-4 rounded-lg">
-                    <p className="text-sm text-purple-600 font-medium">Vehicle Model</p>
-                    <p className="font-semibold text-gray-900 mt-1">
-                      {booking.vehicleModel || booking.vehicle?.model}
-                    </p>
-                  </div>
-                )}
-                {(booking.vehicleNumber || booking.vehicle?.number) && (
-                  <div className="bg-purple-50 p-4 rounded-lg">
-                    <p className="text-sm text-purple-600 font-medium">Vehicle Number</p>
-                    <p className="font-semibold text-gray-900 mt-1">
-                      {booking.vehicleNumber || booking.vehicle?.number}
-                    </p>
-                  </div>
-                )}
-                {(booking.vehicleType || booking.vehicle?.type) && (
-                  <div className="bg-purple-50 p-4 rounded-lg">
-                    <p className="text-sm text-purple-600 font-medium">Vehicle Type</p>
-                    <p className="font-semibold text-gray-900 mt-1">
-                      {booking.vehicleType || booking.vehicle?.type}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Payment Information */}
-          <div className="mb-10">
-            <h3 className="text-lg font-semibold mb-6 text-gray-900 border-b border-gray-200 pb-3">
-              💳 Payment Information
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-yellow-50 p-4 rounded-lg">
-                <p className="text-sm text-yellow-600 font-medium">Amount</p>
-                <p className="font-semibold text-gray-900 mt-1 text-lg">
-                  {booking.amount || booking.payment?.amount ? 
-                   `₹${booking.amount || booking.payment?.amount}` : 
-                   'N/A'}
-                </p>
-              </div>
-              <div className="bg-yellow-50 p-4 rounded-lg">
-                <p className="text-sm text-yellow-600 font-medium">Payment Status</p>
-                <div className="mt-1">
-                  <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${
-                    (booking.paymentStatus === 'paid' || booking.payment?.status === 'paid') ? 
-                    'bg-green-100 text-green-800' : 
-                    'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {booking.paymentStatus || booking.payment?.status || 'Pending'}
-                  </span>
+                  {booking.status || 'Unknown'}
+                </span>
+                <div>
+                  <label htmlFor="status-select" className="sr-only">Update booking status</label>
+                  <select
+                    id="status-select"
+                    value={booking.status || ''}
+                    onChange={(e) => updateStatus(e.target.value)}
+                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  >
+                    <option value="active">Active</option>
+                    <option value="cancelled">Cancelled</option>
+                    <option value="completed">Completed</option>
+                  </select>
                 </div>
               </div>
-              <div className="bg-yellow-50 p-4 rounded-lg">
-                <p className="text-sm text-yellow-600 font-medium">Payment Method</p>
-                <p className="font-semibold text-gray-900 mt-1">
-                  {booking.paymentMethod || booking.payment?.method || 'N/A'}
-                </p>
-              </div>
-              <div className="bg-yellow-50 p-4 rounded-lg">
-                <p className="text-sm text-yellow-600 font-medium">Transaction ID</p>
-                <p className="font-semibold text-gray-900 mt-1 font-mono text-sm">
-                  {booking.transactionId || booking.payment?.transactionId || 'N/A'}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Notes/Comments */}
-          {(booking.notes || booking.comments) && (
-            <div className="mb-10">
-              <h3 className="text-lg font-semibold mb-6 text-gray-900 border-b border-gray-200 pb-3">
-                📝 Notes & Comments
-              </h3>
-              <div className="bg-gray-50 p-6 rounded-lg">
-                <p className="whitespace-pre-wrap text-gray-700 leading-relaxed">
-                  {booking.notes || booking.comments || 'No notes available.'}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* System Information */}
-          <div className="mb-10">
-            <h3 className="text-lg font-semibold mb-6 text-gray-900 border-b border-gray-200 pb-3">
-              ⚙️ System Information
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="text-sm text-gray-500 font-medium">Created At</p>
-                <p className="font-semibold text-gray-900 mt-1">
-                  {formatDate(booking.createdAt)}
-                </p>
-              </div>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="text-sm text-gray-500 font-medium">Last Updated</p>
-                <p className="font-semibold text-gray-900 mt-1">
-                  {formatDate(booking.updatedAt)}
-                </p>
-              </div>
             </div>
           </div>
           
-          {/* Action Buttons */}
-          <div className="flex flex-wrap justify-end gap-4 mt-12 pt-6 border-t border-gray-200">
-            <button
-              onClick={() => window.print()}
-              className="flex items-center px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition duration-200"
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-              </svg>
-              Print Details
-            </button>
-            <button
-              onClick={() => navigate('/admin/booking/list')}
-              className="flex items-center px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition duration-200"
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-              Back to List
-            </button>
+          {/* Main content */}
+          <div className="p-8">
+            {/* User information */}
+            <div className="mb-10">
+              <h3 className="text-lg font-semibold mb-6 text-gray-900 border-b border-gray-200 pb-3">
+                👤 User Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-sm text-gray-500 font-medium">Full Name</p>
+                  <p className="font-semibold text-gray-900 mt-1">
+                    {booking.userId?.name || booking.user?.name || 'N/A'}
+                  </p>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-sm text-gray-500 font-medium">Email Address</p>
+                  <p className="font-semibold text-gray-900 mt-1">
+                    {booking.userId?.email || booking.user?.email || 'N/A'}
+                  </p>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-sm text-gray-500 font-medium">Phone Number</p>
+                  <p className="font-semibold text-gray-900 mt-1">
+                    {booking.userId?.phone || booking.user?.phone || booking.phoneNumber || 'N/A'}
+                  </p>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-sm text-gray-500 font-medium">User ID</p>
+                  <p className="font-semibold text-gray-900 mt-1 font-mono text-sm">
+                    {booking.userId?._id || booking.user?._id || booking.userId || 'N/A'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Charging Station Information */}
+            <div className="mb-10">
+              <h3 className="text-lg font-semibold mb-6 text-gray-900 border-b border-gray-200 pb-3">
+                🔌 Charging Station Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <p className="text-sm text-blue-600 font-medium">Station Name</p>
+                  <p className="font-semibold text-gray-900 mt-1">
+                    {booking.bunkId?.name || booking.bunk?.name || 'N/A'}
+                  </p>
+                </div>
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <p className="text-sm text-blue-600 font-medium">Location</p>
+                  <p className="font-semibold text-gray-900 mt-1">
+                    {booking.bunkId?.address || booking.bunk?.address || booking.bunkId?.location || booking.bunk?.location || 'N/A'}
+                  </p>
+                </div>
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <p className="text-sm text-blue-600 font-medium">Operating Hours</p>
+                  <p className="font-semibold text-gray-900 mt-1">
+                    {booking.bunkId?.operatingHours || booking.bunk?.operatingHours || 'N/A'}
+                  </p>
+                </div>
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <p className="text-sm text-blue-600 font-medium">Station ID</p>
+                  <p className="font-semibold text-gray-900 mt-1 font-mono text-sm">
+                    {booking.bunkId?._id || booking.bunk?._id || booking.bunkId || 'N/A'}
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            {/* Booking & Slot Details */}
+            <div className="mb-10">
+              <h3 className="text-lg font-semibold mb-6 text-gray-900 border-b border-gray-200 pb-3">
+                📅 Booking & Slot Details
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <p className="text-sm text-green-600 font-medium">Start Time</p>
+                  <p className="font-semibold text-gray-900 mt-1">
+                    {booking.startTime ? formatDate(booking.startTime) : 
+                    (booking.slot?.startTime ? formatDate(booking.slot.startTime) : 'N/A')}
+                  </p>
+                </div>
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <p className="text-sm text-green-600 font-medium">End Time</p>
+                  <p className="font-semibold text-gray-900 mt-1">
+                    {booking.endTime ? formatDate(booking.endTime) : 
+                    (booking.slot?.endTime ? formatDate(booking.slot.endTime) : 'N/A')}
+                  </p>
+                </div>
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <p className="text-sm text-green-600 font-medium">Duration</p>
+                  <p className="font-semibold text-gray-900 mt-1">
+                    {booking.duration || calculateDuration(booking.startTime, booking.endTime)}
+                  </p>
+                </div>
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <p className="text-sm text-green-600 font-medium">Slot ID</p>
+                  <p className="font-semibold text-gray-900 mt-1 font-mono text-sm">
+                    {booking.slotId || booking.slot?._id || 'N/A'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Vehicle Information */}
+            {(booking.vehicle || booking.vehicleId || booking.vehicleModel || booking.vehicleNumber) && (
+              <div className="mb-10">
+                <h3 className="text-lg font-semibold mb-6 text-gray-900 border-b border-gray-200 pb-3">
+                  🚗 Vehicle Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {(booking.vehicleModel || booking.vehicle?.model) && (
+                    <div className="bg-purple-50 p-4 rounded-lg">
+                      <p className="text-sm text-purple-600 font-medium">Vehicle Model</p>
+                      <p className="font-semibold text-gray-900 mt-1">
+                        {booking.vehicleModel || booking.vehicle?.model}
+                      </p>
+                    </div>
+                  )}
+                  {(booking.vehicleNumber || booking.vehicle?.number) && (
+                    <div className="bg-purple-50 p-4 rounded-lg">
+                      <p className="text-sm text-purple-600 font-medium">Vehicle Number</p>
+                      <p className="font-semibold text-gray-900 mt-1">
+                        {booking.vehicleNumber || booking.vehicle?.number}
+                      </p>
+                    </div>
+                  )}
+                  {(booking.vehicleType || booking.vehicle?.type) && (
+                    <div className="bg-purple-50 p-4 rounded-lg">
+                      <p className="text-sm text-purple-600 font-medium">Vehicle Type</p>
+                      <p className="font-semibold text-gray-900 mt-1">
+                        {booking.vehicleType || booking.vehicle?.type}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Payment Information */}
+            <div className="mb-10">
+              <h3 className="text-lg font-semibold mb-6 text-gray-900 border-b border-gray-200 pb-3">
+                💳 Payment Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-yellow-50 p-4 rounded-lg">
+                  <p className="text-sm text-yellow-600 font-medium">Amount</p>
+                  <p className="font-semibold text-gray-900 mt-1 text-lg">
+                    {booking.amount || booking.payment?.amount ? 
+                    `₹${booking.amount || booking.payment?.amount}` : 
+                    'N/A'}
+                  </p>
+                </div>
+                <div className="bg-yellow-50 p-4 rounded-lg">
+                  <p className="text-sm text-yellow-600 font-medium">Payment Status</p>
+                  <div className="mt-1">
+                    <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${
+                      (booking.paymentStatus === 'paid' || booking.payment?.status === 'paid') ? 
+                      'bg-green-100 text-green-800' : 
+                      'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {booking.paymentStatus || booking.payment?.status || 'Pending'}
+                    </span>
+                  </div>
+                </div>
+                <div className="bg-yellow-50 p-4 rounded-lg">
+                  <p className="text-sm text-yellow-600 font-medium">Payment Method</p>
+                  <p className="font-semibold text-gray-900 mt-1">
+                    {booking.paymentMethod || booking.payment?.method || 'N/A'}
+                  </p>
+                </div>
+                <div className="bg-yellow-50 p-4 rounded-lg">
+                  <p className="text-sm text-yellow-600 font-medium">Transaction ID</p>
+                  <p className="font-semibold text-gray-900 mt-1 font-mono text-sm">
+                    {booking.transactionId || booking.payment?.transactionId || 'N/A'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Notes/Comments */}
+            {(booking.notes || booking.comments) && (
+              <div className="mb-10">
+                <h3 className="text-lg font-semibold mb-6 text-gray-900 border-b border-gray-200 pb-3">
+                  📝 Notes & Comments
+                </h3>
+                <div className="bg-gray-50 p-6 rounded-lg">
+                  <p className="whitespace-pre-wrap text-gray-700 leading-relaxed">
+                    {booking.notes || booking.comments || 'No notes available.'}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* System Information */}
+            <div className="mb-10">
+              <h3 className="text-lg font-semibold mb-6 text-gray-900 border-b border-gray-200 pb-3">
+                ⚙️ System Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-sm text-gray-500 font-medium">Created At</p>
+                  <p className="font-semibold text-gray-900 mt-1">
+                    {formatDate(booking.createdAt)}
+                  </p>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-sm text-gray-500 font-medium">Last Updated</p>
+                  <p className="font-semibold text-gray-900 mt-1">
+                    {formatDate(booking.updatedAt)}
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            {/* Action Buttons */}
+            <div className="flex flex-wrap justify-end gap-4 mt-12 pt-6 border-t border-gray-200">
+              <button
+                onClick={() => window.print()}
+                className="flex items-center px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition duration-200"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                Print Details
+              </button>
+              <button
+                onClick={() => navigate('/admin/booking/list')}
+                className="flex items-center px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition duration-200"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+                Back to List
+              </button>
+            </div>
           </div>
         </div>
       </div>

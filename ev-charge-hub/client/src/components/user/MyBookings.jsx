@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link , useNavigate } from 'react-router-dom';
 
-
 const UserBookings = ({ bookings, onCancelBooking }) => {
   // Helper function to format dates in a readable way
   const navigate = useNavigate();
@@ -73,14 +72,6 @@ const UserBookings = ({ bookings, onCancelBooking }) => {
 
   return (
     <div>
-      <div className="mb-8">
-        <button
-          onClick={() => navigate('/user/dashboard')}
-          className="py-2 px-4 bg-gray-700 text-white rounded hover:bg-gray-800"
-        >
-          ← Back
-        </button>
-      </div>
       {/* Upcoming bookings section */}
       <div className="mb-8">
         <h2 className="text-lg font-medium mb-4 text-gray-700">Upcoming Bookings</h2>

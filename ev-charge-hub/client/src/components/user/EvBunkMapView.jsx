@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MapPin, Zap, Clock, Phone, Map, List } from 'lucide-react';
+import UserNavbar from "../common/navbars/UserNavbar";
 
 const EvBunkMapViews = () => {
   const [bunkLocations, setBunkLocations] = useState([]);
@@ -249,140 +250,214 @@ const EvBunkMapViews = () => {
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-800 mb-4">EV Charging Stations</h1>
-        
-        {/* View Mode Toggle */}
-        <div className="flex gap-2 mb-4">
-          <button
-            onClick={() => setViewMode('list')}
-            className={`flex items-center gap-2 px-4 py-2 rounded transition-colors ${
-              viewMode === 'list' 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
-          >
-            <List className="h-4 w-4" />
-            List View
-          </button>
-          <button
-            onClick={() => setViewMode('map')}
-            className={`flex items-center gap-2 px-4 py-2 rounded transition-colors ${
-              viewMode === 'map' 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
-          >
-            <Map className="h-4 w-4" />
-            Map View
-          </button>
-        </div>
-        
-        {/* Filter Buttons */}
-        <div className="flex flex-wrap gap-2 mb-4">
-          <button 
-            onClick={fetchBunkLocations}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
-          >
-            All Stations
-          </button>
-          <button 
-            onClick={fetchAvailableBunks}
-            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
-          >
-            Available Only
-          </button>
-          <button 
-            onClick={() => fetchNearbyBunks()}
-            className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition-colors"
-          >
-            Nearby (Bangalore)
-          </button>
-        </div>
-
-        <p className="text-gray-600">
-          Found {bunkLocations.length} charging station{bunkLocations.length !== 1 ? 's' : ''}
-        </p>
-      </div>
-
-      {/* Map View */}
-      {viewMode === 'map' && (
+    <div>
+      <UserNavbar/>
+      <div className="container mx-auto p-6">
         <div className="mb-6">
-          <div 
-            ref={mapRef}
-            className="w-full h-96 rounded-lg border border-gray-300"
-            style={{ minHeight: '400px' }}
-          >
-            {!window.google && (
-              <div className="flex items-center justify-center h-full bg-gray-100 rounded-lg">
-                <p className="text-gray-600">Loading Google Maps...</p>
+          <h1 className="text-3xl font-bold text-gray-800 mb-4">EV Charging Stations</h1>
+          
+          {/* View Mode Toggle */}
+          <div className="flex gap-2 mb-4">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`flex items-center gap-2 px-4 py-2 rounded transition-colors ${
+                viewMode === 'list' 
+                  ? 'bg-blue-600 text-white' 
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              <List className="h-4 w-4" />
+              List View
+            </button>
+            <button
+              onClick={() => setViewMode('map')}
+              className={`flex items-center gap-2 px-4 py-2 rounded transition-colors ${
+                viewMode === 'map' 
+                  ? 'bg-blue-600 text-white' 
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              <Map className="h-4 w-4" />
+              Map View
+            </button>
+          </div>
+          
+          {/* Filter Buttons */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            <button 
+              onClick={fetchBunkLocations}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
+            >
+              All Stations
+            </button>
+            <button 
+              onClick={fetchAvailableBunks}
+              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
+            >
+              Available Only
+            </button>
+            <button 
+              onClick={() => fetchNearbyBunks()}
+              className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition-colors"
+            >
+              Nearby (Bangalore)
+            </button>
+          </div>
+
+          <p className="text-gray-600">
+            Found {bunkLocations.length} charging station{bunkLocations.length !== 1 ? 's' : ''}
+          </p>
+        </div>
+
+        {/* Map View */}
+        {viewMode === 'map' && (
+          <div className="mb-6">
+            <div 
+              ref={mapRef}
+              className="w-full h-96 rounded-lg border border-gray-300"
+              style={{ minHeight: '400px' }}
+            >
+              {!window.google && (
+                <div className="flex items-center justify-center h-full bg-gray-100 rounded-lg">
+                  <p className="text-gray-600">Loading Google Maps...</p>
+                </div>
+              )}
+            </div>
+            <div className="mt-2 text-sm text-gray-600 flex items-center gap-4">
+              <div className="flex items-center gap-1">
+                <div className="w-4 h-4 bg-green-500 rounded-full"></div>
+                <span>Available</span>
               </div>
+              <div className="flex items-center gap-1">
+                <div className="w-4 h-4 bg-red-500 rounded-full"></div>
+                <span>Full</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* List View */}
+        {viewMode === 'list' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {bunkLocations.length === 0 ? (
+              <div className="col-span-full text-center py-12">
+                <Zap className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-600 mb-2">No Charging Stations Found</h3>
+                <p className="text-gray-500">Try adding some EV charging stations to get started.</p>
+              </div>
+            ) : (
+              bunkLocations.map((bunk) => (
+                <div 
+                  key={bunk._id} 
+                  className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 p-6 border border-gray-200"
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center">
+                      <MapPin className="h-5 w-5 text-blue-600 mr-2 flex-shrink-0" />
+                      <h3 className="font-semibold text-lg text-gray-800">{bunk.name}</h3>
+                    </div>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      bunk.slotsAvailable > 0 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {bunk.slotsAvailable > 0 ? 'Available' : 'Full'}
+                    </span>
+                  </div>
+
+                  <div className="space-y-3">
+                    <p className="text-gray-600 text-sm">{bunk.address}</p>
+                    
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Phone className="h-4 w-4 mr-2" />
+                      {bunk.phone}
+                    </div>
+
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Clock className="h-4 w-4 mr-2" />
+                      {bunk.operatingHours}
+                    </div>
+
+                    <div className="flex items-center text-sm">
+                      <Zap className="h-4 w-4 mr-2 text-yellow-600" />
+                      <span className="font-medium">{bunk.slotsAvailable} slots available</span>
+                    </div>
+
+                    {bunk.connectorTypes && bunk.connectorTypes.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {bunk.connectorTypes.map((connector, index) => (
+                          <span 
+                            key={index}
+                            className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded"
+                          >
+                            {connector}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {bunk.distance && (
+                      <p className="text-sm text-gray-500">
+                        Distance: {bunk.distance} km away
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2 mt-4">
+                    <button 
+                      onClick={() => setSelectedBunk(bunk)}
+                      className="flex-1 bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors"
+                    >
+                      View Details
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setViewMode('map');
+                        // Center map on this bunk after a short delay to ensure map is loaded
+                        setTimeout(() => {
+                          if (map) {
+                            map.setCenter({ lat: bunk.latitude, lng: bunk.longitude });
+                            map.setZoom(16);
+                          }
+                        }, 100);
+                      }}
+                      className="bg-gray-600 text-white py-2 px-4 rounded hover:bg-gray-700 transition-colors"
+                    >
+                      <Map className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              ))
             )}
           </div>
-          <div className="mt-2 text-sm text-gray-600 flex items-center gap-4">
-            <div className="flex items-center gap-1">
-              <div className="w-4 h-4 bg-green-500 rounded-full"></div>
-              <span>Available</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <div className="w-4 h-4 bg-red-500 rounded-full"></div>
-              <span>Full</span>
-            </div>
-          </div>
-        </div>
-      )}
+        )}
 
-      {/* List View */}
-      {viewMode === 'list' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {bunkLocations.length === 0 ? (
-            <div className="col-span-full text-center py-12">
-              <Zap className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-600 mb-2">No Charging Stations Found</h3>
-              <p className="text-gray-500">Try adding some EV charging stations to get started.</p>
-            </div>
-          ) : (
-            bunkLocations.map((bunk) => (
-              <div 
-                key={bunk._id} 
-                className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 p-6 border border-gray-200"
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center">
-                    <MapPin className="h-5 w-5 text-blue-600 mr-2 flex-shrink-0" />
-                    <h3 className="font-semibold text-lg text-gray-800">{bunk.name}</h3>
-                  </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    bunk.slotsAvailable > 0 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-red-100 text-red-800'
-                  }`}>
-                    {bunk.slotsAvailable > 0 ? 'Available' : 'Full'}
-                  </span>
-                </div>
-
-                <div className="space-y-3">
-                  <p className="text-gray-600 text-sm">{bunk.address}</p>
-                  
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Phone className="h-4 w-4 mr-2" />
-                    {bunk.phone}
-                  </div>
-
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Clock className="h-4 w-4 mr-2" />
-                    {bunk.operatingHours}
-                  </div>
-
-                  <div className="flex items-center text-sm">
-                    <Zap className="h-4 w-4 mr-2 text-yellow-600" />
-                    <span className="font-medium">{bunk.slotsAvailable} slots available</span>
-                  </div>
-
-                  {bunk.connectorTypes && bunk.connectorTypes.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {bunk.connectorTypes.map((connector, index) => (
+        {/* Modal for selected bunk details */}
+        {selectedBunk && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg max-w-md w-full p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold">{selectedBunk.name}</h2>
+                <button 
+                  onClick={() => setSelectedBunk(null)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  ✕
+                </button>
+              </div>
+              
+              <div className="space-y-3">
+                <p><strong>Address:</strong> {selectedBunk.address}</p>
+                <p><strong>Phone:</strong> {selectedBunk.phone}</p>
+                <p><strong>Operating Hours:</strong> {selectedBunk.operatingHours}</p>
+                <p><strong>Available Slots:</strong> {selectedBunk.slotsAvailable}</p>
+                <p><strong>Coordinates:</strong> {selectedBunk.latitude}, {selectedBunk.longitude}</p>
+                
+                {selectedBunk.connectorTypes && (
+                  <div>
+                    <strong>Connector Types:</strong>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {selectedBunk.connectorTypes.map((connector, index) => (
                         <span 
                           key={index}
                           className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded"
@@ -391,102 +466,31 @@ const EvBunkMapViews = () => {
                         </span>
                       ))}
                     </div>
-                  )}
-
-                  {bunk.distance && (
-                    <p className="text-sm text-gray-500">
-                      Distance: {bunk.distance} km away
-                    </p>
-                  )}
-                </div>
-
-                <div className="flex gap-2 mt-4">
-                  <button 
-                    onClick={() => setSelectedBunk(bunk)}
-                    className="flex-1 bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors"
-                  >
-                    View Details
-                  </button>
-                  <button 
-                    onClick={() => {
-                      setViewMode('map');
-                      // Center map on this bunk after a short delay to ensure map is loaded
-                      setTimeout(() => {
-                        if (map) {
-                          map.setCenter({ lat: bunk.latitude, lng: bunk.longitude });
-                          map.setZoom(16);
-                        }
-                      }, 100);
-                    }}
-                    className="bg-gray-600 text-white py-2 px-4 rounded hover:bg-gray-700 transition-colors"
-                  >
-                    <Map className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
-
-      {/* Modal for selected bunk details */}
-      {selectedBunk && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold">{selectedBunk.name}</h2>
-              <button 
-                onClick={() => setSelectedBunk(null)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                ✕
-              </button>
-            </div>
-            
-            <div className="space-y-3">
-              <p><strong>Address:</strong> {selectedBunk.address}</p>
-              <p><strong>Phone:</strong> {selectedBunk.phone}</p>
-              <p><strong>Operating Hours:</strong> {selectedBunk.operatingHours}</p>
-              <p><strong>Available Slots:</strong> {selectedBunk.slotsAvailable}</p>
-              <p><strong>Coordinates:</strong> {selectedBunk.latitude}, {selectedBunk.longitude}</p>
-              
-              {selectedBunk.connectorTypes && (
-                <div>
-                  <strong>Connector Types:</strong>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {selectedBunk.connectorTypes.map((connector, index) => (
-                      <span 
-                        key={index}
-                        className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded"
-                      >
-                        {connector}
-                      </span>
-                    ))}
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
 
-            <div className="flex gap-2 mt-6">
-              <button
-                onClick={() => {
-                  const url = `https://www.google.com/maps/dir/?api=1&destination=${selectedBunk.latitude},${selectedBunk.longitude}`;
-                  window.open(url, '_blank');
-                }}
-                className="flex-1 bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition-colors"
-              >
-                Get Directions
-              </button>
-              <button
-                onClick={() => setSelectedBunk(null)}
-                className="bg-gray-600 text-white py-2 px-4 rounded hover:bg-gray-700 transition-colors"
-              >
-                Close
-              </button>
+              <div className="flex gap-2 mt-6">
+                <button
+                  onClick={() => {
+                    const url = `https://www.google.com/maps/dir/?api=1&destination=${selectedBunk.latitude},${selectedBunk.longitude}`;
+                    window.open(url, '_blank');
+                  }}
+                  className="flex-1 bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition-colors"
+                >
+                  Get Directions
+                </button>
+                <button
+                  onClick={() => setSelectedBunk(null)}
+                  className="bg-gray-600 text-white py-2 px-4 rounded hover:bg-gray-700 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

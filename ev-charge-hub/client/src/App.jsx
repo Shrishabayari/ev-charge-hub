@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Home from './pages/HomePage';
+import Home from './pages/home';
 import About from './pages/AboutPage';
 import Contact from './pages/ContactPage';
 import HowItWorks from './pages/HowItWorksPage';
@@ -37,7 +37,7 @@ const App = () => {
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin/register" element={<AdminRegister />} />
         <Route path='/admin/dashboard' element={<AdminDashboard/>} />
-        <Route path="/admin/add-ev-bunk" element={<AddEvBunk />} />
+        <Route path="/admin/add-bunk" element={<AddEvBunk />} />
         <Route path="/admin/view-bunks" element={<ViewBunks />} />
         <Route path='/admin/booking-management' element={<AdminBookings/>} />
         <Route path="/admin/edit-bunk/:id" element={<EditEvBunk />} />
@@ -46,13 +46,13 @@ const App = () => {
         <Route path="/user/dashboard" element={<UserDashboard />} />
         <Route path="/user/book-slot" element={<BookSlot/>} />
         <Route path='/user/bookings/new' element={<NewBooking/>} />
-        <Route path='/user/bookings/my' element={<MyBookings/>} />
-        <Route path='/user/bookings/list' element={<BookingsList/>} />
+        <Route path='/user/view-my-bookings' element={<MyBookings/>} />
+        <Route path='/user/view-bookings' element={<BookingsList/>} />
         <Route path='/user/bookings/reshedule' element={<RescheduleBookingForm/>} />
-        <Route path='/admin/booking/list' element={<AdminBookingsList/>} />
+        <Route path='/admin/view-bookings' element={<AdminBookingsList/>} />
         <Route path='/admin/bookings/:id' element={<AdminBookingDetail/>} />
-        <Route path='/admin/bunk-locations' element={<EvBunkAdminMap/>} />
-        <Route path='/user/bunk-locations' element={<EvBunkAdminMaps/>} />
+        <Route path='/admin/view-bunk-locations' element={<EvBunkAdminMap/>} />
+        <Route path='/user/view-bunk-locations' element={<EvBunkAdminMaps/>} />
 
         <Route element={<WebSocketComponent />} />
       </Routes>

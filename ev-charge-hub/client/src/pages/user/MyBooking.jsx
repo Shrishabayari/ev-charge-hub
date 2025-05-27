@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import UserBookings from '../../components/user/MyBookings';
+import UserNavbar from '../../components/common/navbars/UserNavbar';
 
 const MyBookingsPage = () => {
   const [bookings, setBookings] = useState([]);
@@ -164,95 +165,98 @@ const MyBookingsPage = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="border-b pb-4 mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">My Bookings</h1>
-          <p className="text-gray-600">View and manage your EV charging appointments</p>
-          
-          {/* Development toggle for mock data */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="mt-2">
-              <label className="inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={useMockData}
-                  onChange={() => setUseMockData(!useMockData)}
-                  className="sr-only peer"
-                />
-                <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                <span className="ms-3 text-sm font-medium text-gray-700">Use test data</span>
-              </label>
-            </div>
-          )}
-        </div>
-        
-        <div className="mb-6 flex justify-end">
-          <Link 
-            to="/user/bookings/new" 
-            className="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-md transition-colors"
-          >
-            Book New Slot
-          </Link>
-        </div>
-
-        {/* Render the UserBookings component with the fetched bookings */}
-        {loading ? (
-          <div className="text-center py-8">
-            <svg className="animate-spin h-8 w-8 mx-auto text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            <p className="mt-2 text-gray-600">Loading your bookings...</p>
-          </div>
-        ) : error ? (
-          <div className="text-center py-8 bg-red-50 rounded-lg p-6">
-            <svg className="h-12 w-12 mx-auto text-red-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-            <p className="text-red-600 font-medium text-lg mb-2">Unable to load bookings</p>
-            <p className="text-red-700 mb-4">{error}</p>
+    <div>
+      <UserNavbar/>
+      <div className="container mx-auto px-4 py-8">
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="border-b pb-4 mb-6">
+            <h1 className="text-2xl font-bold text-gray-800">My Bookings</h1>
+            <p className="text-gray-600">View and manage your EV charging appointments</p>
             
-            <button 
-              onClick={handleRetry}
-              className="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-md transition-colors"
-            >
-              Try Again
-            </button>
-            
-            {debugInfo && process.env.NODE_ENV === 'development' && (
-              <div className="mt-4 p-3 bg-gray-100 rounded text-left text-sm">
-                <p className="font-bold mb-2">Debug Information:</p>
-                {debugInfo.status && <p><strong>Status:</strong> {debugInfo.status}</p>}
-                {debugInfo.statusText && <p><strong>Status Text:</strong> {debugInfo.statusText}</p>}
-                {debugInfo.errorDetails && Object.keys(debugInfo.errorDetails).length > 0 && (
-                  <div>
-                    <p><strong>Error Details:</strong></p>
-                    <pre className="bg-gray-800 text-white p-3 rounded overflow-x-auto mt-2">{JSON.stringify(debugInfo.errorDetails, null, 2)}</pre>
-                  </div>
-                )}
-                {debugInfo.receivedData && (
-                  <div>
-                    <p><strong>Received Data:</strong></p>
-                    <pre className="bg-gray-800 text-white p-3 rounded overflow-x-auto mt-2">{JSON.stringify(debugInfo.receivedData, null, 2)}</pre>
-                  </div>
-                )}
+            {/* Development toggle for mock data */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="mt-2">
+                <label className="inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={useMockData}
+                    onChange={() => setUseMockData(!useMockData)}
+                    className="sr-only peer"
+                  />
+                  <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  <span className="ms-3 text-sm font-medium text-gray-700">Use test data</span>
+                </label>
               </div>
             )}
           </div>
-        ) : (
-          <UserBookings 
-            bookings={bookings} 
-            onCancelBooking={handleCancelBooking} 
-          />
-        )}
+          
+          <div className="mb-6 flex justify-end">
+            <Link 
+              to="/user/bookings/new" 
+              className="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-md transition-colors"
+            >
+              Book New Slot
+            </Link>
+          </div>
 
-        <div className="mt-8 bg-blue-50 p-4 rounded-md">
-          <h3 className="font-semibold text-lg mb-2 text-blue-800">Booking Policies</h3>
-          <ul className="text-blue-700 space-y-2">
-            <li>Remember that cancellations less than 2 hours before your appointment may result in a cancellation fee.</li>
-            <li>If you need to modify your booking frequently, please consider booking flexible time slots.</li>
-          </ul>
+          {/* Render the UserBookings component with the fetched bookings */}
+          {loading ? (
+            <div className="text-center py-8">
+              <svg className="animate-spin h-8 w-8 mx-auto text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <p className="mt-2 text-gray-600">Loading your bookings...</p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-8 bg-red-50 rounded-lg p-6">
+              <svg className="h-12 w-12 mx-auto text-red-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <p className="text-red-600 font-medium text-lg mb-2">Unable to load bookings</p>
+              <p className="text-red-700 mb-4">{error}</p>
+              
+              <button 
+                onClick={handleRetry}
+                className="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-md transition-colors"
+              >
+                Try Again
+              </button>
+              
+              {debugInfo && process.env.NODE_ENV === 'development' && (
+                <div className="mt-4 p-3 bg-gray-100 rounded text-left text-sm">
+                  <p className="font-bold mb-2">Debug Information:</p>
+                  {debugInfo.status && <p><strong>Status:</strong> {debugInfo.status}</p>}
+                  {debugInfo.statusText && <p><strong>Status Text:</strong> {debugInfo.statusText}</p>}
+                  {debugInfo.errorDetails && Object.keys(debugInfo.errorDetails).length > 0 && (
+                    <div>
+                      <p><strong>Error Details:</strong></p>
+                      <pre className="bg-gray-800 text-white p-3 rounded overflow-x-auto mt-2">{JSON.stringify(debugInfo.errorDetails, null, 2)}</pre>
+                    </div>
+                  )}
+                  {debugInfo.receivedData && (
+                    <div>
+                      <p><strong>Received Data:</strong></p>
+                      <pre className="bg-gray-800 text-white p-3 rounded overflow-x-auto mt-2">{JSON.stringify(debugInfo.receivedData, null, 2)}</pre>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <UserBookings 
+              bookings={bookings} 
+              onCancelBooking={handleCancelBooking} 
+            />
+          )}
+
+          <div className="mt-8 bg-blue-50 p-4 rounded-md">
+            <h3 className="font-semibold text-lg mb-2 text-blue-800">Booking Policies</h3>
+            <ul className="text-blue-700 space-y-2">
+              <li>Remember that cancellations less than 2 hours before your appointment may result in a cancellation fee.</li>
+              <li>If you need to modify your booking frequently, please consider booking flexible time slots.</li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import UserNavbar from "../common/navbars/UserNavbar";
 
 const BookingForm = () => {
   const [bunks, setBunks] = useState([]);
@@ -113,103 +114,106 @@ const BookingForm = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto p-6 bg-white rounded-lg shadow">
-      <h2 className="text-2xl font-semibold mb-4">Book EV Charging Slot</h2>
-      
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Bunk Selection */}
-        <div>
-          <label htmlFor="bunk" className="block text-sm font-medium text-gray-700">
-            Select EV Bunk
-          </label>
-          <select
-            id="bunk"
-            value={selectedBunk}
-            onChange={(e) => setSelectedBunk(e.target.value)}
-            className="mt-1 w-full p-2 border rounded"
-            required
-          >
-            <option value="">Select EV Bunk</option>
-            {bunks.map(bunk => (
-              <option key={bunk._id} value={bunk._id}>
-                {bunk.name} - {bunk.location}
-              </option>
-            ))}
-          </select>
-        </div>
+    <div>
+      <UserNavbar/>
+      <div className="max-w-md mx-auto p-6 bg-white rounded-lg shadow">
+        <h2 className="text-2xl font-semibold mb-4">Book EV Charging Slot</h2>
         
-        {/* Date Selection */}
-        <div>
-          <label htmlFor="date" className="block text-sm font-medium text-gray-700">
-            Select Date
-          </label>
-          <input
-            id="date"
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="mt-1 w-full p-2 border rounded"
-            min={new Date().toISOString().split('T')[0]} // Prevent past dates
-            required
-          />
-        </div>
-        
-        {/* Time Slot Selection */}
-        {selectedBunk && selectedDate && (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Bunk Selection */}
           <div>
-            <label htmlFor="slot" className="block text-sm font-medium text-gray-700">
-              Select Time Slot
+            <label htmlFor="bunk" className="block text-sm font-medium text-gray-700">
+              Select EV Bunk
             </label>
-            
-            {loading ? (
-              <div className="text-center py-4">Loading available slots...</div>
-            ) : availableSlots.length > 0 ? (
-              <div className="grid grid-cols-2 gap-2 mt-2">
-                {availableSlots.map((slot) => (
-                  <button
-                    key={slot}
-                    type="button"
-                    onClick={() => setSelectedSlot(slot)}
-                    className={`py-2 px-3 text-sm rounded border ${
-                      selectedSlot === slot
-                        ? 'bg-green-600 text-white border-green-600'
-                        : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'
-                    }`}
-                  >
-                    {formatTimeForDisplay(slot)}
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-4 text-gray-500">
-                No available slots for this date
-              </div>
-            )}
+            <select
+              id="bunk"
+              value={selectedBunk}
+              onChange={(e) => setSelectedBunk(e.target.value)}
+              className="mt-1 w-full p-2 border rounded"
+              required
+            >
+              <option value="">Select EV Bunk</option>
+              {bunks.map(bunk => (
+                <option key={bunk._id} value={bunk._id}>
+                  {bunk.name} - {bunk.location}
+                </option>
+              ))}
+            </select>
           </div>
-        )}
-        
-        {/* Submit Button */}
-        <button
-          type="submit"
-          disabled={loading || !selectedSlot}
-          className={`w-full py-2 rounded text-white ${
-            loading || !selectedSlot
-              ? 'bg-gray-400 cursor-not-allowed'
-              : 'bg-green-600 hover:bg-green-700'
-          }`}
-        >
-          {loading ? 'Processing...' : 'Book Slot'}
-        </button>
-        
-        {/* Status Message */}
-        {message.text && (
-          <div className={`text-center p-2 rounded ${
-            message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-          }`}>
-            {message.text}
+          
+          {/* Date Selection */}
+          <div>
+            <label htmlFor="date" className="block text-sm font-medium text-gray-700">
+              Select Date
+            </label>
+            <input
+              id="date"
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="mt-1 w-full p-2 border rounded"
+              min={new Date().toISOString().split('T')[0]} // Prevent past dates
+              required
+            />
           </div>
-        )}
-      </form>
+          
+          {/* Time Slot Selection */}
+          {selectedBunk && selectedDate && (
+            <div>
+              <label htmlFor="slot" className="block text-sm font-medium text-gray-700">
+                Select Time Slot
+              </label>
+              
+              {loading ? (
+                <div className="text-center py-4">Loading available slots...</div>
+              ) : availableSlots.length > 0 ? (
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  {availableSlots.map((slot) => (
+                    <button
+                      key={slot}
+                      type="button"
+                      onClick={() => setSelectedSlot(slot)}
+                      className={`py-2 px-3 text-sm rounded border ${
+                        selectedSlot === slot
+                          ? 'bg-green-600 text-white border-green-600'
+                          : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      {formatTimeForDisplay(slot)}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-4 text-gray-500">
+                  No available slots for this date
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={loading || !selectedSlot}
+            className={`w-full py-2 rounded text-white ${
+              loading || !selectedSlot
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-green-600 hover:bg-green-700'
+            }`}
+          >
+            {loading ? 'Processing...' : 'Book Slot'}
+          </button>
+          
+          {/* Status Message */}
+          {message.text && (
+            <div className={`text-center p-2 rounded ${
+              message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+            }`}>
+              {message.text}
+            </div>
+          )}
+        </form>
+      </div>
     </div>
   );
 };
