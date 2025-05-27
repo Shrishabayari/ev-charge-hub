@@ -1,5 +1,9 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
- import Home from './components/home';  // Make sure this is correct
+import Home from './pages/HomePage';
+import About from './pages/AboutPage';
+import Contact from './pages/ContactPage';
+import HowItWorks from './pages/HowItWorksPage';
+import FAQ from './pages/FAQPage';
  import AdminLogin from './components/admin/AdminLogin'; // Admin login page
  import AdminRegister from './components/admin/AdminRegister'; // Admin dashboard page
  import AdminDashboard from './components/admin/AdminDashboard';
@@ -25,7 +29,11 @@ const App = () => {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Home />} />  {/* This should render the Home component */}
+        <Route path="/" element={<Home />} /> 
+        <Route path="/about" element={<About />} /> 
+        <Route path="/contact" element={<Contact />} /> 
+        <Route path="/how-it-works" element={<HowItWorks />} /> 
+        <Route path="/faq" element={<FAQ />} />
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin/register" element={<AdminRegister />} />
         <Route path='/admin/dashboard' element={<AdminDashboard/>} />

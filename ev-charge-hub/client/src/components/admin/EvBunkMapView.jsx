@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Zap, Clock, Phone, Map, List, Edit3 } from 'lucide-react';
+import { MapPin, Zap, Clock, Phone, Map, List, Edit3, Navigation } from 'lucide-react';
 
 const EvBunkMapView = () => {
   const [bunkLocations, setBunkLocations] = useState([]);
@@ -9,28 +9,101 @@ const EvBunkMapView = () => {
   const [selectedBunk, setSelectedBunk] = useState(null);
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'map'
   const [map, setMap] = useState(null);
-  const [markers, setMarkers] = useState([]);
+  const [userLocation, setUserLocation] = useState(null);
+  const [locationPermission, setLocationPermission] = useState('unknown'); // 'granted', 'denied', 'unknown'
+  const [mapsLoaded, setMapsLoaded] = useState(false);
+  
   const mapRef = useRef(null);
   const infoWindowRef = useRef(null);
+  const markersRef = useRef([]);
+  const googleMapsScriptRef = useRef(null);
   const navigate = useNavigate();
 
   const GOOGLE_MAPS_API_KEY = 'AIzaSyDozw7FDv161gMDT9lE-U0cSGZuWjYhyvw';
 
-  // Load Google Maps script
+  // Get user's current location
+  const getCurrentLocation = useCallback(() => {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error('Geolocation is not supported by this browser.'));
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const location = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          };
+          setUserLocation(location);
+          setLocationPermission('granted');
+          resolve(location);
+        },
+        (error) => {
+          console.error('Error getting location:', error);
+          setLocationPermission('denied');
+          reject(error);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 300000 // 5 minutes
+        }
+      );
+    });
+  }, []);
+
+  // Load Google Maps script - Fixed to prevent multiple loading
   useEffect(() => {
     const loadGoogleMaps = () => {
       return new Promise((resolve, reject) => {
+        // Check if Google Maps is already loaded
         if (window.google && window.google.maps) {
+          setMapsLoaded(true);
           resolve();
           return;
         }
 
+        // Check if script is already being loaded
+        if (googleMapsScriptRef.current) {
+          // Script is already loading, wait for it
+          googleMapsScriptRef.current.addEventListener('load', () => {
+            setMapsLoaded(true);
+            resolve();
+          });
+          googleMapsScriptRef.current.addEventListener('error', reject);
+          return;
+        }
+
+        // Check if script already exists in DOM
+        const existingScript = document.querySelector(`script[src*="maps.googleapis.com"]`);
+        if (existingScript) {
+          if (window.google && window.google.maps) {
+            setMapsLoaded(true);
+            resolve();
+          } else {
+            existingScript.addEventListener('load', () => {
+              setMapsLoaded(true);
+              resolve();
+            });
+            existingScript.addEventListener('error', reject);
+          }
+          return;
+        }
+
+        // Create new script
         const script = document.createElement('script');
         script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
         script.async = true;
         script.defer = true;
-        script.onload = resolve;
+        
+        script.onload = () => {
+          setMapsLoaded(true);
+          resolve();
+        };
         script.onerror = reject;
+        
+        googleMapsScriptRef.current = script;
         document.head.appendChild(script);
       });
     };
@@ -39,13 +112,30 @@ const EvBunkMapView = () => {
       console.error('Failed to load Google Maps:', error);
       setError('Failed to load Google Maps');
     });
+
+    // Cleanup function
+    return () => {
+      // Don't remove the script as it might be used by other components
+      // Just clear the reference
+      googleMapsScriptRef.current = null;
+    };
+  }, [GOOGLE_MAPS_API_KEY]);
+
+  // Clear existing markers
+  const clearMarkers = useCallback(() => {
+    markersRef.current.forEach(marker => {
+      marker.setMap(null);
+    });
+    markersRef.current = [];
   }, []);
 
   // Initialize map
   useEffect(() => {
-    if (window.google && window.google.maps && mapRef.current && viewMode === 'map') {
+    if (mapsLoaded && mapRef.current && viewMode === 'map' && !map) {
+      const center = userLocation || { lat: 12.9716, lng: 77.5946 }; // Default to Bangalore
+      
       const mapInstance = new window.google.maps.Map(mapRef.current, {
-        center: { lat: 12.9716, lng: 77.5946 }, // Bangalore center
+        center: center,
         zoom: 12,
         styles: [
           {
@@ -59,14 +149,34 @@ const EvBunkMapView = () => {
       const infoWindow = new window.google.maps.InfoWindow();
       infoWindowRef.current = infoWindow;
       setMap(mapInstance);
-    }
-  }, [viewMode]);
 
-  // Update markers when bunk locations change
+      // Add user location marker if available
+      if (userLocation) {
+        const userMarker = new window.google.maps.Marker({
+          position: userLocation,
+          map: mapInstance,
+          title: 'Your Location',
+          icon: {
+            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+              <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="8" fill="#2563eb" stroke="white" stroke-width="2"/>
+                <circle cx="12" cy="12" r="3" fill="white"/>
+              </svg>
+            `),
+            scaledSize: new window.google.maps.Size(24, 24)
+          }
+        });
+        
+        // Don't add user marker to markersRef as it's not a bunk marker
+      }
+    }
+  }, [mapsLoaded, viewMode, userLocation, map]);
+
+  // Update markers when bunk locations change - Fixed dependency issue
   useEffect(() => {
     if (map && bunkLocations.length > 0) {
       // Clear existing markers
-      markers.forEach(marker => marker.setMap(null));
+      clearMarkers();
       
       const newMarkers = bunkLocations.map(bunk => {
         const marker = new window.google.maps.Marker({
@@ -108,24 +218,38 @@ const EvBunkMapView = () => {
                   <small style="color: #6b7280;">Connectors: ${bunk.connectorTypes.join(', ')}</small>
                 </div>
               ` : ''}
+              ${bunk.distance ? `
+                <div style="margin-top: 8px;">
+                  <small style="color: #6b7280;">Distance: ${bunk.distance.toFixed(1)} km away</small>
+                </div>
+              ` : ''}
             </div>
           `;
           
-          infoWindowRef.current.setContent(infoContent);
-          infoWindowRef.current.open(map, marker);
+          if (infoWindowRef.current) {
+            infoWindowRef.current.setContent(infoContent);
+            infoWindowRef.current.open(map, marker);
+          }
         });
 
         return marker;
       });
 
-      setMarkers(newMarkers);
+      markersRef.current = newMarkers;
 
       // Fit map to show all markers
       if (newMarkers.length > 0) {
         const bounds = new window.google.maps.LatLngBounds();
+        
+        // Include user location in bounds if available
+        if (userLocation) {
+          bounds.extend(userLocation);
+        }
+        
         newMarkers.forEach(marker => {
           bounds.extend(marker.getPosition());
         });
+        
         map.fitBounds(bounds);
         
         // Ensure minimum zoom level
@@ -135,9 +259,19 @@ const EvBunkMapView = () => {
         });
       }
     }
-  }, [map, bunkLocations]);
+  }, [map, bunkLocations, userLocation, clearMarkers]);
 
-  // Fetch EV bunk locations
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      clearMarkers();
+      if (infoWindowRef.current) {
+        infoWindowRef.current.close();
+      }
+    };
+  }, [clearMarkers]);
+
+  // Fetch EV bunk locations - FIXED API ENDPOINT
   const fetchBunkLocations = async () => {
     try {
       setLoading(true);
@@ -194,7 +328,7 @@ const EvBunkMapView = () => {
     }
   };
 
-  const fetchNearbyBunks = async (lat = 12.9716, lng = 77.5946, radius = 10) => {
+  const fetchNearbyBunks = async (lat, lng, radius = 10) => {
     try {
       setLoading(true);
       setError(null);
@@ -215,11 +349,40 @@ const EvBunkMapView = () => {
     }
   };
 
+  // Handle nearby button click with geolocation
+  const handleNearbyClick = async () => {
+    try {
+      setLoading(true);
+      const location = await getCurrentLocation();
+      await fetchNearbyBunks(location.lat, location.lng);
+      
+      // Switch to map view and center on user location
+      setViewMode('map');
+    } catch (error) {
+      console.error('Error getting location:', error);
+      // Fallback to Bangalore coordinates
+      await fetchNearbyBunks(12.9716, 77.5946);
+      alert('Could not get your location. Showing nearby stations from Bangalore center.');
+    }
+  };
+
   // Handle edit button click
   const handleEditBunk = (bunkId) => {
     navigate(`/admin/edit-bunk/${bunkId}`);
   };
 
+  // Handle view mode change - clear map when switching to list
+  const handleViewModeChange = (mode) => {
+    if (mode === 'list' && map) {
+      // Clear map reference when switching to list view
+      setMap(null);
+      clearMarkers();
+      if (infoWindowRef.current) {
+        infoWindowRef.current.close();
+      }
+    }
+    setViewMode(mode);
+  };
 
   useEffect(() => {
     fetchBunkLocations();
@@ -261,10 +424,31 @@ const EvBunkMapView = () => {
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-800 mb-4">EV Charging Stations</h1>
         
+        {/* Location Permission Status */}
+        {locationPermission !== 'unknown' && (
+          <div className={`mb-4 p-3 rounded-lg text-sm ${
+            locationPermission === 'granted' 
+              ? 'bg-green-50 text-green-700 border border-green-200' 
+              : 'bg-yellow-50 text-yellow-700 border border-yellow-200'
+          }`}>
+            {locationPermission === 'granted' ? (
+              <div className="flex items-center gap-2">
+                <Navigation className="h-4 w-4" />
+                Location access granted - showing personalized results
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                Location access denied - using default location (Bangalore)
+              </div>
+            )}
+          </div>
+        )}
+        
         {/* View Mode Toggle */}
         <div className="flex gap-2 mb-4">
           <button
-            onClick={() => setViewMode('list')}
+            onClick={() => handleViewModeChange('list')}
             className={`flex items-center gap-2 px-4 py-2 rounded transition-colors ${
               viewMode === 'list' 
                 ? 'bg-blue-600 text-white' 
@@ -275,15 +459,16 @@ const EvBunkMapView = () => {
             List View
           </button>
           <button
-            onClick={() => setViewMode('map')}
+            onClick={() => handleViewModeChange('map')}
             className={`flex items-center gap-2 px-4 py-2 rounded transition-colors ${
               viewMode === 'map' 
                 ? 'bg-blue-600 text-white' 
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
             }`}
+            disabled={!mapsLoaded}
           >
             <Map className="h-4 w-4" />
-            Map View
+            {mapsLoaded ? 'Map View' : 'Loading Maps...'}
           </button>
         </div>
         
@@ -291,21 +476,27 @@ const EvBunkMapView = () => {
         <div className="flex flex-wrap gap-2 mb-4">
           <button 
             onClick={fetchBunkLocations}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors flex items-center gap-2"
+            disabled={loading}
           >
+            <Zap className="h-4 w-4" />
             All Stations
           </button>
           <button 
             onClick={fetchAvailableBunks}
-            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
+            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors flex items-center gap-2"
+            disabled={loading}
           >
+            <Zap className="h-4 w-4" />
             Available Only
           </button>
           <button 
-            onClick={() => fetchNearbyBunks()}
-            className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition-colors"
+            onClick={handleNearbyClick}
+            className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition-colors flex items-center gap-2"
+            disabled={loading}
           >
-            Nearby (Bangalore)
+            <Navigation className="h-4 w-4" />
+            {loading ? 'Finding...' : 'Nearby Stations'}
           </button>
         </div>
 
@@ -322,7 +513,7 @@ const EvBunkMapView = () => {
             className="w-full h-96 rounded-lg border border-gray-300"
             style={{ minHeight: '400px' }}
           >
-            {!window.google && (
+            {!mapsLoaded && (
               <div className="flex items-center justify-center h-full bg-gray-100 rounded-lg">
                 <p className="text-gray-600">Loading Google Maps...</p>
               </div>
@@ -337,6 +528,12 @@ const EvBunkMapView = () => {
               <div className="w-4 h-4 bg-red-500 rounded-full"></div>
               <span>Full</span>
             </div>
+            {userLocation && (
+              <div className="flex items-center gap-1">
+                <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
+                <span>Your Location</span>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -411,8 +608,9 @@ const EvBunkMapView = () => {
                   )}
 
                   {bunk.distance && (
-                    <p className="text-sm text-gray-500">
-                      Distance: {bunk.distance} km away
+                    <p className="text-sm text-gray-500 flex items-center gap-1">
+                      <Navigation className="h-3 w-3" />
+                      {bunk.distance.toFixed(1)} km away
                     </p>
                   )}
                 </div>
@@ -433,7 +631,7 @@ const EvBunkMapView = () => {
                   </button>
                   <button 
                     onClick={() => {
-                      setViewMode('map');
+                      handleViewModeChange('map');
                       // Center map on this bunk after a short delay to ensure map is loaded
                       setTimeout(() => {
                         if (map) {
@@ -443,6 +641,7 @@ const EvBunkMapView = () => {
                       }, 100);
                     }}
                     className="bg-gray-600 text-white py-2 px-4 rounded hover:bg-gray-700 transition-colors"
+                    disabled={!mapsLoaded}
                   >
                     <Map className="h-4 w-4" />
                   </button>
@@ -497,6 +696,13 @@ const EvBunkMapView = () => {
                     ))}
                   </div>
                 </div>
+              )}
+
+              {selectedBunk.distance && (
+                <p className="flex items-center gap-1">
+                  <Navigation className="h-4 w-4" />
+                  <strong>Distance:</strong> {selectedBunk.distance.toFixed(1)} km away
+                </p>
               )}
             </div>
 

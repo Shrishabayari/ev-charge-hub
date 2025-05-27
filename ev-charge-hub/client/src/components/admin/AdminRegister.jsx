@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import Navbar from "../common/navbars/Navbar";
 
 const AdminRegister = () => {
   const [adminData, setAdminData] = useState({
@@ -40,7 +41,9 @@ const AdminRegister = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gray-100">
+    <div>
+      <Navbar/>
+      <div className="flex justify-center items-start min-h-screen py-20 bg-gray-100 dark:bg-gray-900">
       <div className="w-full max-w-md bg-white p-8 rounded shadow">
         <h2 className="text-2xl font-bold text-center mb-6">Admin Register</h2>
         {registrationError && <p className="text-red-500 mb-4">{registrationError}</p>}
@@ -94,6 +97,7 @@ const AdminRegister = () => {
             Login here
           </a>
         </p>
+      </div>
       </div>
     </div>
   );
