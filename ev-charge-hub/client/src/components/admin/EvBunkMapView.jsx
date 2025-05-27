@@ -17,10 +17,33 @@ const EvBunkMapView = () => {
   const mapRef = useRef(null);
   const infoWindowRef = useRef(null);
   const markersRef = useRef([]);
+  const userMarkerRef = useRef(null);
   const googleMapsScriptRef = useRef(null);
   const navigate = useNavigate();
 
   const GOOGLE_MAPS_API_KEY = 'AIzaSyDozw7FDv161gMDT9lE-U0cSGZuWjYhyvw';
+
+  // Calculate distance between two coordinates using Haversine formula
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // Radius of the Earth in kilometers
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const distance = R * c; // Distance in kilometers
+    return distance;
+  };
+
+  // Add distance calculation to bunks
+  const addDistanceToBunks = (bunks, userLat, userLng) => {
+    return bunks.map(bunk => ({
+      ...bunk,
+      distance: calculateDistance(userLat, userLng, bunk.latitude, bunk.longitude)
+    })).sort((a, b) => a.distance - b.distance); // Sort by distance
+  };
 
   // Get user's current location
   const getCurrentLocation = useCallback(() => {
@@ -130,6 +153,34 @@ const EvBunkMapView = () => {
     markersRef.current = [];
   }, []);
 
+  // Add or update user location marker
+  const updateUserLocationMarker = useCallback((mapInstance) => {
+    if (userLocation && mapInstance) {
+      // Remove existing user marker if it exists
+      if (userMarkerRef.current) {
+        userMarkerRef.current.setMap(null);
+      }
+
+      // Create new user marker
+      const userMarker = new window.google.maps.Marker({
+        position: userLocation,
+        map: mapInstance,
+        title: 'Your Location',
+        icon: {
+          url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+            <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="8" fill="#2563eb" stroke="white" stroke-width="2"/>
+              <circle cx="12" cy="12" r="3" fill="white"/>
+            </svg>
+          `),
+          scaledSize: new window.google.maps.Size(24, 24)
+        }
+      });
+      
+      userMarkerRef.current = userMarker;
+    }
+  }, [userLocation]);
+
   // Initialize map
   useEffect(() => {
     if (mapsLoaded && mapRef.current && viewMode === 'map' && !map) {
@@ -151,32 +202,22 @@ const EvBunkMapView = () => {
       infoWindowRef.current = infoWindow;
       setMap(mapInstance);
 
-      // Add user location marker if available
-      if (userLocation) {
-        const userMarker = new window.google.maps.Marker({
-          position: userLocation,
-          map: mapInstance,
-          title: 'Your Location',
-          icon: {
-            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-              <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="12" cy="12" r="8" fill="#2563eb" stroke="white" stroke-width="2"/>
-                <circle cx="12" cy="12" r="3" fill="white"/>
-              </svg>
-            `),
-            scaledSize: new window.google.maps.Size(24, 24)
-          }
-        });
-        
-        // Don't add user marker to markersRef as it's not a bunk marker
-      }
+      // Add user location marker
+      updateUserLocationMarker(mapInstance);
     }
-  }, [mapsLoaded, viewMode, userLocation, map]);
+  }, [mapsLoaded, viewMode, userLocation, map, updateUserLocationMarker]);
+
+  // Update user marker when location changes
+  useEffect(() => {
+    if (map && userLocation) {
+      updateUserLocationMarker(map);
+    }
+  }, [map, userLocation, updateUserLocationMarker]);
 
   // Update markers when bunk locations change - Fixed dependency issue
   useEffect(() => {
     if (map && bunkLocations.length > 0) {
-      // Clear existing markers
+      // Clear existing bunk markers
       clearMarkers();
       
       const newMarkers = bunkLocations.map(bunk => {
@@ -238,7 +279,7 @@ const EvBunkMapView = () => {
 
       markersRef.current = newMarkers;
 
-      // Fit map to show all markers
+      // Fit map to show all markers including user location
       if (newMarkers.length > 0) {
         const bounds = new window.google.maps.LatLngBounds();
         
@@ -266,6 +307,9 @@ const EvBunkMapView = () => {
   useEffect(() => {
     return () => {
       clearMarkers();
+      if (userMarkerRef.current) {
+        userMarkerRef.current.setMap(null);
+      }
       if (infoWindowRef.current) {
         infoWindowRef.current.close();
       }
@@ -292,13 +336,19 @@ const EvBunkMapView = () => {
       const data = await response.json();
       console.log('API Response:', data);
 
+      let bunks = [];
       if (data.success) {
-        setBunkLocations(data.data || []);
+        bunks = data.data || [];
       } else if (Array.isArray(data)) {
-        setBunkLocations(data);
-      } else {
-        setBunkLocations([]);
+        bunks = data;
       }
+
+      // Add distance calculation if user location is available
+      if (userLocation && bunks.length > 0) {
+        bunks = addDistanceToBunks(bunks, userLocation.lat, userLocation.lng);
+      }
+
+      setBunkLocations(bunks);
     } catch (error) {
       console.error('Error fetching bunk locations:', error);
       setError(error.message);
@@ -320,7 +370,14 @@ const EvBunkMapView = () => {
       }
 
       const data = await response.json();
-      setBunkLocations(data.data || []);
+      let bunks = data.data || [];
+
+      // Add distance calculation if user location is available
+      if (userLocation && bunks.length > 0) {
+        bunks = addDistanceToBunks(bunks, userLocation.lat, userLocation.lng);
+      }
+
+      setBunkLocations(bunks);
     } catch (error) {
       console.error('Error fetching available bunks:', error);
       setError(error.message);
@@ -334,14 +391,44 @@ const EvBunkMapView = () => {
       setLoading(true);
       setError(null);
       
+      // Try the nearby API endpoint first
       const response = await fetch(`/api/bunks/nearby?latitude=${lat}&longitude=${lng}&radius=${radius}`);
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      let bunks = [];
+      
+      if (response.ok) {
+        const data = await response.json();
+        bunks = data.data || [];
+      } else {
+        // Fallback: fetch all bunks and filter/calculate distance locally
+        console.log('Nearby API not available, falling back to local calculation');
+        const allBunksResponse = await fetch('/api/bunks');
+        if (allBunksResponse.ok) {
+          const allData = await allBunksResponse.json();
+          const allBunks = allData.success ? allData.data || [] : (Array.isArray(allData) ? allData : []);
+          
+          // Calculate distances and filter by radius
+          bunks = allBunks
+            .map(bunk => ({
+              ...bunk,
+              distance: calculateDistance(lat, lng, bunk.latitude, bunk.longitude)
+            }))
+            .filter(bunk => bunk.distance <= radius)
+            .sort((a, b) => a.distance - b.distance);
+        } else {
+          throw new Error('Failed to fetch bunks');
+        }
       }
 
-      const data = await response.json();
-      setBunkLocations(data.data || []);
+      // Ensure distance is calculated for all bunks
+      if (bunks.length > 0) {
+        bunks = bunks.map(bunk => ({
+          ...bunk,
+          distance: bunk.distance || calculateDistance(lat, lng, bunk.latitude, bunk.longitude)
+        })).sort((a, b) => a.distance - b.distance);
+      }
+
+      setBunkLocations(bunks);
     } catch (error) {
       console.error('Error fetching nearby bunks:', error);
       setError(error.message);
@@ -362,7 +449,9 @@ const EvBunkMapView = () => {
     } catch (error) {
       console.error('Error getting location:', error);
       // Fallback to Bangalore coordinates
-      await fetchNearbyBunks(12.9716, 77.5946);
+      const fallbackLocation = { lat: 12.9716, lng: 77.5946 };
+      setUserLocation(fallbackLocation);
+      await fetchNearbyBunks(fallbackLocation.lat, fallbackLocation.lng);
       alert('Could not get your location. Showing nearby stations from Bangalore center.');
     }
   };
@@ -378,6 +467,10 @@ const EvBunkMapView = () => {
       // Clear map reference when switching to list view
       setMap(null);
       clearMarkers();
+      if (userMarkerRef.current) {
+        userMarkerRef.current.setMap(null);
+        userMarkerRef.current = null;
+      }
       if (infoWindowRef.current) {
         infoWindowRef.current.close();
       }
@@ -388,6 +481,14 @@ const EvBunkMapView = () => {
   useEffect(() => {
     fetchBunkLocations();
   }, []);
+
+  // Recalculate distances when user location changes
+  useEffect(() => {
+    if (userLocation && bunkLocations.length > 0) {
+      const bunksWithDistance = addDistanceToBunks(bunkLocations, userLocation.lat, userLocation.lng);
+      setBunkLocations(bunksWithDistance);
+    }
+  }, [userLocation]); // Only depend on userLocation to avoid infinite loop
 
   if (loading) {
     return (
@@ -437,7 +538,7 @@ const EvBunkMapView = () => {
               {locationPermission === 'granted' ? (
                 <div className="flex items-center gap-2">
                   <Navigation className="h-4 w-4" />
-                  Location access granted - showing personalized results
+                  Location access granted - showing personalized results with distances
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
@@ -505,6 +606,11 @@ const EvBunkMapView = () => {
 
           <p className="text-gray-600">
             Found {bunkLocations.length} charging station{bunkLocations.length !== 1 ? 's' : ''}
+            {userLocation && bunkLocations.some(b => b.distance) && (
+              <span className="text-sm text-gray-500 ml-2">
+                (sorted by distance from your location)
+              </span>
+            )}
           </p>
         </div>
 
@@ -611,7 +717,7 @@ const EvBunkMapView = () => {
                     )}
 
                     {bunk.distance && (
-                      <p className="text-sm text-gray-500 flex items-center gap-1">
+                      <p className="text-sm font-medium text-purple-600 flex items-center gap-1">
                         <Navigation className="h-3 w-3" />
                         {bunk.distance.toFixed(1)} km away
                       </p>
@@ -702,7 +808,7 @@ const EvBunkMapView = () => {
                 )}
 
                 {selectedBunk.distance && (
-                  <p className="flex items-center gap-1">
+                  <p className="flex items-center gap-1 font-medium text-purple-600">
                     <Navigation className="h-4 w-4" />
                     <strong>Distance:</strong> {selectedBunk.distance.toFixed(1)} km away
                   </p>
