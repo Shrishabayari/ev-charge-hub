@@ -13,7 +13,6 @@ import FAQ from './pages/FAQPage';
 import Login from './components/user/UserLogin';
 import Register from './components/user/UserRegister';
 import UserDashboard from './components/user/UserDashboard';
-import BookSlot from './components/user/BookSlot';
  import WebSocketComponent from './components/admin/WebSocket';
  import NewBooking from './pages/user/NewBooking';
 import MyBookings from './pages/user/MyBooking';
@@ -44,8 +43,7 @@ const App = () => {
         <Route path="/user/login" element={<Login />} />
         <Route path="/user/register" element={<Register />} />
         <Route path="/user/dashboard" element={<UserDashboard />} />
-        <Route path="/user/book-slot" element={<BookSlot/>} />
-        <Route path='/user/bookings/new' element={<NewBooking/>} />
+        <Route path="/user/book-slot" element={<NewBooking/>} />
         <Route path='/user/view-my-bookings' element={<MyBookings/>} />
         <Route path='/user/view-bookings' element={<BookingsList/>} />
         <Route path='/user/bookings/reshedule' element={<RescheduleBookingForm/>} />
@@ -53,6 +51,7 @@ const App = () => {
         <Route path='/admin/bookings/:id' element={<AdminBookingDetail/>} />
         <Route path='/admin/view-bunk-locations' element={<EvBunkAdminMap/>} />
         <Route path='/user/view-bunk-locations' element={<EvBunkAdminMaps/>} />
+        <Route path='/user/bookings/list' element={<BookingsList/>} />
 
         <Route element={<WebSocketComponent />} />
       </Routes>

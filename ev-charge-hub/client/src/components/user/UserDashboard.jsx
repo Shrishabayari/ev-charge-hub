@@ -22,7 +22,7 @@ export default function UserDashboard() {
   };
 
   const goToBookSlot = () => {
-    navigate('/user/bookings/new');
+    navigate('/user/book-slot');
   };
 
   const goToMyBookings = () => {
