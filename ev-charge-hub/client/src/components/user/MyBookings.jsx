@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import RescheduleBookingForm from '../../components/user/ResheduleSlot';
 
-const UserBookings = ({ bookings, onCancelBooking }) => {
+const UserBookings = ({ bookings, onCancelBooking, onBookingUpdate, showMessage }) => {
+  const [rescheduleBooking, setRescheduleBooking] = useState(null);
   // Helper function to format dates in a readable way
   const formatDate = (dateString) => {
     try {
@@ -42,12 +44,41 @@ const UserBookings = ({ bookings, onCancelBooking }) => {
     }
   };
 
-  // Handle booking cancellation
-  const handleCancelBooking = (bookingId) => {
-    if (window.confirm('Are you sure you want to cancel this booking?')) {
-      onCancelBooking(bookingId);
+  // Handle booking cancellation with confirmation
+  const handleCancelBooking = async (bookingId) => {
+    if (!window.confirm('Are you sure you want to cancel this booking?')) return;
+    
+    if (onCancelBooking) {
+      await onCancelBooking(bookingId);
     }
   };
+
+  // Handle reschedule click
+  const handleRescheduleClick = (booking) => {
+    setRescheduleBooking(booking);
+  };
+
+  // Handle reschedule success
+  const handleRescheduleSuccess = (updatedBooking) => {
+    if (onBookingUpdate) {
+      onBookingUpdate(updatedBooking);
+    }
+    setRescheduleBooking(null);
+    if (showMessage) {
+      showMessage("success", "Booking rescheduled successfully.");
+    }
+  };
+
+  // If reschedule form is active, show it
+  if (rescheduleBooking) {
+    return (
+      <RescheduleBookingForm
+        booking={rescheduleBooking}
+        onRescheduleSuccess={handleRescheduleSuccess}
+        onCancel={() => setRescheduleBooking(null)}
+      />
+    );
+  }
 
   // If no bookings
   if (!bookings || bookings.length === 0) {
@@ -55,7 +86,7 @@ const UserBookings = ({ bookings, onCancelBooking }) => {
       <div className="text-center py-12 bg-gray-50 rounded-lg">
         <p className="text-gray-600 mb-4">You don't have any bookings yet.</p>
         <Link 
-          to="/user/bookings/new" 
+          to="/book" 
           className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md"
         >
           Book Your First Slot
@@ -67,6 +98,10 @@ const UserBookings = ({ bookings, onCancelBooking }) => {
   // Safe access to properties using optional chaining
   const getBookingName = (booking) => {
     return booking?.bunkId?.name || 'Unknown Station';
+  };
+
+  const getBookingLocation = (booking) => {
+    return booking?.bunkId?.location || 'Location not specified';
   };
 
   return (
@@ -84,6 +119,7 @@ const UserBookings = ({ bookings, onCancelBooking }) => {
                     <div className="flex items-center justify-between">
                       <div>
                         <h3 className="font-medium">{getBookingName(booking)}</h3>
+                        <p className="text-gray-600 text-sm">{getBookingLocation(booking)}</p>
                         <div className="text-sm text-gray-500 mt-1">
                           <div>Start: {formatDate(booking.startTime)}</div>
                           <div>End: {formatDate(booking.endTime)}</div>
@@ -97,12 +133,12 @@ const UserBookings = ({ bookings, onCancelBooking }) => {
                         
                         {booking.status === 'active' && (
                           <div className="flex space-x-2">
-                            <Link
-                              to={`/user/bookings/list`}
+                            <button
+                              onClick={() => handleRescheduleClick(booking)}
                               className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
                             >
                               Reschedule
-                            </Link>
+                            </button>
                             <button
                               onClick={() => handleCancelBooking(booking._id)}
                               className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700"
@@ -137,6 +173,7 @@ const UserBookings = ({ bookings, onCancelBooking }) => {
                     <div className="flex items-center justify-between">
                       <div>
                         <h3 className="font-medium">{getBookingName(booking)}</h3>
+                        <p className="text-gray-600 text-sm">{getBookingLocation(booking)}</p>
                         <div className="text-sm text-gray-500 mt-1">
                           <div>Start: {formatDate(booking.startTime)}</div>
                           <div>End: {formatDate(booking.endTime)}</div>
