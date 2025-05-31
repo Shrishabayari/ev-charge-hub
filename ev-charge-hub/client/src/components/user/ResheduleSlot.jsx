@@ -1,4 +1,4 @@
-                                                                                                                                            import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 
 const RescheduleBookingForm = ({ booking, onRescheduleSuccess, onCancel }) => {
@@ -228,7 +228,7 @@ const RescheduleBookingForm = ({ booking, onRescheduleSuccess, onCancel }) => {
             {loading ? (
               <div className="text-center py-4">Loading available slots...</div>
             ) : availableSlots.length > 0 ? (
-              <div className="grid grid-cols-1 gap-2 mt-2">
+              <div className="grid grid-cols-2 gap-2 mt-2">
                 {availableSlots.map((slot, index) => (
                   <button
                     key={slot?.id || slot?.time || slot || index}
