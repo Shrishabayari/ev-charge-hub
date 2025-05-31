@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { Clock, MapPin, Calendar, Zap, CheckCircle, AlertCircle } from "lucide-react";
 
 const BookingForm = () => {
   const [bunks, setBunks] = useState([]);
@@ -9,6 +10,7 @@ const BookingForm = () => {
   const [selectedSlot, setSelectedSlot] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ text: "", type: "" });
+  const [selectedBunkDetails, setSelectedBunkDetails] = useState(null);
 
   // Fetch all bunks on component mount
   useEffect(() => {
@@ -24,6 +26,16 @@ const BookingForm = () => {
     
     fetchBunks();
   }, []);
+
+  // Update selected bunk details when bunk changes
+  useEffect(() => {
+    if (selectedBunk) {
+      const bunkDetails = bunks.find(bunk => bunk._id === selectedBunk);
+      setSelectedBunkDetails(bunkDetails);
+    } else {
+      setSelectedBunkDetails(null);
+    }
+  }, [selectedBunk, bunks]);
 
   // Fetch available slots when bunk or date changes
   useEffect(() => {
@@ -98,118 +110,251 @@ const BookingForm = () => {
     }
   };
 
-  // Format time for display (e.g. "14:30" -> "2:30 PM")
-  const formatTimeForDisplay = (isoString) => {
-    if (!isoString) return "";
-    const timePart = isoString.split('T')[1];
-    if (!timePart) return "";
+  // Enhanced time formatting function that handles different slot formats
+  const formatTimeSlot = (slotData) => {
+    if (!slotData) return "";
+
+    // If slotData is a string that looks like an ISO date
+    if (typeof slotData === 'string' && slotData.includes('T')) {
+      const date = new Date(slotData);
+      const startHour = date.getHours();
+      const startMinute = date.getMinutes();
+      const endHour = startHour + 1; // Assuming 1-hour slots
+      
+      return `${formatTime(startHour, startMinute)} - ${formatTime(endHour, startMinute)}`;
+    }
     
-    const [hours, minutes] = timePart.split(':');
-    const hour = parseInt(hours, 10);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour % 12 || 12;
+    // If slotData is an object with start and end times
+    if (typeof slotData === 'object' && slotData.startTime && slotData.endTime) {
+      return `${formatTimeFromString(slotData.startTime)} - ${formatTimeFromString(slotData.endTime)}`;
+    }
     
-    return `${displayHour}:${minutes} ${ampm}`;
+    // If slotData is just a time string like "14:30"
+    if (typeof slotData === 'string' && slotData.includes(':')) {
+      const [hours, minutes] = slotData.split(':');
+      const startHour = parseInt(hours, 10);
+      const startMinute = parseInt(minutes, 10);
+      const endHour = startHour + 1;
+      
+      return `${formatTime(startHour, startMinute)} - ${formatTime(endHour, startMinute)}`;
+    }
+    
+    // If it's a number (hour)
+    if (typeof slotData === 'number') {
+      return `${formatTime(slotData, 0)} - ${formatTime(slotData + 1, 0)}`;
+    }
+    
+    return slotData.toString();
+  };
+
+  // Helper function to format time
+  const formatTime = (hours, minutes = 0) => {
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const displayHour = hours % 12 || 12;
+    const displayMinute = minutes.toString().padStart(2, '0');
+    return `${displayHour}:${displayMinute} ${ampm}`;
+  };
+
+  // Helper function to format time from string
+  const formatTimeFromString = (timeString) => {
+    if (!timeString) return "";
+    
+    // Handle full ISO string
+    if (timeString.includes('T')) {
+      const date = new Date(timeString);
+      return formatTime(date.getHours(), date.getMinutes());
+    }
+    
+    // Handle time string like "14:30"
+    const [hours, minutes] = timeString.split(':');
+    return formatTime(parseInt(hours, 10), parseInt(minutes, 10));
+  };
+
+  // Get today's date in YYYY-MM-DD format
+  const getTodayDate = () => {
+    return new Date().toISOString().split('T')[0];
+  };
+
+  // Get max date (30 days from now)
+  const getMaxDate = () => {
+    const maxDate = new Date();
+    maxDate.setDate(maxDate.getDate() + 30);
+    return maxDate.toISOString().split('T')[0];
   };
 
   return (
-    <div className="max-w-md mx-auto p-6 bg-white rounded-lg shadow">
-      <h2 className="text-2xl font-semibold mb-4">Book EV Charging Slot</h2>
-      
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Bunk Selection */}
-        <div>
-          <label htmlFor="bunk" className="block text-sm font-medium text-gray-700">
-            Select EV Bunk
-          </label>
-          <select
-            id="bunk"
-            value={selectedBunk}
-            onChange={(e) => setSelectedBunk(e.target.value)}
-            className="mt-1 w-full p-2 border rounded"
-            required
-          >
-            <option value="">Select EV Bunk</option>
-            {bunks.map(bunk => (
-              <option key={bunk._id} value={bunk._id}>
-                {bunk.name} - {bunk.location}
-              </option>
-            ))}
-          </select>
-        </div>
-        
-        {/* Date Selection */}
-        <div>
-          <label htmlFor="date" className="block text-sm font-medium text-gray-700">
-            Select Date
-          </label>
-          <input
-            id="date"
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="mt-1 w-full p-2 border rounded"
-            min={new Date().toISOString().split('T')[0]} // Prevent past dates
-            required
-          />
-        </div>
-        
-        {/* Time Slot Selection */}
-        {selectedBunk && selectedDate && (
-          <div>
-            <label htmlFor="slot" className="block text-sm font-medium text-gray-700">
-              Select Time Slot
-            </label>
-            
-            {loading ? (
-              <div className="text-center py-4">Loading available slots...</div>
-            ) : availableSlots.length > 0 ? (
-              <div className="grid grid-cols-2 gap-2 mt-2">
-                {availableSlots.map((slot) => (
-                  <button
-                    key={slot}
-                    type="button"
-                    onClick={() => setSelectedSlot(slot)}
-                    className={`py-2 px-3 text-sm rounded border ${
-                      selectedSlot === slot
-                        ? 'bg-green-600 text-white border-green-600'
-                        : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'
-                    }`}
-                  >
-                    {formatTimeForDisplay(slot)}
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-4 text-gray-500">
-                No available slots for this date
-              </div>
-            )}
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-8 px-4">
+      <div className="max-w-2xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <Zap className="h-8 w-8 text-white" />
           </div>
-        )}
-        
-        {/* Submit Button */}
-        <button
-          type="submit"
-          disabled={loading || !selectedSlot}
-          className={`w-full py-2 rounded text-white ${
-            loading || !selectedSlot
-              ? 'bg-gray-400 cursor-not-allowed'
-              : 'bg-green-600 hover:bg-green-700'
-          }`}
-        >
-          {loading ? 'Processing...' : 'Book Slot'}
-        </button>
-        
-        {/* Status Message */}
-        {message.text && (
-          <div className={`text-center p-2 rounded ${
-            message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-          }`}>
-            {message.text}
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-2">
+            Book Your EV Charging Slot
+          </h1>
+          <p className="text-gray-600">Reserve your preferred charging time slot</p>
+        </div>
+
+        {/* Main Form Card */}
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+          <div className="p-8">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Bunk Selection */}
+              <div>
+                <label htmlFor="bunk" className="flex items-center text-sm font-semibold text-gray-700 mb-3">
+                  <MapPin className="h-4 w-4 mr-2 text-blue-500" />
+                  Select Charging Station
+                </label>
+                <select
+                  id="bunk"
+                  value={selectedBunk}
+                  onChange={(e) => setSelectedBunk(e.target.value)}
+                  className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
+                  required
+                >
+                  <option value="">Choose a charging station</option>
+                  {bunks.map(bunk => (
+                    <option key={bunk._id} value={bunk._id}>
+                      {bunk.name} - {bunk.address || bunk.location}
+                    </option>
+                  ))}
+                </select>
+                
+                {/* Bunk Details */}
+                {selectedBunkDetails && (
+                  <div className="mt-3 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center text-gray-600">
+                        <Clock className="h-4 w-4 mr-2" />
+                        <span>Operating Hours: {selectedBunkDetails.operatingHours || '9:00 AM - 9:00 PM'}</span>
+                      </div>
+                      <div className="flex items-center text-green-600 font-medium">
+                        <span>{selectedBunkDetails.slotsAvailable || 0} slots available</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              {/* Date Selection */}
+              <div>
+                <label htmlFor="date" className="flex items-center text-sm font-semibold text-gray-700 mb-3">
+                  <Calendar className="h-4 w-4 mr-2 text-blue-500" />
+                  Select Date
+                </label>
+                <input
+                  id="date"
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
+                  min={getTodayDate()}
+                  max={getMaxDate()}
+                  required
+                />
+              </div>
+              
+              {/* Time Slot Selection */}
+              {selectedBunk && selectedDate && (
+                <div>
+                  <label className="flex items-center text-sm font-semibold text-gray-700 mb-3">
+                    <Clock className="h-4 w-4 mr-2 text-blue-500" />
+                    Select Time Slot
+                  </label>
+                  
+                  {loading ? (
+                    <div className="text-center py-12">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                      <p className="text-gray-600">Loading available slots...</p>
+                    </div>
+                  ) : availableSlots.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {availableSlots.map((slot, index) => (
+                        <button
+                          key={`${slot}-${index}`}
+                          type="button"
+                          onClick={() => setSelectedSlot(slot)}
+                          className={`p-4 text-sm font-medium rounded-xl border-2 transition-all duration-200 ${
+                            selectedSlot === slot
+                              ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white border-green-500 shadow-lg transform scale-105'
+                              : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+                          }`}
+                        >
+                          <div className="flex items-center justify-center">
+                            <Clock className="h-4 w-4 mr-2" />
+                            {formatTimeSlot(slot)}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 bg-gray-50 rounded-xl">
+                      <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">No Available Slots</h3>
+                      <p className="text-gray-500">No charging slots available for this date. Please try another date.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={loading || !selectedSlot}
+                className={`w-full py-4 rounded-xl text-white font-semibold transition-all duration-200 ${
+                  loading || !selectedSlot
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
+                }`}
+              >
+                {loading ? (
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                    Processing...
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center">
+                    <CheckCircle className="h-5 w-5 mr-2" />
+                    Book Charging Slot
+                  </div>
+                )}
+              </button>
+            </form>
           </div>
-        )}
-      </form>
+          
+          {/* Status Message */}
+          {message.text && (
+            <div className={`px-8 py-4 border-t ${
+              message.type === 'success' 
+                ? 'bg-green-50 border-green-100' 
+                : 'bg-red-50 border-red-100'
+            }`}>
+              <div className={`flex items-center ${
+                message.type === 'success' ? 'text-green-800' : 'text-red-800'
+              }`}>
+                {message.type === 'success' ? (
+                  <CheckCircle className="h-5 w-5 mr-2" />
+                ) : (
+                  <AlertCircle className="h-5 w-5 mr-2" />
+                )}
+                <span className="font-medium">{message.text}</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Info Card */}
+        <div className="mt-6 bg-blue-50 rounded-xl p-6 border border-blue-100">
+          <h3 className="font-semibold text-blue-900 mb-2">Booking Information</h3>
+          <ul className="text-sm text-blue-800 space-y-1">
+            <li>• Each slot is typically 1 hour duration</li>
+            <li>• Slots are shown in your local time</li>
+            <li>• You can book up to 30 days in advance</li>
+            <li>• Please arrive on time for your booking</li>
+          </ul>
+        </div>
+      </div>
     </div>
   );
 };

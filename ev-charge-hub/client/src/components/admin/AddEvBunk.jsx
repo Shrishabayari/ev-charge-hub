@@ -3,7 +3,6 @@ import axios from 'axios';
 import AdminNavbar from '../common/navbars/AdminNavbar';
 const AddEvBunk = () => {
   const [formData, setFormData] = useState({
-    bunkId: '', // Make sure bunkId is included in the form state
     name: '',
     address: '',
     phone: '',
@@ -29,7 +28,7 @@ const AddEvBunk = () => {
     e.preventDefault();
 
     // Validate form data
-    if (!formData.bunkId || !formData.name || !formData.address || !formData.phone || !formData.slotsAvailable || !formData.latitude || !formData.longitude) {
+    if ( !formData.name || !formData.address || !formData.phone || !formData.slotsAvailable || !formData.latitude || !formData.longitude) {
       setError('All fields are required!');
       return;
     }
@@ -47,7 +46,6 @@ const AddEvBunk = () => {
       );
       setMessage(response.data.message);
       setFormData({
-        bunkId: '',
         name: '',
         address: '',
         phone: '',
@@ -73,23 +71,6 @@ const AddEvBunk = () => {
         
         <form onSubmit={handleSubmit}>
           <div className="space-y-6">
-            {/* Bunk ID field */}
-            <div>
-              <label htmlFor="bunkId" className="block text-sm font-medium text-gray-700">
-                Bunk ID
-              </label>
-              <input
-                type="text"
-                id="bunkId"
-                name="bunkId"
-                value={formData.bunkId}
-                onChange={handleChange}
-                required
-                className="mt-1 block w-full p-4 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
-              />
-            </div>
-
-            {/* Other fields remain the same */}
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700">
                 Bunk Name

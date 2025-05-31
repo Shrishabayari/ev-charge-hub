@@ -802,177 +802,220 @@ setBunkLocations(bunks);
       </div>
     );
   }
-
-  return (
-    <div className="min-h-screen bg-gray-50">
+return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <AdminNavbar />
       
       <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">EV Charging Stations</h1>
-              <p className="text-gray-600">
-                Found {displayBunks.length} charging station{displayBunks.length !== 1 ? 's' : ''}
-                {userLocation ? ' near you' : ''}
-              </p>
-            </div>
+        {/* Enhanced Header with Gradient Background */}
+        <div className="mb-8">
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 relative overflow-hidden">
+            {/* Subtle background pattern */}
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5"></div>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400/10 to-indigo-400/10 rounded-full -translate-y-16 translate-x-16"></div>
+            <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-green-400/10 to-emerald-400/10 rounded-full translate-y-12 -translate-x-12"></div>
             
-            {/* Location Permission Status */}
-            {locationPermission === 'denied' && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                <div className="flex items-center">
-                  <MapPin className="h-5 w-5 text-yellow-600 mr-2" />
-                  <div>
-                    <p className="text-sm text-yellow-800 font-medium">Location Access Disabled</p>
-                    <p className="text-xs text-yellow-700">Enable location for distance calculation and directions</p>
-                    <button
-                      onClick={requestLocationPermission}
-                      className="text-xs text-yellow-800 underline hover:text-yellow-900 mt-1"
-                    >
-                      Enable Location
-                    </button>
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <div className="flex items-center mb-3">
+                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center mr-4">
+                      <Zap className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                      <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                        EV Charging Network
+                      </h1>
+                      <div className="flex items-center mt-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+                        <p className="text-gray-600 font-medium">
+                          {displayBunks.length} charging station{displayBunks.length !== 1 ? 's' : ''} 
+                          <span className="text-blue-600">{userLocation ? ' near you' : ' available'}</span>
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
+                
+                {/* Enhanced Location Permission Status */}
+                {locationPermission === 'denied' && (
+                  <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-4 shadow-sm">
+                    <div className="flex items-center">
+                      <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center mr-3">
+                        <MapPin className="h-5 w-5 text-amber-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-amber-900 font-semibold">Location Access Required</p>
+                        <p className="text-xs text-amber-700 mb-2">Enable for distance calculation and navigation</p>
+                        <button
+                          onClick={requestLocationPermission}
+                          className="text-xs bg-amber-600 text-white px-3 py-1 rounded-lg hover:bg-amber-700 transition-all duration-200 font-medium"
+                        >
+                          Enable Location
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          {/* View Toggle */}
-          <div className="flex space-x-2">
-            <button
-              onClick={() => setViewMode('list')}
-              className={`flex items-center px-4 py-2 rounded-lg font-medium transition-colors ${
-                viewMode === 'list' 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-white text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              <List className="h-4 w-4 mr-2" />
-              List View
-            </button>
-            <button
-              onClick={() => setViewMode('map')}
-              className={`flex items-center px-4 py-2 rounded-lg font-medium transition-colors ${
-                viewMode === 'map' 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-white text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              <Map className="h-4 w-4 mr-2" />
-              Map View
-            </button>
+              {/* Enhanced View Toggle */}
+              <div className="flex space-x-1 bg-gray-100 p-1 rounded-xl w-fit">
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`flex items-center px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
+                    viewMode === 'list' 
+                      ? 'bg-white text-blue-600 shadow-md transform scale-105' 
+                      : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                  }`}
+                >
+                  <List className="h-4 w-4 mr-2" />
+                  List View
+                </button>
+                <button
+                  onClick={() => setViewMode('map')}
+                  className={`flex items-center px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
+                    viewMode === 'map' 
+                      ? 'bg-white text-blue-600 shadow-md transform scale-105' 
+                      : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                  }`}
+                >
+                  <Map className="h-4 w-4 mr-2" />
+                  Map View
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Content */}
+        {/* Enhanced Content */}
         {viewMode === 'list' ? (
-          /* List View */
-          <div className="space-y-4">
+          /* Enhanced List View */
+          <div className="space-y-6">
             {displayBunks.length === 0 ? (
-              <div className="text-center py-12">
-                <Zap className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Charging Stations Found</h3>
-                <p className="text-gray-600">We couldn't find any charging stations at the moment.</p>
+              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 text-center py-16 px-8">
+                <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Zap className="h-12 w-12 text-gray-400" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-3">No Charging Stations Found</h3>
+                <p className="text-gray-600 mb-6 max-w-sm mx-auto">We couldn't find any charging stations at the moment. Try refreshing or check back later.</p>
                 <button
                   onClick={fetchBunkLocations}
-                  className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-3 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                 >
-                  Refresh
+                  Refresh Stations
                 </button>
               </div>
             ) : (
               displayBunks.map((bunk) => (
-                <div key={bunk._id} className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex-1">
-                      <h3 className="text-xl font-semibold text-gray-900 mb-1">{bunk.name}</h3>
-                      <p className="text-gray-600 flex items-center mb-2">
-                        <MapPin className="h-4 w-4 mr-1" />
-                        {bunk.address}
-                      </p>
-                      {userLocation && bunk.distance && (
-                        <p className="text-sm text-blue-600 font-medium">
-                          📍 {bunk.distance.toFixed(1)} km away
-                        </p>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                        bunk.slotsAvailable > 0 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        <Zap className="h-4 w-4 mr-1" />
-                        {bunk.slotsAvailable} Available
+                <div key={bunk._id} className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 relative overflow-hidden group">
+                  {/* Subtle hover effect background */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 to-indigo-500/0 group-hover:from-blue-500/5 group-hover:to-indigo-500/5 transition-all duration-300"></div>
+                  
+                  <div className="relative z-10">
+                    <div className="flex justify-between items-start mb-6">
+                      <div className="flex-1">
+                        <div className="flex items-center mb-3">
+                          <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
+                          <h3 className="text-2xl font-bold text-gray-900">{bunk.name}</h3>
+                        </div>
+                        <div className="flex items-center text-gray-600 mb-3">
+                          <MapPin className="h-5 w-5 mr-2 text-gray-400" />
+                          <span className="text-base">{bunk.address}</span>
+                        </div>
+                        {userLocation && bunk.distance && (
+                          <div className="flex items-center">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                            <p className="text-sm text-blue-600 font-semibold">
+                              {bunk.distance.toFixed(1)} km away
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <div className={`inline-flex items-center px-4 py-2 rounded-xl text-sm font-bold shadow-sm ${
+                          bunk.slotsAvailable > 0 
+                            ? 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-200' 
+                            : 'bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border border-red-200'
+                        }`}>
+                          <Zap className="h-4 w-4 mr-2" />
+                          {bunk.slotsAvailable} Available
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <div className="flex items-center text-gray-600">
-                      <Phone className="h-4 w-4 mr-2" />
-                      <span className="text-sm">{bunk.phone}</span>
-                    </div>
-                    <div className="flex items-center text-gray-600">
-                      <Clock className="h-4 w-4 mr-2" />
-                      <span className="text-sm">{bunk.operatingHours}</span>
-                    </div>
-                  </div>
-
-                  {bunk.connectorTypes && bunk.connectorTypes.length > 0 && (
-                    <div className="mb-4">
-                      <p className="text-sm text-gray-600 mb-2">Available Connectors:</p>
-                      <div className="flex flex-wrap gap-2">
-                        {bunk.connectorTypes.map((connector, index) => (
-                          <span key={index} className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">
-                            {connector}
-                          </span>
-                        ))}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                      <div className="flex items-center text-gray-600 bg-gray-50 rounded-lg p-3">
+                        <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                          <Phone className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <span className="font-medium">{bunk.phone}</span>
+                      </div>
+                      <div className="flex items-center text-gray-600 bg-gray-50 rounded-lg p-3">
+                        <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                          <Clock className="h-4 w-4 text-green-600" />
+                        </div>
+                        <span className="font-medium">{bunk.operatingHours}</span>
                       </div>
                     </div>
-                  )}
 
-                  <div className="flex space-x-3">
-                    <button
-                      onClick={() => openInGoogleMaps(bunk)}
-                      className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
-                    >
-                      <Navigation className="h-4 w-4 mr-2" />
-                      Open in Maps
-                    </button>
-                    
-                    {userLocation && mapsLoaded && (
-                      <button
-                        onClick={() => handleShowDirections(bunk)}
-                        className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                      >
-                        <Map className="h-4 w-4 mr-2" />
-                        Show Route
-                      </button>
+                    {bunk.connectorTypes && bunk.connectorTypes.length > 0 && (
+                      <div className="mb-6">
+                        <p className="text-sm text-gray-600 font-semibold mb-3">Available Connectors:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {bunk.connectorTypes.map((connector, index) => (
+                            <span key={index} className="bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium border border-gray-200">
+                              {connector}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
                     )}
-                    
-                    <button
-                      onClick={() => navigate(`/admin/edit-bunk/${bunk._id}`)}
-                      className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium"
-                    >
-                      <Edit3 className="h-4 w-4 mr-2" />
-                      Edit
-                    </button>
+
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        onClick={() => openInGoogleMaps(bunk)}
+                        className="flex items-center px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 text-sm font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                      >
+                        <Navigation className="h-4 w-4 mr-2" />
+                        Open in Maps
+                      </button>
+                      
+                      {userLocation && mapsLoaded && (
+                        <button
+                          onClick={() => handleShowDirections(bunk)}
+                          className="flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 text-sm font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                        >
+                          <Map className="h-4 w-4 mr-2" />
+                          Show Route
+                        </button>
+                      )}
+                      
+                      <button
+                        onClick={() => navigate(`/admin/edit-bunk/${bunk._id}`)}
+                        className="flex items-center px-6 py-3 bg-gradient-to-r from-gray-600 to-slate-600 text-white rounded-xl hover:from-gray-700 hover:to-slate-700 transition-all duration-200 text-sm font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                      >
+                        <Edit3 className="h-4 w-4 mr-2" />
+                        Edit Station
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))
             )}
           </div>
         ) : (
-          /* Map View */
-          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          /* Enhanced Map View */
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
             {!mapsLoaded ? (
-              <div className="h-96 flex items-center justify-center bg-gray-100">
+              <div className="h-96 flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
                 <div className="text-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-                  <p className="text-gray-600">Loading Maps...</p>
+                  <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+                    <Map className="h-8 w-8 text-white" />
+                  </div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                  <p className="text-gray-600 font-semibold">Loading Interactive Map...</p>
+                  <p className="text-gray-500 text-sm mt-1">Please wait while we prepare your charging network view</p>
                 </div>
               </div>
             ) : (
@@ -983,13 +1026,16 @@ setBunkLocations(bunks);
               />
             )}
             
-            {/* Map Controls */}
-            <div className="p-4 bg-gray-50">
+            {/* Enhanced Map Controls */}
+            <div className="p-6 bg-gradient-to-r from-gray-50 to-slate-50 border-t border-gray-100">
               <div className="flex justify-between items-center">
-                <div className="text-sm text-gray-600">
-                  {displayBunks.length} station{displayBunks.length !== 1 ? 's' : ''} shown on map
+                <div className="flex items-center">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mr-3 animate-pulse"></div>
+                  <div className="text-sm text-gray-700 font-semibold">
+                    {displayBunks.length} charging station{displayBunks.length !== 1 ? 's' : ''} displayed
+                  </div>
                 </div>
-                <div className="flex space-x-2">
+                <div className="flex space-x-3">
                   {userLocation && (
                     <button
                       onClick={() => {
@@ -998,14 +1044,15 @@ setBunkLocations(bunks);
                           map.setZoom(14);
                         }
                       }}
-                      className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors"
+                      className="flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-sm hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 font-semibold shadow-md hover:shadow-lg"
                     >
-                      📍 My Location
+                      <MapPin className="h-4 w-4 mr-2" />
+                      My Location
                     </button>
                   )}
                   <button
                     onClick={() => clearDirections()}
-                    className="px-3 py-1 bg-gray-600 text-white rounded text-sm hover:bg-gray-700 transition-colors"
+                    className="flex items-center px-4 py-2 bg-gradient-to-r from-gray-600 to-slate-600 text-white rounded-lg text-sm hover:from-gray-700 hover:to-slate-700 transition-all duration-200 font-semibold shadow-md hover:shadow-lg"
                   >
                     Clear Routes
                   </button>
