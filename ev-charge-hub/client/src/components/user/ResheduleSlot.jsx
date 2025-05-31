@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+                                                                                                                                            import React, { useState, useEffect } from "react";
 import axios from "axios";
 
 const RescheduleBookingForm = ({ booking, onRescheduleSuccess, onCancel }) => {
@@ -87,18 +87,71 @@ const RescheduleBookingForm = ({ booking, onRescheduleSuccess, onCancel }) => {
     }
   };
 
-  // Format time for display (e.g. "14:30" -> "2:30 PM")
-  const formatTimeForDisplay = (isoString) => {
-    if (!isoString) return "";
-    const timePart = isoString.split('T')[1];
-    if (!timePart) return "";
+  // Enhanced function to format time slots as ranges
+  const formatTimeSlot = (slotData) => {
+    if (!slotData) return "";
     
-    const [hours, minutes] = timePart.split(':');
-    const hour = parseInt(hours, 10);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour % 12 || 12;
+    let startTime, endTime;
     
-    return `${displayHour}:${minutes} ${ampm}`;
+    // Handle different slot data formats
+    if (typeof slotData === 'string') {
+      // If it's an ISO string
+      if (slotData.includes('T')) {
+        startTime = new Date(slotData);
+        // Assume 1-hour duration if no end time provided
+        endTime = new Date(startTime.getTime() + 60 * 60 * 1000);
+      } 
+      // If it's just time like "14:30"
+      else if (slotData.includes(':')) {
+        const [hours, minutes] = slotData.split(':');
+        const today = new Date();
+        startTime = new Date(today.getFullYear(), today.getMonth(), today.getDate(), parseInt(hours), parseInt(minutes));
+        endTime = new Date(startTime.getTime() + 60 * 60 * 1000);
+      }
+    } 
+    // If it's an object with start and end times
+    else if (typeof slotData === 'object') {
+      if (slotData.startTime && slotData.endTime) {
+        startTime = new Date(slotData.startTime);
+        endTime = new Date(slotData.endTime);
+      } else if (slotData.time) {
+        startTime = new Date(slotData.time);
+        endTime = new Date(startTime.getTime() + 60 * 60 * 1000);
+      }
+    }
+    
+    if (!startTime || !endTime) {
+      console.warn('Could not parse slot time:', slotData);
+      return String(slotData);
+    }
+    
+    const formatTime = (date) => {
+      const hours = date.getHours();
+      const minutes = date.getMinutes();
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      const hour = hours % 12 || 12;
+      
+      // Only show minutes if they're not 00
+      if (minutes === 0) {
+        return `${hour} ${ampm}`;
+      } else {
+        return `${hour}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+      }
+    };
+    
+    const startFormatted = formatTime(startTime);
+    const endFormatted = formatTime(endTime);
+    
+    // If both times have the same AM/PM, show it only once
+    const startAMPM = startTime.getHours() >= 12 ? 'PM' : 'AM';
+    const endAMPM = endTime.getHours() >= 12 ? 'PM' : 'AM';
+    
+    if (startAMPM === endAMPM) {
+      const startWithoutAMPM = startFormatted.replace(` ${startAMPM}`, '');
+      return `${startWithoutAMPM} - ${endFormatted}`;
+    } else {
+      return `${startFormatted} - ${endFormatted}`;
+    }
   };
 
   // Format the current booking time for display
@@ -110,13 +163,30 @@ const RescheduleBookingForm = ({ booking, onRescheduleSuccess, onCancel }) => {
     
     const formatTime = (date) => {
       const hours = date.getHours();
-      const minutes = date.getMinutes().toString().padStart(2, '0');
+      const minutes = date.getMinutes();
       const ampm = hours >= 12 ? 'PM' : 'AM';
       const hour = hours % 12 || 12;
-      return `${hour}:${minutes} ${ampm}`;
+      
+      if (minutes === 0) {
+        return `${hour} ${ampm}`;
+      } else {
+        return `${hour}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+      }
     };
     
-    return `${formatTime(startTime)} - ${formatTime(endTime)}`;
+    const startFormatted = formatTime(startTime);
+    const endFormatted = formatTime(endTime);
+    
+    // If both times have the same AM/PM, show it only once
+    const startAMPM = startTime.getHours() >= 12 ? 'PM' : 'AM';
+    const endAMPM = endTime.getHours() >= 12 ? 'PM' : 'AM';
+    
+    if (startAMPM === endAMPM) {
+      const startWithoutAMPM = startFormatted.replace(` ${startAMPM}`, '');
+      return `${startWithoutAMPM} - ${endFormatted}`;
+    } else {
+      return `${startFormatted} - ${endFormatted}`;
+    }
   };
 
   return (
@@ -158,19 +228,19 @@ const RescheduleBookingForm = ({ booking, onRescheduleSuccess, onCancel }) => {
             {loading ? (
               <div className="text-center py-4">Loading available slots...</div>
             ) : availableSlots.length > 0 ? (
-              <div className="grid grid-cols-2 gap-2 mt-2">
-                {availableSlots.map((slot) => (
+              <div className="grid grid-cols-1 gap-2 mt-2">
+                {availableSlots.map((slot, index) => (
                   <button
-                    key={slot}
+                    key={slot?.id || slot?.time || slot || index}
                     type="button"
                     onClick={() => setSelectedSlot(slot)}
-                    className={`py-2 px-3 text-sm rounded border ${
+                    className={`py-3 px-4 text-sm rounded border text-left ${
                       selectedSlot === slot
                         ? 'bg-blue-600 text-white border-blue-600'
                         : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'
                     }`}
                   >
-                    {formatTimeForDisplay(slot)}
+                    {formatTimeSlot(slot)}
                   </button>
                 ))}
               </div>
