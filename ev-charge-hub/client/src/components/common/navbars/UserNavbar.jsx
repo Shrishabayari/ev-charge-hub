@@ -33,7 +33,7 @@ const UserNavbar = () => {
           <Link to="/user/book-slot" className="hover:underline">Book Slot</Link>
           <Link to="/user/view-my-bookings" className="hover:underline">View Bookings</Link>
           <Link to="/user/view-bunk-locations" className="hover:underline">View Bunk Locations</Link>
-          <Link to="/user/profile" className="hover:underline">My Profile</Link>
+          <Link to="/user/my-profile" className="hover:underline">My Profile</Link>
           <button onClick={handleLogout} className="hover:underline">Logout</button>
         </div>
       </div>
@@ -45,7 +45,7 @@ const UserNavbar = () => {
           <Link to="/user/book-slot" onClick={toggleMenu} className="block hover:underline">Book Slot</Link>
           <Link to="/user/view-my-bookings" onClick={toggleMenu} className="block hover:underline">View Bookings</Link>
           <Link to="/user/view-bunk-locations" onClick={toggleMenu} className="block hover:underline">View Bunk Locations</Link>
-          <Link to="/user/profile" onClick={toggleMenu} className="block hover:underline">My Profile</Link>
+          <Link to="/user/my-profile" onClick={toggleMenu} className="block hover:underline">My Profile</Link>
           <button onClick={() => { toggleMenu(); handleLogout(); }} className="block text-left hover:underline">Logout</button>
         </div>
       )}

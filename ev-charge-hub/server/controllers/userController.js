@@ -54,21 +54,26 @@ export const loginUser = async (req, res) => {
     res.status(500).json({ message: 'Login failed', error: err.message });
   }
 };
-
 export const updateUserProfile = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user.id);
 
   if (user) {
     user.name = req.body.name || user.name;
+
     if (req.body.password) {
-      user.password = req.body.password;
+      const hashedPassword = await bcrypt.hash(req.body.password, 10);
+      user.password = hashedPassword;
     }
 
     const updatedUser = await user.save();
+
     res.json({
-      _id: updatedUser._id,
-      name: updatedUser.name,
-      email: updatedUser.email,
+      message: 'Profile updated successfully',
+      user: {
+        _id: updatedUser._id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+      },
     });
   } else {
     res.status(404);

@@ -6,6 +6,7 @@ const router = express.Router();
 
 router.post("/register", registerUser);
 router.post("/login", loginUser);
+router.get('/profile', authMiddleware, (req, res) => res.json(req.user)); // return user profile
 router.put('/profile', authMiddleware, updateUserProfile); // protected route
 
 export default router;

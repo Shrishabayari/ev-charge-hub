@@ -86,7 +86,7 @@ const UserBookings = ({ bookings, onCancelBooking, onBookingUpdate, showMessage 
       <div className="text-center py-12 bg-gray-50 rounded-lg">
         <p className="text-gray-600 mb-4">You don't have any bookings yet.</p>
         <Link 
-          to="/book" 
+          to="/user/book-slot" 
           className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md"
         >
           Book Your First Slot

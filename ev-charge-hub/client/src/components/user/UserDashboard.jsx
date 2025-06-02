@@ -29,6 +29,14 @@ export default function UserDashboard() {
     navigate('/user/view-my-bookings');
   };
 
+  const goToLocations = () => {
+    navigate('/user/view-bunk-locations');
+  }; 
+
+  const goToMyProfile = () => {
+    navigate('/user/my-profile');
+  };
+
   return (
     <div>
       <UserNavbar/>
@@ -49,6 +57,18 @@ export default function UserDashboard() {
               className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-md transition"
             >
               View My Bookings
+            </button>
+            <button
+              onClick={goToLocations}
+              className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-md transition"
+            >
+              View Bunk Locations
+            </button>
+            <button
+              onClick={goToMyProfile}
+              className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-md transition"
+            >
+              My Profile
             </button>
             <button
               onClick={handleLogout}

@@ -192,7 +192,7 @@ const MyBookingsPage = () => {
           
           <div className="mb-6 flex justify-end">
             <Link 
-              to="/user/bookings/new" 
+              to="/user/book-slot" 
               className="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-md transition-colors"
             >
               Book New Slot
