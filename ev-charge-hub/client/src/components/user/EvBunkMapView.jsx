@@ -763,7 +763,7 @@ const EvBunkMapView = () => {
 
   // Navigate to booking page
   const handleBookSlot = (bunk) => {
-    navigate(`/book-slot/${bunk._id}`, { state: { bunk } });
+    navigate(`/user/book-slot`, { state: { bunk } });
   };
 
   // Filter bunks by availability

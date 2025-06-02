@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { useLocation } from "react-router-dom"; // Add this import
 import { Clock, MapPin, Calendar, Zap, CheckCircle, AlertCircle } from "lucide-react";
 
 const BookingForm = () => {
@@ -12,12 +13,21 @@ const BookingForm = () => {
   const [message, setMessage] = useState({ text: "", type: "" });
   const [selectedBunkDetails, setSelectedBunkDetails] = useState(null);
 
+  // Add useLocation hook to get state from navigation
+  const location = useLocation();
+  const preSelectedBunk = location.state?.bunk; // Get the bunk passed from map view
+
   // Fetch all bunks on component mount
   useEffect(() => {
     const fetchBunks = async () => {
       try {
         const res = await axios.get("/api/bunks");
         setBunks(res.data);
+        
+        // If there's a pre-selected bunk from navigation, set it as selected
+        if (preSelectedBunk && res.data) {
+          setSelectedBunk(preSelectedBunk._id);
+        }
       } catch (err) {
         console.error("Error fetching bunks:", err);
         setMessage({ text: "Failed to load EV bunks", type: "error" });
@@ -25,7 +35,7 @@ const BookingForm = () => {
     };
     
     fetchBunks();
-  }, []);
+  }, [preSelectedBunk]); // Add preSelectedBunk as dependency
 
   // Update selected bunk details when bunk changes
   useEffect(() => {
@@ -194,6 +204,15 @@ const BookingForm = () => {
             Book Your EV Charging Slot
           </h1>
           <p className="text-gray-600">Reserve your preferred charging time slot</p>
+          
+          {/* Show pre-selected bunk info if available */}
+          {preSelectedBunk && (
+            <div className="mt-4 p-3 bg-blue-100 rounded-lg border border-blue-200">
+              <p className="text-sm text-blue-800">
+                <strong>Selected Station:</strong> {preSelectedBunk.name}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Main Form Card */}
