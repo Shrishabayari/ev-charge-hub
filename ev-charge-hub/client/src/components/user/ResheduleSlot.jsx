@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import { Calendar, Clock, MapPin, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 
 const RescheduleBookingForm = ({ booking, onRescheduleSuccess, onCancel }) => {
   const [selectedDate, setSelectedDate] = useState("");
@@ -23,8 +23,10 @@ const RescheduleBookingForm = ({ booking, onRescheduleSuccess, onCancel }) => {
       
       setLoading(true);
       try {
-        const res = await axios.get(`/api/bookings/available-slots/${booking.bunkId._id}/${selectedDate}`);
-        setAvailableSlots(res.data.data.availableSlots || []);
+        // Replace with your actual API call
+        const res = await fetch(`/api/bookings/available-slots/${booking.bunkId._id}/${selectedDate}`);
+        const data = await res.json();
+        setAvailableSlots(data.data.availableSlots || []);
       } catch (err) {
         console.error("Error fetching available slots:", err);
         setMessage({ text: "Failed to load available slots", type: "error" });
@@ -36,9 +38,7 @@ const RescheduleBookingForm = ({ booking, onRescheduleSuccess, onCancel }) => {
     fetchAvailableSlots();
   }, [selectedDate, booking]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
+  const handleSubmit = async () => {
     if (!selectedSlot) {
       setMessage({ text: "Please select a new time slot", type: "error" });
       return;
@@ -47,41 +47,45 @@ const RescheduleBookingForm = ({ booking, onRescheduleSuccess, onCancel }) => {
     setLoading(true);
     try {
       // First check if slot is still available
-      const checkRes = await axios.post("/api/bookings/check-availability", {
-        bunkId: booking.bunkId._id,
-        slotTime: selectedSlot
+      const checkRes = await fetch("/api/bookings/check-availability", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bunkId: booking.bunkId._id,
+          slotTime: selectedSlot
+        })
       });
+      const checkData = await checkRes.json();
       
-      if (!checkRes.data.data.available) {
+      if (!checkData.data.available) {
         setMessage({ text: "Sorry, this slot was just booked. Please select another.", type: "error" });
         return;
       }
       
       // If available, reschedule the booking
-      const response = await axios.put(`/api/bookings/reschedule/${booking._id}`, {
-        slotTime: selectedSlot
-      }, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+      const response = await fetch(`/api/bookings/reschedule/${booking._id}`, {
+        method: "PUT",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        },
+        body: JSON.stringify({ slotTime: selectedSlot })
       });
+      const data = await response.json();
       
       setMessage({ text: "Booking rescheduled successfully!", type: "success" });
       
       // Notify parent component of successful reschedule
       if (onRescheduleSuccess && typeof onRescheduleSuccess === 'function') {
-        onRescheduleSuccess(response.data.data);
+        onRescheduleSuccess(data.data);
       }
       
     } catch (err) {
       console.error("Reschedule error:", err);
-      
-      if (err.response?.status === 401) {
-        setMessage({ text: "Please log in to reschedule", type: "error" });
-      } else {
-        setMessage({ 
-          text: err.response?.data?.message || "Reschedule failed", 
-          type: "error" 
-        });
-      }
+      setMessage({ 
+        text: "Reschedule failed. Please try again.", 
+        type: "error" 
+      });
     } finally {
       setLoading(false);
     }
@@ -190,99 +194,155 @@ const RescheduleBookingForm = ({ booking, onRescheduleSuccess, onCancel }) => {
   };
 
   return (
-    <div className="max-w-md mx-auto p-6 bg-white rounded-lg shadow">
-      <h2 className="text-2xl font-semibold mb-4">Reschedule Booking</h2>
-      
-      {/* Current Booking Info */}
-      <div className="mb-4 p-3 bg-gray-50 rounded">
-        <p className="text-sm text-gray-600">Current Booking:</p>
-        <p className="font-medium">{booking?.bunkId?.name || 'Loading...'}</p>
-        <p>{booking?.bunkId?.location || 'Unknown location'}</p>
-        <p className="text-blue-600 font-medium">{getCurrentBookingTime()}</p>
+    <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6">
+        <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+          <Calendar className="w-6 h-6" />
+          Reschedule Booking
+        </h2>
+        <p className="text-blue-100 mt-1">Select a new date and time for your booking</p>
       </div>
-      
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Date Selection */}
-        <div>
-          <label htmlFor="date" className="block text-sm font-medium text-gray-700">
-            Select New Date
-          </label>
-          <input
-            id="date"
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="mt-1 w-full p-2 border rounded"
-            min={new Date().toISOString().split('T')[0]} // Prevent past dates
-            required
-          />
+
+      <div className="p-8">
+        {/* Current Booking Info */}
+        <div className="mb-8 p-6 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-600 uppercase tracking-wide mb-2">Current Booking</p>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">
+                {booking?.bunkId?.name || 'Loading...'}
+              </h3>
+              <div className="flex items-center gap-4 text-gray-600">
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  <span className="text-sm">{booking?.bunkId?.location || 'Unknown location'}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  <span className="text-sm font-medium text-blue-600">{getCurrentBookingTime()}</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        
-        {/* Time Slot Selection */}
-        {selectedDate && (
-          <div>
-            <label htmlFor="slot" className="block text-sm font-medium text-gray-700">
-              Select New Time Slot
+
+        <div className="space-y-8">
+          {/* Date Selection */}
+          <div className="space-y-3">
+            <label htmlFor="date" className="block text-sm font-semibold text-gray-800 uppercase tracking-wide">
+              Select New Date
             </label>
-            
-            {loading ? (
-              <div className="text-center py-4">Loading available slots...</div>
-            ) : availableSlots.length > 0 ? (
-              <div className="grid grid-cols-2 gap-2 mt-2">
-                {availableSlots.map((slot, index) => (
-                  <button
-                    key={slot?.id || slot?.time || slot || index}
-                    type="button"
-                    onClick={() => setSelectedSlot(slot)}
-                    className={`py-3 px-4 text-sm rounded border text-left ${
-                      selectedSlot === slot
-                        ? 'bg-blue-600 text-white border-blue-600'
-                        : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'
-                    }`}
-                  >
-                    {formatTimeSlot(slot)}
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-4 text-gray-500">
-                No available slots for this date
-              </div>
-            )}
+            <div className="relative">
+              <input
+                id="date"
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-lg"
+                min={new Date().toISOString().split('T')[0]}
+                required
+              />
+              <Calendar className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+            </div>
           </div>
-        )}
-        
-        {/* Action Buttons */}
-        <div className="flex space-x-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="flex-1 py-2 px-4 border border-gray-300 rounded text-gray-700 hover:bg-gray-50"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={loading || !selectedSlot}
-            className={`flex-1 py-2 px-4 rounded text-white ${
-              loading || !selectedSlot
-                ? 'bg-gray-400 cursor-not-allowed'
-                : 'bg-blue-600 hover:bg-blue-700'
-            }`}
-          >
-            {loading ? 'Processing...' : 'Reschedule'}
-          </button>
+
+          {/* Time Slot Selection */}
+          {selectedDate && (
+            <div className="space-y-4">
+              <label className="block text-sm font-semibold text-gray-800 uppercase tracking-wide">
+                Select New Time Slot
+              </label>
+              
+              {loading ? (
+                <div className="flex items-center justify-center py-12 text-gray-500">
+                  <Loader2 className="w-6 h-6 animate-spin mr-3" />
+                  Loading available slots...
+                </div>
+              ) : availableSlots.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {availableSlots.map((slot, index) => (
+                    <button
+                      key={slot?.id || slot?.time || slot || index}
+                      type="button"
+                      onClick={() => setSelectedSlot(slot)}
+                      className={`group relative p-4 rounded-xl border-2 transition-all duration-200 transform hover:scale-105 ${
+                        selectedSlot === slot
+                          ? 'bg-blue-600 border-blue-600 text-white shadow-lg'
+                          : 'bg-white border-gray-200 text-gray-800 hover:border-blue-300 hover:shadow-md'
+                      }`}
+                    >
+                      <div className="flex items-center justify-center">
+                        <Clock className={`w-4 h-4 mr-2 ${
+                          selectedSlot === slot ? 'text-white' : 'text-gray-500'
+                        }`} />
+                        <span className="font-medium">{formatTimeSlot(slot)}</span>
+                      </div>
+                      {selectedSlot === slot && (
+                        <CheckCircle className="absolute -top-2 -right-2 w-6 h-6 text-white bg-blue-600 rounded-full" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500 text-lg">No available slots for this date</p>
+                  <p className="text-gray-400 text-sm mt-1">Please try selecting a different date</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="flex-1 py-4 px-6 border-2 border-gray-300 rounded-xl text-gray-700 font-semibold hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 focus:ring-2 focus:ring-gray-300 focus:ring-offset-2"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={loading || !selectedSlot}
+              className={`flex-1 py-4 px-6 rounded-xl font-semibold transition-all duration-200 focus:ring-2 focus:ring-offset-2 ${
+                loading || !selectedSlot
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 focus:ring-blue-500 shadow-lg hover:shadow-xl transform hover:scale-105'
+              }`}
+            >
+              {loading ? (
+                <div className="flex items-center justify-center">
+                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                  Processing...
+                </div>
+              ) : (
+                'Reschedule Booking'
+              )}
+            </button>
+          </div>
+
+          {/* Status Message */}
+          {message.text && (
+            <div className={`p-4 rounded-xl border-l-4 ${
+              message.type === 'success' 
+                ? 'bg-green-50 border-green-400 text-green-800' 
+                : 'bg-red-50 border-red-400 text-red-800'
+            }`}>
+              <div className="flex items-center">
+                {message.type === 'success' ? (
+                  <CheckCircle className="w-5 h-5 mr-3 text-green-600" />
+                ) : (
+                  <AlertCircle className="w-5 h-5 mr-3 text-red-600" />
+                )}
+                <span className="font-medium">{message.text}</span>
+              </div>
+            </div>
+          )}
         </div>
-        
-        {/* Status Message */}
-        {message.text && (
-          <div className={`text-center p-2 rounded ${
-            message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-          }`}>
-            {message.text}
-          </div>
-        )}
-      </form>
+      </div>
     </div>
   );
 };
