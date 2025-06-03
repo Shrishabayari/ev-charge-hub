@@ -24,7 +24,8 @@ const AdminRegister = () => {
       setRegistrationError("Passwords do not match");
       return;
     }
-    setRegistrationError(""); // Clear any previous error
+
+    setRegistrationError("");
 
     try {
       const response = await axios.post("http://localhost:5000/api/admin/register", adminData);
@@ -33,71 +34,89 @@ const AdminRegister = () => {
       navigate("/admin/login");
     } catch (error) {
       console.error("Registration failed:", error.response ? error.response.data : error.message);
-      setRegistrationError("Registration failed. Please try again.");
       if (error.response && error.response.data && error.response.data.message) {
-        setRegistrationError(error.response.data.message); // Display backend error message if available
+        setRegistrationError(error.response.data.message);
+      } else {
+        setRegistrationError("Registration failed. Please try again.");
       }
     }
   };
 
   return (
-    <div>
-      <Navbar/>
-      <div className="flex justify-center items-start min-h-screen py-20 bg-gray-100 dark:bg-gray-900">
-      <div className="w-full max-w-md bg-white p-8 rounded shadow">
-        <h2 className="text-2xl font-bold text-center mb-6">Admin Register</h2>
-        {registrationError && <p className="text-red-500 mb-4">{registrationError}</p>}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="text"
-            name="name"
-            placeholder="Full Name"
-            value={adminData.name}
-            onChange={handleChange}
-            required
-            className="w-full p-2 border rounded"
-          />
-          <input
-            type="email"
-            name="email"
-            placeholder="Email"
-            value={adminData.email}
-            onChange={handleChange}
-            required
-            className="w-full p-2 border rounded"
-          />
-          <input
-            type="password"
-            name="password"
-            placeholder="Password"
-            value={adminData.password}
-            onChange={handleChange}
-            required
-            className="w-full p-2 border rounded"
-          />
-          <input
-            type="password"
-            name="confirmPassword"
-            placeholder="Confirm Password"
-            value={adminData.confirmPassword}
-            onChange={handleChange}
-            required
-            className="w-full p-2 border rounded"
-          />
-          <button
-            type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded"
-          >
-            Register
-          </button>
-        </form>
-        <p className="text-sm mt-4 text-center">
-          Already have an account?{" "}
-          <a href="/admin/login" className="text-blue-600 hover:underline">
-            Login here
-          </a>
-        </p>
-      </div>
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
+      <Navbar />
+      <div className="flex items-center justify-center py-20 px-4">
+        <div className="w-full max-w-md bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg">
+          <h2 className="text-3xl font-bold text-center text-gray-800 dark:text-white mb-6">
+            Admin Registration
+          </h2>
+
+          {registrationError && (
+            <div className="bg-red-500 text-white text-sm text-center py-2 px-4 rounded mb-4">
+              {registrationError}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <input
+                type="text"
+                name="name"
+                placeholder="Full Name"
+                value={adminData.name}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <input
+                type="email"
+                name="email"
+                placeholder="Email"
+                value={adminData.email}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <input
+                type="password"
+                name="password"
+                placeholder="Password"
+                value={adminData.password}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <input
+                type="password"
+                name="confirmPassword"
+                placeholder="Confirm Password"
+                value={adminData.confirmPassword}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <button
+              type="submit"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition duration-300"
+            >
+              Register
+            </button>
+          </form>
+
+          <p className="text-sm text-center text-gray-600 dark:text-gray-400 mt-6">
+            Already have an account?{" "}
+            <a href="/admin/login" className="text-blue-600 hover:underline font-medium">
+              Login here
+            </a>
+          </p>
+        </div>
       </div>
     </div>
   );
