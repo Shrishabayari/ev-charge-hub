@@ -35,6 +35,7 @@ const AdminNavbar = () => {
           <Link to="/admin/view-bookings" className="hover:underline">View Bookings</Link>
           <Link to="/admin/view-bunk-locations" className="hover:underline">View Locations</Link>
           <Link to="/admin/registered-users" className="hover:underline">View Users</Link>
+          <Link to="/admin/my-profile" className="hover:underline">My profile</Link>
           <button onClick={handleLogout} className="hover:underline text-red-100">Logout</button>
         </div>
       </div>

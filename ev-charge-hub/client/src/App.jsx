@@ -25,6 +25,7 @@ import EvBunkAdminMap from './components/admin/EvBunkMapView';
 import EvBunkAdminMaps from './components/user/EvBunkMapView';
 import MyProfile from './components/user/MyProfile';
 import AdminUserManagement from './components/admin/RegisteredUsers';
+import AdminProfile from './components/admin/AdminProfileView';
 const App = () => {
   return (
     <Router>
@@ -55,6 +56,7 @@ const App = () => {
         <Route path='/user/bookings/list' element={<BookingsList/>} />
         <Route path='/user/my-profile' element={<MyProfile/>} />
         <Route path='/admin/registered-users' element={<AdminUserManagement/>} />
+        <Route path='/admin/my-profile' element={<AdminProfile/>} />
         <Route element={<WebSocketComponent />} />
       </Routes>
     </Router>

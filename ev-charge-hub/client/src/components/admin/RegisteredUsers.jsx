@@ -1,162 +1,266 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Eye, Calendar, MapPin, Phone, Mail, User, Clock, CheckCircle, XCircle, AlertCircle, Loader2 } from 'lucide-react'; // Added Loader2 for loading spinner
-import AdminNavbar from "../common/navbars/AdminNavbar"; // Assuming this is your AdminNavbar component
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { 
+  Search, Eye, Calendar, MapPin, Phone, Mail, User, Clock, 
+  CheckCircle, XCircle, AlertCircle, Loader2, RefreshCw, 
+  Filter, UserCheck, Activity 
+} from 'lucide-react';
+import AdminNavbar from "../common/navbars/AdminNavbar";
 
 const AdminUserManagement = () => {
+  // User management state
   const [users, setUsers] = useState([]);
-  const [filteredUsers, setFilteredUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [userBookings, setUserBookings] = useState([]);
+  
+  // UI state
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('createdAt');
+  const [sortOrder, setSortOrder] = useState('desc');
+  
+  // Loading and error states
   const [loading, setLoading] = useState(true);
   const [bookingsLoading, setBookingsLoading] = useState(false);
-  const [error, setError] = useState(null); // State for main user fetch error
-  const [bookingError, setBookingError] = useState(null); // State for booking fetch error
+  const [error, setError] = useState(null);
+  const [bookingError, setBookingError] = useState(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [usersPerPage] = useState(10);
 
-  // Fetch users from API
-  useEffect(() => {
-    fetchUsers();
+  // Authentication helper
+  const getAuthToken = useCallback(() => {
+    const token = localStorage.getItem('adminToken');
+    if (!token) {
+      throw new Error('Authentication token not found. Please log in as admin.');
+    }
+    return token;
   }, []);
 
-  const fetchUsers = async () => {
+  // API call helper with better error handling
+  const makeApiCall = useCallback(async (url, options = {}) => {
     try {
-      setLoading(true);
-      setError(null); // Clear previous errors
-      const token = localStorage.getItem('adminToken'); // Adjust based on your auth implementation
-
-      if (!token) {
-        setError('Authentication token not found. Please log in as admin.');
-        setLoading(false);
-        return;
-      }
-
-      const response = await fetch('/api/admin/users', {
+      const token = getAuthToken();
+      const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
+          'Authorization': `Bearer ${token}`,
+          ...options.headers
+        },
+        ...options
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to fetch users');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const data = await response.json();
-      setUsers(data);
-      setFilteredUsers(data); // Initialize filtered users with all users
+      return await response.json();
     } catch (error) {
-      console.error('Error fetching users:', error);
-      setError(error.message || 'Failed to load users. Please try again.');
+      console.error(`API call failed for ${url}:`, error);
+      throw error;
+    }
+  }, [getAuthToken]);
+
+  // Fetch users with enhanced error handling
+  const fetchUsers = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const data = await makeApiCall('/api/admin/users');
+      
+      // Validate and sanitize user data
+      const validatedUsers = data.map(user => ({
+        _id: user._id || '',
+        name: user.name || 'Unknown User',
+        email: user.email || 'No email provided',
+        status: user.status || 'inactive',
+        createdAt: user.createdAt || new Date().toISOString(),
+        totalBookings: Number(user.totalBookings) || 0,
+        phone: user.phone || null,
+        vehicleType: user.vehicleType || null,
+        lastLogin: user.lastLogin || null,
+        isActive: user.isActive !== false // Default to true if not specified
+      }));
+      
+      setUsers(validatedUsers);
+    } catch (error) {
+      setError(error.message);
+      setUsers([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [makeApiCall]);
 
-  // Filter users based on search term
-  useEffect(() => {
-    if (searchTerm) {
-      const filtered = users.filter(user =>
-        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      setFilteredUsers(filtered);
-    } else {
-      setFilteredUsers(users);
+  // Fetch user bookings with better error handling
+  const fetchUserBookings = useCallback(async (userId) => {
+    if (!userId) {
+      setBookingError('Invalid user ID provided');
+      return;
     }
-  }, [searchTerm, users]);
 
-  // Fetch user bookings from API
-  const fetchUserBookings = async (userId) => {
     try {
       setBookingsLoading(true);
-      setBookingError(null); // Clear previous booking errors
-      const token = localStorage.getItem('adminToken');
-
-      if (!token) {
-        setBookingError('Authentication token not found. Please log in as admin to view bookings.');
-        setBookingsLoading(false);
-        return;
-      }
-
-      const response = await fetch(`/api/admin/users/${userId}/bookings`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+      setBookingError(null);
+      
+      const data = await makeApiCall(`/api/admin/users/${userId}/bookings`);
+      
+      // Validate and sanitize booking data
+      const validatedBookings = data.map(booking => ({
+        _id: booking._id || '',
+        status: booking.status || 'unknown',
+        startTime: booking.startTime || null,
+        endTime: booking.endTime || null,
+        createdAt: booking.createdAt || new Date().toISOString(),
+        slotNumber: booking.slotNumber || null,
+        amount: booking.amount || 0,
+        bunkId: {
+          name: booking.bunkId?.name || 'Unknown Station',
+          address: booking.bunkId?.address || 'Address not available',
+          _id: booking.bunkId?._id || null
         }
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to fetch user bookings');
-      }
-
-      const data = await response.json();
-      setUserBookings(data);
+      }));
+      
+      setUserBookings(validatedBookings);
     } catch (error) {
-      console.error('Error fetching user bookings:', error);
-      setBookingError(error.message || 'Failed to load bookings for this user.');
+      setBookingError(error.message);
       setUserBookings([]);
     } finally {
       setBookingsLoading(false);
     }
-  };
+  }, [makeApiCall]);
 
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+  // Enhanced filtering and sorting
+  const processedUsers = useMemo(() => {
+    let filtered = users;
+
+    // Apply search filter
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase().trim();
+      filtered = filtered.filter(user =>
+        user.name.toLowerCase().includes(searchLower) ||
+        user.email.toLowerCase().includes(searchLower) ||
+        (user.phone && user.phone.includes(searchTerm))
+      );
+    }
+
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(user => user.status.toLowerCase() === statusFilter);
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      let aValue = a[sortBy];
+      let bValue = b[sortBy];
+
+      // Handle different data types
+      if (sortBy === 'createdAt' || sortBy === 'lastLogin') {
+        aValue = new Date(aValue || 0);
+        bValue = new Date(bValue || 0);
+      } else if (sortBy === 'totalBookings') {
+        aValue = Number(aValue) || 0;
+        bValue = Number(bValue) || 0;
+      } else if (typeof aValue === 'string') {
+        aValue = aValue.toLowerCase();
+        bValue = bValue.toLowerCase();
+      }
+
+      if (sortOrder === 'asc') {
+        return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
+      } else {
+        return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
+      }
     });
-  };
 
-  const getStatusColor = (status) => {
-    switch (status?.toLowerCase()) { // Ensure status is lowercased for consistent matching
-      case 'active':
-        return 'text-blue-700 bg-blue-100 border-blue-200';
-      case 'completed':
-        return 'text-green-700 bg-green-100 border-green-200';
-      case 'cancelled':
-        return 'text-red-700 bg-red-100 border-red-200';
-      case 'pending': // Added pending status
-        return 'text-yellow-700 bg-yellow-100 border-yellow-200';
-      default:
-        return 'text-gray-700 bg-gray-100 border-gray-200';
+    return filtered;
+  }, [users, searchTerm, statusFilter, sortBy, sortOrder]);
+
+  // Pagination logic
+  const paginatedUsers = useMemo(() => {
+    const startIndex = (currentPage - 1) * usersPerPage;
+    return processedUsers.slice(startIndex, startIndex + usersPerPage);
+  }, [processedUsers, currentPage, usersPerPage]);
+
+  const totalPages = Math.ceil(processedUsers.length / usersPerPage);
+
+  // Effect hooks
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  useEffect(() => {
+    setCurrentPage(1); // Reset to first page when filters change
+  }, [searchTerm, statusFilter]);
+
+  // Utility functions
+  const formatDate = useCallback((dateString) => {
+    if (!dateString) return 'N/A';
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return 'Invalid Date';
     }
-  };
+  }, []);
 
-  const getStatusIcon = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'active':
-        return <Clock className="w-4 h-4" />;
-      case 'completed':
-        return <CheckCircle className="w-4 h-4" />;
-      case 'cancelled':
-        return <XCircle className="w-4 h-4" />;
-      case 'pending':
-        return <AlertCircle className="w-4 h-4" />;
-      default:
-        return <AlertCircle className="w-4 h-4" />;
-    }
-  };
+  const getStatusColor = useCallback((status) => {
+    const statusLower = status?.toLowerCase() || '';
+    const statusColors = {
+      active: 'text-blue-700 bg-blue-100 border-blue-200',
+      completed: 'text-green-700 bg-green-100 border-green-200',
+      cancelled: 'text-red-700 bg-red-100 border-red-200',
+      pending: 'text-yellow-700 bg-yellow-100 border-yellow-200',
+      inactive: 'text-gray-700 bg-gray-100 border-gray-200'
+    };
+    return statusColors[statusLower] || statusColors.inactive;
+  }, []);
 
-  const handleMoreInfo = (user) => {
+  const getStatusIcon = useCallback((status) => {
+    const statusLower = status?.toLowerCase() || '';
+    const statusIcons = {
+      active: <CheckCircle className="w-4 h-4" />,
+      completed: <CheckCircle className="w-4 h-4" />,
+      cancelled: <XCircle className="w-4 h-4" />,
+      pending: <Clock className="w-4 h-4" />,
+      inactive: <AlertCircle className="w-4 h-4" />
+    };
+    return statusIcons[statusLower] || statusIcons.inactive;
+  }, []);
+
+  // Event handlers
+  const handleMoreInfo = useCallback((user) => {
     setSelectedUser(user);
     fetchUserBookings(user._id);
-  };
+  }, [fetchUserBookings]);
 
-  const closeModal = () => {
+  const closeModal = useCallback(() => {
     setSelectedUser(null);
     setUserBookings([]);
-    setBookingError(null); // Clear booking error when closing modal
-  };
+    setBookingError(null);
+  }, []);
 
-  // Full page loading state
+  const handleSort = useCallback((field) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('desc');
+    }
+  }, [sortBy, sortOrder]);
+
+  const handlePageChange = useCallback((page) => {
+    setCurrentPage(page);
+  }, []);
+
+  // Loading state
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -169,7 +273,7 @@ const AdminUserManagement = () => {
     );
   }
 
-  // Full page error state
+  // Error state
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-50 to-red-100 p-6 flex items-center justify-center">
@@ -179,8 +283,9 @@ const AdminUserManagement = () => {
           <p className="text-red-700 mb-6 text-lg lg:text-xl">{error}</p>
           <button
             onClick={fetchUsers}
-            className="bg-gradient-to-r from-red-600 to-red-700 text-white px-8 py-3 rounded-lg hover:from-red-700 hover:to-red-800 transition-all duration-300 font-semibold shadow-md transform hover:scale-105 lg:text-lg"
+            className="bg-gradient-to-r from-red-600 to-red-700 text-white px-8 py-3 rounded-lg hover:from-red-700 hover:to-red-800 transition-all duration-300 font-semibold shadow-md transform hover:scale-105 lg:text-lg flex items-center justify-center mx-auto"
           >
+            <RefreshCw className="w-4 h-4 mr-2" />
             Try Again
           </button>
         </div>
@@ -190,276 +295,520 @@ const AdminUserManagement = () => {
 
   return (
     <div>
-        <AdminNavbar/>
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6 sm:p-10">
-        <div className="max-w-7xl mx-auto bg-white rounded-2xl shadow-xl p-8"> {/* Main container for the admin panel */}
-            {/* Header */}
-            <div className="mb-10 text-center">
+      <AdminNavbar />
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6 sm:p-10">
+        <div className="max-w-7xl mx-auto bg-white rounded-2xl shadow-xl p-8">
+          {/* Header */}
+          <div className="mb-10 text-center">
             <h1 className="text-4xl font-extrabold text-gray-900 mb-3 lg:text-5xl">User Management</h1>
-            <p className="text-xl text-gray-600 lg:text-2xl">Oversee and manage all registered users and their activities.</p>
+            <p className="text-xl text-gray-600 lg:text-2xl">
+              Oversee and manage all registered users and their activities.
+            </p>
+            <div className="mt-4 flex justify-center space-x-6 text-sm text-gray-500">
+              <span className="flex items-center">
+                <UserCheck className="w-4 h-4 mr-1" />
+                Total Users: {users.length}
+              </span>
+              <span className="flex items-center">
+                <Activity className="w-4 h-4 mr-1" />
+                Active Users: {users.filter(u => u.status === 'active').length}
+              </span>
             </div>
+          </div>
 
-            {/* Search Bar */}
-            <div className="mb-8">
-            <div className="relative">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-6 h-6 lg:w-7 lg:h-7" />
+          {/* Filters and Search */}
+          <div className="mb-8 space-y-4">
+            <div className="flex flex-col sm:flex-row gap-4">
+              {/* Search Bar */}
+              <div className="flex-1 relative">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-6 h-6" />
                 <input
-                type="text"
-                placeholder="Search users by name or email..."
-                className="w-full pl-12 pr-6 py-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm text-lg lg:text-xl"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                  type="text"
+                  placeholder="Search users by name, email, or phone..."
+                  className="w-full pl-12 pr-6 py-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm text-lg"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                 />
-            </div>
-            </div>
+              </div>
 
-            {/* Users Table */}
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
+              {/* Status Filter */}
+              <div className="relative">
+                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="pl-10 pr-8 py-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm text-lg bg-white"
+                >
+                  <option value="all">All Status</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                  <option value="pending">Pending</option>
+                </select>
+              </div>
+
+              {/* Refresh Button */}
+              <button
+                onClick={fetchUsers}
+                className="px-6 py-3.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors duration-200 flex items-center shadow-sm"
+              >
+                <RefreshCw className="w-5 h-5 mr-2" />
+                Refresh
+              </button>
+            </div>
+          </div>
+
+          {/* Users Table */}
+          <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
             <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
+              <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
-                    <tr>
-                    <th className="px-6 py-4 text-left text-base font-semibold text-gray-600 uppercase tracking-wider lg:text-lg">
+                  <tr>
+                    <th 
+                      className="px-6 py-4 text-left text-base font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                      onClick={() => handleSort('name')}
+                    >
+                      <div className="flex items-center">
                         User
+                        {sortBy === 'name' && (
+                          <span className="ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                        )}
+                      </div>
                     </th>
-                    <th className="px-6 py-4 text-left text-base font-semibold text-gray-600 uppercase tracking-wider lg:text-lg">
+                    <th 
+                      className="px-6 py-4 text-left text-base font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                      onClick={() => handleSort('email')}
+                    >
+                      <div className="flex items-center">
                         Email
+                        {sortBy === 'email' && (
+                          <span className="ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                        )}
+                      </div>
                     </th>
-                    <th className="px-6 py-4 text-left text-base font-semibold text-gray-600 uppercase tracking-wider lg:text-lg">
+                    <th 
+                      className="px-6 py-4 text-left text-base font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                      onClick={() => handleSort('createdAt')}
+                    >
+                      <div className="flex items-center">
                         Join Date
+                        {sortBy === 'createdAt' && (
+                          <span className="ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                        )}
+                      </div>
                     </th>
-                    <th className="px-6 py-4 text-left text-base font-semibold text-gray-600 uppercase tracking-wider lg:text-lg">
+                    <th 
+                      className="px-6 py-4 text-left text-base font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                      onClick={() => handleSort('totalBookings')}
+                    >
+                      <div className="flex items-center">
                         Total Bookings
+                        {sortBy === 'totalBookings' && (
+                          <span className="ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                        )}
+                      </div>
                     </th>
-                    <th className="px-6 py-4 text-left text-base font-semibold text-gray-600 uppercase tracking-wider lg:text-lg">
+                    <th 
+                      className="px-6 py-4 text-left text-base font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                      onClick={() => handleSort('status')}
+                    >
+                      <div className="flex items-center">
                         Status
+                        {sortBy === 'status' && (
+                          <span className="ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                        )}
+                      </div>
                     </th>
-                    <th className="px-6 py-4 text-left text-base font-semibold text-gray-600 uppercase tracking-wider lg:text-lg">
-                        Actions
+                    <th className="px-6 py-4 text-left text-base font-semibold text-gray-600 uppercase tracking-wider">
+                      Actions
                     </th>
-                    </tr>
+                  </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredUsers.length > 0 ? (
-                    filteredUsers.map((user) => (
-                        <tr key={user._id} className="hover:bg-gray-50 transition-colors duration-150">
+                  {paginatedUsers.length > 0 ? (
+                    paginatedUsers.map((user) => (
+                      <tr key={user._id} className="hover:bg-gray-50 transition-colors duration-150">
                         <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                            <div className="flex-shrink-0 h-12 w-12 lg:h-14 lg:w-14">
-                                <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-200 to-indigo-300 flex items-center justify-center text-blue-800 font-bold text-lg shadow-sm lg:h-14 lg:w-14 lg:text-xl">
-                                {user.name ? user.name.charAt(0).toUpperCase() : <User className="h-6 w-6 text-blue-600 lg:h-7 lg:w-7" />}
-                                </div>
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0 h-12 w-12">
+                              <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-200 to-indigo-300 flex items-center justify-center text-blue-800 font-bold text-lg shadow-sm">
+                                {user.name ? user.name.charAt(0).toUpperCase() : <User className="h-6 w-6 text-blue-600" />}
+                              </div>
                             </div>
                             <div className="ml-4">
-                                <div className="text-lg font-medium text-gray-900 lg:text-xl">
+                              <div className="text-lg font-medium text-gray-900">
                                 {user.name}
+                              </div>
+                              {user.phone && (
+                                <div className="text-sm text-gray-500">
+                                  {user.phone}
                                 </div>
+                              )}
                             </div>
-                            </div>
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-base text-gray-800 lg:text-lg">{user.email}</div>
+                          <div className="text-base text-gray-800">{user.email}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-base text-gray-800 lg:text-lg">
+                          <div className="text-base text-gray-800">
                             {formatDate(user.createdAt)}
-                            </div>
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-base text-gray-800 font-semibold lg:text-lg">{user.totalBookings || 0}</div>
+                          <div className="text-base text-gray-800 font-semibold">{user.totalBookings}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold border ${getStatusColor(user.status)} lg:text-base lg:px-4 lg:py-1.5`}>
+                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold border ${getStatusColor(user.status)}`}>
                             {getStatusIcon(user.status)}
-                            <span className="ml-2">{user.status}</span>
-                            </span>
+                            <span className="ml-2 capitalize">{user.status}</span>
+                          </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-base font-medium">
-                            <button
+                          <button
                             onClick={() => handleMoreInfo(user)}
-                            className="inline-flex items-center px-4 py-2 border border-transparent text-base leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-md transition-colors duration-200 lg:px-5 lg:py-2.5 lg:text-lg"
-                            >
-                            <Eye className="w-4 h-4 mr-2 lg:w-5 lg:h-5" />
+                            className="inline-flex items-center px-4 py-2 border border-transparent text-base leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-md transition-colors duration-200"
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
                             View Details
-                            </button>
+                          </button>
                         </td>
-                        </tr>
+                      </tr>
                     ))
-                    ) : (
+                  ) : (
                     <tr>
-                        <td colSpan="6" className="text-center py-10 text-gray-500 text-xl lg:text-2xl">
-                        No users found.
-                        </td>
+                      <td colSpan="6" className="text-center py-10 text-gray-500 text-xl">
+                        {searchTerm || statusFilter !== 'all' ? 'No users match your filters.' : 'No users found.'}
+                      </td>
                     </tr>
-                    )}
+                  )}
                 </tbody>
-                </table>
-            </div>
+              </table>
             </div>
 
-            {/* Modal for User Details */}
-            {selectedUser && (
-            <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50 animate-fade-in">
-                <div className="relative bg-white rounded-2xl shadow-2xl p-8 w-full max-w-4xl max-h-[90vh] overflow-y-auto transform scale-95 animate-scale-in">
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                <div className="flex-1 flex justify-between sm:hidden">
+                  <button
+                    onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                    className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                    disabled={currentPage === totalPages}
+                    className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
+                <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm text-gray-700">
+                      Showing{' '}
+                      <span className="font-medium">{(currentPage - 1) * usersPerPage + 1}</span>
+                      {' '}to{' '}
+                      <span className="font-medium">
+                        {Math.min(currentPage * usersPerPage, processedUsers.length)}
+                      </span>
+                      {' '}of{' '}
+                      <span className="font-medium">{processedUsers.length}</span>
+                      {' '}results
+                    </p>
+                  </div>
+                  <div>
+                    <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                      <button
+                        onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                        disabled={currentPage === 1}
+                        className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Previous
+                      </button>
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        const page = i + 1;
+                        return (
+                          <button
+                            key={page}
+                            onClick={() => handlePageChange(page)}
+                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                              currentPage === page
+                                ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                                : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        );
+                      })}
+                      <button
+                        onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                        disabled={currentPage === totalPages}
+                        className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Next
+                      </button>
+                    </nav>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Modal for User Details */}
+          {selectedUser && (
+            <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50">
+              <div className="relative bg-white rounded-2xl shadow-2xl p-8 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
                 {/* Modal Header */}
                 <div className="flex items-center justify-between pb-6 border-b border-gray-200 mb-6">
-                    <h3 className="text-2xl font-bold text-gray-900 lg:text-3xl">
+                  <h3 className="text-2xl font-bold text-gray-900">
                     User Details - {selectedUser.name}
-                    </h3>
-                    <button
+                  </h3>
+                  <button
                     onClick={closeModal}
-                    className="text-gray-500 hover:text-gray-700 transition-colors duration-200 p-2 rounded-full hover:bg-gray-100 lg:p-3"
-                    >
-                    <XCircle className="w-7 h-7 lg:w-8 lg:h-8" />
-                    </button>
+                    className="text-gray-500 hover:text-gray-700 transition-colors duration-200 p-2 rounded-full hover:bg-gray-100"
+                  >
+                    <XCircle className="w-7 h-7" />
+                  </button>
                 </div>
 
                 {/* User Information */}
                 <div className="mb-8">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="bg-blue-50 p-6 rounded-xl shadow-sm border border-blue-100">
-                        <h4 className="text-xl font-semibold text-blue-800 mb-4 flex items-center lg:text-2xl">
-                        <User className="w-5 h-5 mr-2 text-blue-600 lg:w-6 lg:h-6" /> Personal Information
-                        </h4>
-                        <div className="space-y-3 text-gray-700">
+                      <h4 className="text-xl font-semibold text-blue-800 mb-4 flex items-center">
+                        <User className="w-5 h-5 mr-2 text-blue-600" /> Personal Information
+                      </h4>
+                      <div className="space-y-3 text-gray-700">
                         <div className="flex items-center">
-                            <User className="w-4 h-4 mr-3 text-gray-500 lg:w-5 lg:h-5" />
-                            <span className="text-lg lg:text-xl">Name: <span className="font-medium">{selectedUser.name}</span></span>
+                          <User className="w-4 h-4 mr-3 text-gray-500" />
+                          <span>Name: <span className="font-medium">{selectedUser.name}</span></span>
                         </div>
                         <div className="flex items-center">
-                            <Mail className="w-4 h-4 mr-3 text-gray-500 lg:w-5 lg:h-5" />
-                            <span className="text-lg lg:text-xl">Email: <span className="font-medium">{selectedUser.email}</span></span>
+                          <Mail className="w-4 h-4 mr-3 text-gray-500" />
+                          <span>Email: <span className="font-medium">{selectedUser.email}</span></span>
                         </div>
                         <div className="flex items-center">
-                            <Calendar className="w-4 h-4 mr-3 text-gray-500 lg:w-5 lg:h-5" />
-                            <span className="text-lg lg:text-xl">Joined: <span className="font-medium">{formatDate(selectedUser.createdAt)}</span></span>
+                          <Calendar className="w-4 h-4 mr-3 text-gray-500" />
+                          <span>Joined: <span className="font-medium">{formatDate(selectedUser.createdAt)}</span></span>
                         </div>
                         {selectedUser.phone && (
-                            <div className="flex items-center">
-                            <Phone className="w-4 h-4 mr-3 text-gray-500 lg:w-5 lg:h-5" />
-                            <span className="text-lg lg:text-xl">Phone: <span className="font-medium">{selectedUser.phone}</span></span>
-                            </div>
+                          <div className="flex items-center">
+                            <Phone className="w-4 h-4 mr-3 text-gray-500" />
+                            <span>Phone: <span className="font-medium">{selectedUser.phone}</span></span>
+                          </div>
                         )}
-                        </div>
+                        {selectedUser.lastLogin && (
+                          <div className="flex items-center">
+                            <Clock className="w-4 h-4 mr-3 text-gray-500" />
+                            <span>Last Login: <span className="font-medium">{formatDate(selectedUser.lastLogin)}</span></span>
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     <div className="bg-green-50 p-6 rounded-xl shadow-sm border border-green-100">
-                        <h4 className="text-xl font-semibold text-green-800 mb-4 flex items-center lg:text-2xl">
-                        <CheckCircle className="w-5 h-5 mr-2 text-green-600 lg:w-6 lg:h-6" /> Activity Summary
-                        </h4>
-                        <div className="space-y-3 text-gray-700">
+                      <h4 className="text-xl font-semibold text-green-800 mb-4 flex items-center">
+                        <Activity className="w-5 h-5 mr-2 text-green-600" /> Activity Summary
+                      </h4>
+                      <div className="space-y-3 text-gray-700">
                         <div className="flex items-center">
-                            <Calendar className="w-4 h-4 mr-3 text-gray-500 lg:w-5 lg:h-5" />
-                            <span className="text-lg lg:text-xl">Total Bookings: <span className="font-medium">{selectedUser.totalBookings || 0}</span></span>
+                          <Calendar className="w-4 h-4 mr-3 text-gray-500" />
+                          <span>Total Bookings: <span className="font-medium">{selectedUser.totalBookings}</span></span>
                         </div>
                         <div className="flex items-center">
-                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-base font-semibold border ${getStatusColor(selectedUser.status)} lg:text-lg lg:px-4 lg:py-1.5`}>
+                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold border ${getStatusColor(selectedUser.status)}`}>
                             {getStatusIcon(selectedUser.status)}
-                            <span className="ml-2">{selectedUser.status}</span>
-                            </span>
+                            <span className="ml-2 capitalize">{selectedUser.status}</span>
+                          </span>
                         </div>
-                        {/* Add more summary fields if available, e.g., last login, vehicle type */}
                         {selectedUser.vehicleType && (
-                            <div className="flex items-center">
-                            <svg className="w-4 h-4 mr-3 text-gray-500 lg:w-5 lg:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 6l3 1m0 0l-3 1m3-1V4m0 0h-2m4 0h2m-6 0h2"></path></svg>
-                            <span className="text-lg lg:text-xl">Vehicle Type: <span className="font-medium">{selectedUser.vehicleType}</span></span>
-                            </div>
+                          <div className="flex items-center">
+                            <svg className="w-4 h-4 mr-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span>Vehicle Type: <span className="font-medium">{selectedUser.vehicleType}</span></span>
+                          </div>
                         )}
+                        <div className="flex items-center">
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${selectedUser.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                            {selectedUser.isActive ? 'Account Active' : 'Account Inactive'}
+                          </span>
                         </div>
+                      </div>
                     </div>
-                    </div>
+                  </div>
                 </div>
 
                 {/* Booking History Section */}
                 <div className="mt-8 p-6 bg-gray-50 rounded-xl shadow-sm border border-gray-100">
-                    <h4 className="text-2xl font-bold text-gray-900 mb-6 border-b pb-4 border-gray-200 lg:text-3xl">Booking History</h4>
-
-                    {bookingsLoading ? (
-                    <div className="flex justify-center py-10">
-                        <Loader2 className="animate-spin h-10 w-10 text-blue-500 lg:h-12 lg:w-12" />
-                        <p className="ml-3 text-xl text-gray-600 lg:text-2xl">Loading bookings...</p>
-                    </div>
-                    ) : bookingError ? (
-                    <div className="bg-red-100 border border-red-400 text-red-700 px-6 py-4 rounded-lg text-center text-lg lg:text-xl">
-                        <AlertCircle className="h-6 w-6 mx-auto mb-3 text-red-500 lg:h-7 lg:w-7" />
-                        <p>{bookingError}</p>
-                        <button
+                  <div className="flex items-center justify-between mb-6">
+                    <h4 className="text-2xl font-bold text-gray-900 border-b pb-4 border-gray-200">Booking History</h4>
+                    {selectedUser && (
+                      <button
                         onClick={() => fetchUserBookings(selectedUser._id)}
-                        className="mt-4 bg-red-200 px-4 py-2 rounded-md text-base font-medium text-red-800 hover:bg-red-300 transition-colors lg:text-lg"
-                        >
-                        Retry Loading Bookings
-                        </button>
-                    </div>
-                    ) : (
-                    <div className="grid grid-cols-1 gap-6 pr-2"> {/* Changed to grid-cols-1 */}
-                        {userBookings.length > 0 ? (
-                        userBookings.map((booking) => (
-                            <div key={booking._id} className="border border-gray-200 rounded-lg p-5 bg-white shadow-sm hover:shadow-md transition-shadow">
-                            <div className="flex items-start justify-between mb-3">
-                                <div className="flex-1">
-                                <div className="flex items-center mb-2">
-                                    <MapPin className="w-5 h-5 mr-2 text-blue-500 lg:w-6 lg:h-6" />
-                                    <h5 className="text-xl font-semibold text-gray-900 lg:text-2xl">
-                                    {booking.bunkId?.name || 'Unknown Station'}
-                                    </h5>
-                                </div>
-                                <p className="text-base text-gray-600 mb-2 flex items-center lg:text-lg">
-                                    <MapPin className="w-4 h-4 mr-2 text-gray-400 lg:w-5 lg:h-5" />
-                                    {booking.bunkId?.address || 'Address not available'}
-                                </p>
-                                </div>
-                                <div className="ml-4 flex-shrink-0">
-                                <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-base font-semibold border ${getStatusColor(booking.status)} lg:text-lg lg:px-4 lg:py-2`}>
-                                    {getStatusIcon(booking.status)}
-                                    <span className="ml-2">{booking.status}</span>
-                                </span>
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-4 text-base text-gray-700 lg:text-lg">
-                                <div className="flex items-center">
-                                <Clock className="w-4 h-4 mr-2 text-gray-500 lg:w-5 lg:h-5" />
-                                <span className="font-medium">Start:</span> {formatDate(booking.startTime)}
-                                </div>
-                                <div className="flex items-center">
-                                <Clock className="w-4 h-4 mr-2 text-gray-500 lg:w-5 lg:h-5" />
-                                <span className="font-medium">End:</span> {formatDate(booking.endTime)}
-                                </div>
-                                <div className="flex items-center">
-                                <Calendar className="w-4 h-4 mr-2 text-gray-500 lg:w-5 lg:h-5" />
-                                <span className="font-medium">Booked:</span> {formatDate(booking.createdAt)}
-                                </div>
-                                {booking.slotNumber && (
-                                <div className="flex items-center">
-                                    <svg className="w-4 h-4 mr-2 text-gray-500 lg:w-5 lg:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
-                                    <span className="font-medium">Slot:</span> {booking.slotNumber}
-                                </div>
-                                )}
-                            </div>
-                            </div>
-                        ))
-                        ) : (
-                        <div className="text-center py-8 text-gray-500 text-lg lg:text-xl">
-                            No bookings found for this user.
-                        </div>
-                        )}
-                    </div>
+                        className="flex items-center px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Refresh
+                      </button>
                     )}
+                  </div>
+
+                  {bookingsLoading ? (
+                    <div className="flex justify-center py-10">
+                      <Loader2 className="animate-spin h-10 w-10 text-blue-500" />
+                      <p className="ml-3 text-xl text-gray-600">Loading bookings...</p>
+                    </div>
+                  ) : bookingError ? (
+                    <div className="bg-red-100 border border-red-400 text-red-700 px-6 py-4 rounded-lg text-center">
+                      <AlertCircle className="h-6 w-6 mx-auto mb-3 text-red-500" />
+                      <p className="text-lg mb-4">{bookingError}</p>
+                      <button
+                        onClick={() => fetchUserBookings(selectedUser._id)}
+                        className="bg-red-200 px-4 py-2 rounded-md text-base font-medium text-red-800 hover:bg-red-300 transition-colors"
+                      >
+                        Retry Loading Bookings
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {userBookings.length > 0 ? (
+                        <>
+                          {/* Booking Summary */}
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                            <div className="bg-blue-100 p-4 rounded-lg text-center">
+                              <div className="text-2xl font-bold text-blue-800">
+                                {userBookings.filter(b => b.status === 'completed').length}
+                              </div>
+                              <div className="text-sm text-blue-600">Completed Bookings</div>
+                            </div>
+                            <div className="bg-yellow-100 p-4 rounded-lg text-center">
+                              <div className="text-2xl font-bold text-yellow-800">
+                                {userBookings.filter(b => b.status === 'pending' || b.status === 'active').length}
+                              </div>
+                              <div className="text-sm text-yellow-600">Active/Pending</div>
+                            </div>
+                            <div className="bg-red-100 p-4 rounded-lg text-center">
+                              <div className="text-2xl font-bold text-red-800">
+                                {userBookings.filter(b => b.status === 'cancelled').length}
+                              </div>
+                              <div className="text-sm text-red-600">Cancelled</div>
+                            </div>
+                          </div>
+
+                          {/* Booking List */}
+                          <div className="space-y-4 max-h-96 overflow-y-auto">
+                            {userBookings
+                              .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                              .map((booking) => (
+                              <div key={booking._id} className="border border-gray-200 rounded-lg p-5 bg-white shadow-sm hover:shadow-md transition-shadow">
+                                <div className="flex items-start justify-between mb-3">
+                                  <div className="flex-1">
+                                    <div className="flex items-center mb-2">
+                                      <MapPin className="w-5 h-5 mr-2 text-blue-500" />
+                                      <h5 className="text-xl font-semibold text-gray-900">
+                                        {booking.bunkId?.name || 'Unknown Station'}
+                                      </h5>
+                                    </div>
+                                    <p className="text-base text-gray-600 mb-2 flex items-center">
+                                      <MapPin className="w-4 h-4 mr-2 text-gray-400" />
+                                      {booking.bunkId?.address || 'Address not available'}
+                                    </p>
+                                  </div>
+                                  <div className="ml-4 flex-shrink-0">
+                                    <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-base font-semibold border ${getStatusColor(booking.status)}`}>
+                                      {getStatusIcon(booking.status)}
+                                      <span className="ml-2 capitalize">{booking.status}</span>
+                                    </span>
+                                  </div>
+                                </div>
+                                
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-2 gap-x-4 text-base text-gray-700">
+                                  <div className="flex items-center">
+                                    <Clock className="w-4 h-4 mr-2 text-gray-500" />
+                                    <span className="font-medium">Start:</span>
+                                    <span className="ml-1">{formatDate(booking.startTime)}</span>
+                                  </div>
+                                  <div className="flex items-center">
+                                    <Clock className="w-4 h-4 mr-2 text-gray-500" />
+                                    <span className="font-medium">End:</span>
+                                    <span className="ml-1">{formatDate(booking.endTime)}</span>
+                                  </div>
+                                  <div className="flex items-center">
+                                    <Calendar className="w-4 h-4 mr-2 text-gray-500" />
+                                    <span className="font-medium">Booked:</span>
+                                    <span className="ml-1">{formatDate(booking.createdAt)}</span>
+                                  </div>
+                                  {booking.slotNumber && (
+                                    <div className="flex items-center">
+                                      <svg className="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"></path>
+                                      </svg>
+                                      <span className="font-medium">Slot:</span>
+                                      <span className="ml-1">{booking.slotNumber}</span>
+                                    </div>
+                                  )}
+                                  {booking.amount > 0 && (
+                                    <div className="flex items-center">
+                                      <svg className="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                                      </svg>
+                                      <span className="font-medium">Amount:</span>
+                                      <span className="ml-1">₹{booking.amount}</span>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Booking duration calculation */}
+                                {booking.startTime && booking.endTime && (
+                                  <div className="mt-3 pt-3 border-t border-gray-100">
+                                    <div className="flex items-center text-sm text-gray-600">
+                                      <Clock className="w-4 h-4 mr-2" />
+                                      <span>Duration: </span>
+                                      <span className="ml-1 font-medium">
+                                        {(() => {
+                                          const start = new Date(booking.startTime);
+                                          const end = new Date(booking.endTime);
+                                          const diff = Math.abs(end - start);
+                                          const hours = Math.floor(diff / (1000 * 60 * 60));
+                                          const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                                          return `${hours}h ${minutes}m`;
+                                        })()}
+                                      </span>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-center py-8 text-gray-500 text-lg">
+                          <Calendar className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                          No bookings found for this user.
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Modal Footer */}
                 <div className="mt-8 pt-6 border-t border-gray-200 flex justify-end">
-                    <button
+                  <button
                     onClick={closeModal}
-                    className="px-6 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 font-semibold transition-colors duration-200 shadow-sm lg:px-8 lg:py-4 lg:text-lg"
-                    >
+                    className="px-6 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 font-semibold transition-colors duration-200 shadow-sm"
+                  >
                     Close
-                    </button>
+                  </button>
                 </div>
-                </div>
+              </div>
             </div>
-            )}
+          )}
         </div>
-        </div>
+      </div>
     </div>
   );
 };
