@@ -2,9 +2,8 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   Search, Eye, Calendar, MapPin, Phone, Mail, User, Clock, 
   CheckCircle, XCircle, AlertCircle, Loader2, RefreshCw, 
-  Filter, UserCheck, Activity 
+  Filter, UserCheck, Activity, Edit, Trash2, Save, X
 } from 'lucide-react';
-import AdminNavbar from "../common/navbars/AdminNavbar";
 
 const AdminUserManagement = () => {
   // User management state
@@ -23,10 +22,16 @@ const AdminUserManagement = () => {
   const [bookingsLoading, setBookingsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [bookingError, setBookingError] = useState(null);
+  const [updateLoading, setUpdateLoading] = useState(false);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [usersPerPage] = useState(10);
+
+  // Edit states
+  const [editingUser, setEditingUser] = useState(null);
+  const [editForm, setEditForm] = useState({});
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
 
   // Authentication helper
   const getAuthToken = useCallback(() => {
@@ -129,6 +134,77 @@ const AdminUserManagement = () => {
       setUserBookings([]);
     } finally {
       setBookingsLoading(false);
+    }
+  }, [makeApiCall]);
+
+  // Update user
+  const updateUser = useCallback(async (userId, updateData) => {
+    try {
+      setUpdateLoading(true);
+      await makeApiCall(`/api/admin/users/${userId}`, {
+        method: 'PUT',
+        body: JSON.stringify(updateData)
+      });
+      
+      // Update local state
+      setUsers(prevUsers => 
+        prevUsers.map(user => 
+          user._id === userId ? { ...user, ...updateData } : user
+        )
+      );
+      
+      if (selectedUser && selectedUser._id === userId) {
+        setSelectedUser(prev => ({ ...prev, ...updateData }));
+      }
+      
+      setEditingUser(null);
+      setEditForm({});
+    } catch (error) {
+      alert(`Failed to update user: ${error.message}`);
+    } finally {
+      setUpdateLoading(false);
+    }
+  }, [makeApiCall, selectedUser]);
+
+  // Delete user
+  const deleteUser = useCallback(async (userId) => {
+    try {
+      setUpdateLoading(true);
+      await makeApiCall(`/api/admin/users/${userId}`, {
+        method: 'DELETE'
+      });
+      
+      // Remove from local state
+      setUsers(prevUsers => prevUsers.filter(user => user._id !== userId));
+      
+      if (selectedUser && selectedUser._id === userId) {
+        setSelectedUser(null);
+      }
+      
+      setShowDeleteConfirm(null);
+    } catch (error) {
+      alert(`Failed to delete user: ${error.message}`);
+    } finally {
+      setUpdateLoading(false);
+    }
+  }, [makeApiCall, selectedUser]);
+
+  // Update booking status
+  const updateBookingStatus = useCallback(async (bookingId, newStatus) => {
+    try {
+      await makeApiCall(`/api/bookings/${bookingId}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: newStatus })
+      });
+      
+      // Update local booking state
+      setUserBookings(prevBookings =>
+        prevBookings.map(booking =>
+          booking._id === bookingId ? { ...booking, status: newStatus } : booking
+        )
+      );
+    } catch (error) {
+      alert(`Failed to update booking status: ${error.message}`);
     }
   }, [makeApiCall]);
 
@@ -245,6 +321,8 @@ const AdminUserManagement = () => {
     setSelectedUser(null);
     setUserBookings([]);
     setBookingError(null);
+    setEditingUser(null);
+    setEditForm({});
   }, []);
 
   const handleSort = useCallback((field) => {
@@ -259,6 +337,29 @@ const AdminUserManagement = () => {
   const handlePageChange = useCallback((page) => {
     setCurrentPage(page);
   }, []);
+
+  const startEdit = useCallback((user) => {
+    setEditingUser(user._id);
+    setEditForm({
+      name: user.name,
+      email: user.email,
+      phone: user.phone || '',
+      status: user.status,
+      vehicleType: user.vehicleType || '',
+      isActive: user.isActive
+    });
+  }, []);
+
+  const cancelEdit = useCallback(() => {
+    setEditingUser(null);
+    setEditForm({});
+  }, []);
+
+  const saveEdit = useCallback(() => {
+    if (editingUser) {
+      updateUser(editingUser, editForm);
+    }
+  }, [editingUser, editForm, updateUser]);
 
   // Loading state
   if (loading) {
@@ -294,520 +395,634 @@ const AdminUserManagement = () => {
   }
 
   return (
-    <div>
-      <AdminNavbar />
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6 sm:p-10">
-        <div className="max-w-7xl mx-auto bg-white rounded-2xl shadow-xl p-8">
-          {/* Header */}
-          <div className="mb-10 text-center">
-            <h1 className="text-4xl font-extrabold text-gray-900 mb-3 lg:text-5xl">User Management</h1>
-            <p className="text-xl text-gray-600 lg:text-2xl">
-              Oversee and manage all registered users and their activities.
-            </p>
-            <div className="mt-4 flex justify-center space-x-6 text-sm text-gray-500">
-              <span className="flex items-center">
-                <UserCheck className="w-4 h-4 mr-1" />
-                Total Users: {users.length}
-              </span>
-              <span className="flex items-center">
-                <Activity className="w-4 h-4 mr-1" />
-                Active Users: {users.filter(u => u.status === 'active').length}
-              </span>
-            </div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6 sm:p-10">
+      <div className="max-w-7xl mx-auto bg-white rounded-2xl shadow-xl p-8">
+        {/* Header */}
+        <div className="mb-10 text-center">
+          <h1 className="text-4xl font-extrabold text-gray-900 mb-3 lg:text-5xl">User Management</h1>
+          <p className="text-xl text-gray-600 lg:text-2xl">
+            Oversee and manage all registered users and their activities.
+          </p>
+          <div className="mt-4 flex justify-center space-x-6 text-sm text-gray-500">
+            <span className="flex items-center">
+              <UserCheck className="w-4 h-4 mr-1" />
+              Total Users: {users.length}
+            </span>
+            <span className="flex items-center">
+              <Activity className="w-4 h-4 mr-1" />
+              Active Users: {users.filter(u => u.status === 'active').length}
+            </span>
           </div>
+        </div>
 
-          {/* Filters and Search */}
-          <div className="mb-8 space-y-4">
-            <div className="flex flex-col sm:flex-row gap-4">
-              {/* Search Bar */}
-              <div className="flex-1 relative">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-6 h-6" />
-                <input
-                  type="text"
-                  placeholder="Search users by name, email, or phone..."
-                  className="w-full pl-12 pr-6 py-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm text-lg"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
+        {/* Filters and Search */}
+        <div className="mb-8 space-y-4">
+          <div className="flex flex-col sm:flex-row gap-4">
+            {/* Search Bar */}
+            <div className="flex-1 relative">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-6 h-6" />
+              <input
+                type="text"
+                placeholder="Search users by name, email, or phone..."
+                className="w-full pl-12 pr-6 py-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm text-lg"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
 
-              {/* Status Filter */}
-              <div className="relative">
-                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="pl-10 pr-8 py-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm text-lg bg-white"
-                >
-                  <option value="all">All Status</option>
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                  <option value="pending">Pending</option>
-                </select>
-              </div>
-
-              {/* Refresh Button */}
-              <button
-                onClick={fetchUsers}
-                className="px-6 py-3.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors duration-200 flex items-center shadow-sm"
+            {/* Status Filter */}
+            <div className="relative">
+              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="pl-10 pr-8 py-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm text-lg bg-white"
               >
-                <RefreshCw className="w-5 h-5 mr-2" />
-                Refresh
-              </button>
-            </div>
-          </div>
-
-          {/* Users Table */}
-          <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th 
-                      className="px-6 py-4 text-left text-base font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                      onClick={() => handleSort('name')}
-                    >
-                      <div className="flex items-center">
-                        User
-                        {sortBy === 'name' && (
-                          <span className="ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>
-                        )}
-                      </div>
-                    </th>
-                    <th 
-                      className="px-6 py-4 text-left text-base font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                      onClick={() => handleSort('email')}
-                    >
-                      <div className="flex items-center">
-                        Email
-                        {sortBy === 'email' && (
-                          <span className="ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>
-                        )}
-                      </div>
-                    </th>
-                    <th 
-                      className="px-6 py-4 text-left text-base font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                      onClick={() => handleSort('createdAt')}
-                    >
-                      <div className="flex items-center">
-                        Join Date
-                        {sortBy === 'createdAt' && (
-                          <span className="ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>
-                        )}
-                      </div>
-                    </th>
-                    <th 
-                      className="px-6 py-4 text-left text-base font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                      onClick={() => handleSort('totalBookings')}
-                    >
-                      <div className="flex items-center">
-                        Total Bookings
-                        {sortBy === 'totalBookings' && (
-                          <span className="ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>
-                        )}
-                      </div>
-                    </th>
-                    <th 
-                      className="px-6 py-4 text-left text-base font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                      onClick={() => handleSort('status')}
-                    >
-                      <div className="flex items-center">
-                        Status
-                        {sortBy === 'status' && (
-                          <span className="ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>
-                        )}
-                      </div>
-                    </th>
-                    <th className="px-6 py-4 text-left text-base font-semibold text-gray-600 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {paginatedUsers.length > 0 ? (
-                    paginatedUsers.map((user) => (
-                      <tr key={user._id} className="hover:bg-gray-50 transition-colors duration-150">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="flex-shrink-0 h-12 w-12">
-                              <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-200 to-indigo-300 flex items-center justify-center text-blue-800 font-bold text-lg shadow-sm">
-                                {user.name ? user.name.charAt(0).toUpperCase() : <User className="h-6 w-6 text-blue-600" />}
-                              </div>
-                            </div>
-                            <div className="ml-4">
-                              <div className="text-lg font-medium text-gray-900">
-                                {user.name}
-                              </div>
-                              {user.phone && (
-                                <div className="text-sm text-gray-500">
-                                  {user.phone}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-base text-gray-800">{user.email}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-base text-gray-800">
-                            {formatDate(user.createdAt)}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-base text-gray-800 font-semibold">{user.totalBookings}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold border ${getStatusColor(user.status)}`}>
-                            {getStatusIcon(user.status)}
-                            <span className="ml-2 capitalize">{user.status}</span>
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-base font-medium">
-                          <button
-                            onClick={() => handleMoreInfo(user)}
-                            className="inline-flex items-center px-4 py-2 border border-transparent text-base leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-md transition-colors duration-200"
-                          >
-                            <Eye className="w-4 h-4 mr-2" />
-                            View Details
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan="6" className="text-center py-10 text-gray-500 text-xl">
-                        {searchTerm || statusFilter !== 'all' ? 'No users match your filters.' : 'No users found.'}
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                <option value="all">All Status</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="pending">Pending</option>
+              </select>
             </div>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-                <div className="flex-1 flex justify-between sm:hidden">
-                  <button
-                    onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
-                    disabled={currentPage === 1}
-                    className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Previous
-                  </button>
-                  <button
-                    onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
-                    disabled={currentPage === totalPages}
-                    className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Next
-                  </button>
-                </div>
-                <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-sm text-gray-700">
-                      Showing{' '}
-                      <span className="font-medium">{(currentPage - 1) * usersPerPage + 1}</span>
-                      {' '}to{' '}
-                      <span className="font-medium">
-                        {Math.min(currentPage * usersPerPage, processedUsers.length)}
-                      </span>
-                      {' '}of{' '}
-                      <span className="font-medium">{processedUsers.length}</span>
-                      {' '}results
-                    </p>
-                  </div>
-                  <div>
-                    <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                      <button
-                        onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
-                        disabled={currentPage === 1}
-                        className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Previous
-                      </button>
-                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                        const page = i + 1;
-                        return (
-                          <button
-                            key={page}
-                            onClick={() => handlePageChange(page)}
-                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                              currentPage === page
-                                ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                                : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                            }`}
-                          >
-                            {page}
-                          </button>
-                        );
-                      })}
-                      <button
-                        onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
-                        disabled={currentPage === totalPages}
-                        className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Next
-                      </button>
-                    </nav>
-                  </div>
-                </div>
-              </div>
-            )}
+            {/* Refresh Button */}
+            <button
+              onClick={fetchUsers}
+              className="px-6 py-3.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors duration-200 flex items-center shadow-sm"
+            >
+              <RefreshCw className="w-5 h-5 mr-2" />
+              Refresh
+            </button>
           </div>
+        </div>
 
-          {/* Modal for User Details */}
-          {selectedUser && (
-            <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50">
-              <div className="relative bg-white rounded-2xl shadow-2xl p-8 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-                {/* Modal Header */}
-                <div className="flex items-center justify-between pb-6 border-b border-gray-200 mb-6">
-                  <h3 className="text-2xl font-bold text-gray-900">
-                    User Details - {selectedUser.name}
-                  </h3>
-                  <button
-                    onClick={closeModal}
-                    className="text-gray-500 hover:text-gray-700 transition-colors duration-200 p-2 rounded-full hover:bg-gray-100"
+        {/* Users Table */}
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th 
+                    className="px-6 py-4 text-left text-base font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    onClick={() => handleSort('name')}
                   >
-                    <XCircle className="w-7 h-7" />
-                  </button>
-                </div>
-
-                {/* User Information */}
-                <div className="mb-8">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-blue-50 p-6 rounded-xl shadow-sm border border-blue-100">
-                      <h4 className="text-xl font-semibold text-blue-800 mb-4 flex items-center">
-                        <User className="w-5 h-5 mr-2 text-blue-600" /> Personal Information
-                      </h4>
-                      <div className="space-y-3 text-gray-700">
-                        <div className="flex items-center">
-                          <User className="w-4 h-4 mr-3 text-gray-500" />
-                          <span>Name: <span className="font-medium">{selectedUser.name}</span></span>
-                        </div>
-                        <div className="flex items-center">
-                          <Mail className="w-4 h-4 mr-3 text-gray-500" />
-                          <span>Email: <span className="font-medium">{selectedUser.email}</span></span>
-                        </div>
-                        <div className="flex items-center">
-                          <Calendar className="w-4 h-4 mr-3 text-gray-500" />
-                          <span>Joined: <span className="font-medium">{formatDate(selectedUser.createdAt)}</span></span>
-                        </div>
-                        {selectedUser.phone && (
-                          <div className="flex items-center">
-                            <Phone className="w-4 h-4 mr-3 text-gray-500" />
-                            <span>Phone: <span className="font-medium">{selectedUser.phone}</span></span>
-                          </div>
-                        )}
-                        {selectedUser.lastLogin && (
-                          <div className="flex items-center">
-                            <Clock className="w-4 h-4 mr-3 text-gray-500" />
-                            <span>Last Login: <span className="font-medium">{formatDate(selectedUser.lastLogin)}</span></span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="bg-green-50 p-6 rounded-xl shadow-sm border border-green-100">
-                      <h4 className="text-xl font-semibold text-green-800 mb-4 flex items-center">
-                        <Activity className="w-5 h-5 mr-2 text-green-600" /> Activity Summary
-                      </h4>
-                      <div className="space-y-3 text-gray-700">
-                        <div className="flex items-center">
-                          <Calendar className="w-4 h-4 mr-3 text-gray-500" />
-                          <span>Total Bookings: <span className="font-medium">{selectedUser.totalBookings}</span></span>
-                        </div>
-                        <div className="flex items-center">
-                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold border ${getStatusColor(selectedUser.status)}`}>
-                            {getStatusIcon(selectedUser.status)}
-                            <span className="ml-2 capitalize">{selectedUser.status}</span>
-                          </span>
-                        </div>
-                        {selectedUser.vehicleType && (
-                          <div className="flex items-center">
-                            <svg className="w-4 h-4 mr-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            <span>Vehicle Type: <span className="font-medium">{selectedUser.vehicleType}</span></span>
-                          </div>
-                        )}
-                        <div className="flex items-center">
-                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${selectedUser.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                            {selectedUser.isActive ? 'Account Active' : 'Account Inactive'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Booking History Section */}
-                <div className="mt-8 p-6 bg-gray-50 rounded-xl shadow-sm border border-gray-100">
-                  <div className="flex items-center justify-between mb-6">
-                    <h4 className="text-2xl font-bold text-gray-900 border-b pb-4 border-gray-200">Booking History</h4>
-                    {selectedUser && (
-                      <button
-                        onClick={() => fetchUserBookings(selectedUser._id)}
-                        className="flex items-center px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                      >
-                        <RefreshCw className="w-4 h-4 mr-2" />
-                        Refresh
-                      </button>
-                    )}
-                  </div>
-
-                  {bookingsLoading ? (
-                    <div className="flex justify-center py-10">
-                      <Loader2 className="animate-spin h-10 w-10 text-blue-500" />
-                      <p className="ml-3 text-xl text-gray-600">Loading bookings...</p>
-                    </div>
-                  ) : bookingError ? (
-                    <div className="bg-red-100 border border-red-400 text-red-700 px-6 py-4 rounded-lg text-center">
-                      <AlertCircle className="h-6 w-6 mx-auto mb-3 text-red-500" />
-                      <p className="text-lg mb-4">{bookingError}</p>
-                      <button
-                        onClick={() => fetchUserBookings(selectedUser._id)}
-                        className="bg-red-200 px-4 py-2 rounded-md text-base font-medium text-red-800 hover:bg-red-300 transition-colors"
-                      >
-                        Retry Loading Bookings
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {userBookings.length > 0 ? (
-                        <>
-                          {/* Booking Summary */}
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                            <div className="bg-blue-100 p-4 rounded-lg text-center">
-                              <div className="text-2xl font-bold text-blue-800">
-                                {userBookings.filter(b => b.status === 'completed').length}
-                              </div>
-                              <div className="text-sm text-blue-600">Completed Bookings</div>
-                            </div>
-                            <div className="bg-yellow-100 p-4 rounded-lg text-center">
-                              <div className="text-2xl font-bold text-yellow-800">
-                                {userBookings.filter(b => b.status === 'pending' || b.status === 'active').length}
-                              </div>
-                              <div className="text-sm text-yellow-600">Active/Pending</div>
-                            </div>
-                            <div className="bg-red-100 p-4 rounded-lg text-center">
-                              <div className="text-2xl font-bold text-red-800">
-                                {userBookings.filter(b => b.status === 'cancelled').length}
-                              </div>
-                              <div className="text-sm text-red-600">Cancelled</div>
-                            </div>
-                          </div>
-
-                          {/* Booking List */}
-                          <div className="space-y-4 max-h-96 overflow-y-auto">
-                            {userBookings
-                              .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-                              .map((booking) => (
-                              <div key={booking._id} className="border border-gray-200 rounded-lg p-5 bg-white shadow-sm hover:shadow-md transition-shadow">
-                                <div className="flex items-start justify-between mb-3">
-                                  <div className="flex-1">
-                                    <div className="flex items-center mb-2">
-                                      <MapPin className="w-5 h-5 mr-2 text-blue-500" />
-                                      <h5 className="text-xl font-semibold text-gray-900">
-                                        {booking.bunkId?.name || 'Unknown Station'}
-                                      </h5>
-                                    </div>
-                                    <p className="text-base text-gray-600 mb-2 flex items-center">
-                                      <MapPin className="w-4 h-4 mr-2 text-gray-400" />
-                                      {booking.bunkId?.address || 'Address not available'}
-                                    </p>
-                                  </div>
-                                  <div className="ml-4 flex-shrink-0">
-                                    <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-base font-semibold border ${getStatusColor(booking.status)}`}>
-                                      {getStatusIcon(booking.status)}
-                                      <span className="ml-2 capitalize">{booking.status}</span>
-                                    </span>
-                                  </div>
-                                </div>
-                                
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-2 gap-x-4 text-base text-gray-700">
-                                  <div className="flex items-center">
-                                    <Clock className="w-4 h-4 mr-2 text-gray-500" />
-                                    <span className="font-medium">Start:</span>
-                                    <span className="ml-1">{formatDate(booking.startTime)}</span>
-                                  </div>
-                                  <div className="flex items-center">
-                                    <Clock className="w-4 h-4 mr-2 text-gray-500" />
-                                    <span className="font-medium">End:</span>
-                                    <span className="ml-1">{formatDate(booking.endTime)}</span>
-                                  </div>
-                                  <div className="flex items-center">
-                                    <Calendar className="w-4 h-4 mr-2 text-gray-500" />
-                                    <span className="font-medium">Booked:</span>
-                                    <span className="ml-1">{formatDate(booking.createdAt)}</span>
-                                  </div>
-                                  {booking.slotNumber && (
-                                    <div className="flex items-center">
-                                      <svg className="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"></path>
-                                      </svg>
-                                      <span className="font-medium">Slot:</span>
-                                      <span className="ml-1">{booking.slotNumber}</span>
-                                    </div>
-                                  )}
-                                  {booking.amount > 0 && (
-                                    <div className="flex items-center">
-                                      <svg className="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
-                                      </svg>
-                                      <span className="font-medium">Amount:</span>
-                                      <span className="ml-1">₹{booking.amount}</span>
-                                    </div>
-                                  )}
-                                </div>
-
-                                {/* Booking duration calculation */}
-                                {booking.startTime && booking.endTime && (
-                                  <div className="mt-3 pt-3 border-t border-gray-100">
-                                    <div className="flex items-center text-sm text-gray-600">
-                                      <Clock className="w-4 h-4 mr-2" />
-                                      <span>Duration: </span>
-                                      <span className="ml-1 font-medium">
-                                        {(() => {
-                                          const start = new Date(booking.startTime);
-                                          const end = new Date(booking.endTime);
-                                          const diff = Math.abs(end - start);
-                                          const hours = Math.floor(diff / (1000 * 60 * 60));
-                                          const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                                          return `${hours}h ${minutes}m`;
-                                        })()}
-                                      </span>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </>
-                      ) : (
-                        <div className="text-center py-8 text-gray-500 text-lg">
-                          <Calendar className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                          No bookings found for this user.
-                        </div>
+                    <div className="flex items-center">
+                      User
+                      {sortBy === 'name' && (
+                        <span className="ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>
                       )}
                     </div>
-                  )}
-                </div>
-
-                {/* Modal Footer */}
-                <div className="mt-8 pt-6 border-t border-gray-200 flex justify-end">
-                  <button
-                    onClick={closeModal}
-                    className="px-6 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 font-semibold transition-colors duration-200 shadow-sm"
+                  </th>
+                  <th 
+                    className="px-6 py-4 text-left text-base font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    onClick={() => handleSort('email')}
                   >
-                    Close
-                  </button>
+                    <div className="flex items-center">
+                      Email
+                      {sortBy === 'email' && (
+                        <span className="ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                      )}
+                    </div>
+                  </th>
+                  <th 
+                    className="px-6 py-4 text-left text-base font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    onClick={() => handleSort('createdAt')}
+                  >
+                    <div className="flex items-center">
+                      Join Date
+                      {sortBy === 'createdAt' && (
+                        <span className="ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                      )}
+                    </div>
+                  </th>
+                  <th 
+                    className="px-6 py-4 text-left text-base font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    onClick={() => handleSort('totalBookings')}
+                  >
+                    <div className="flex items-center">
+                      Total Bookings
+                      {sortBy === 'totalBookings' && (
+                        <span className="ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                      )}
+                    </div>
+                  </th>
+                  <th 
+                    className="px-6 py-4 text-left text-base font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    onClick={() => handleSort('status')}
+                  >
+                    <div className="flex items-center">
+                      Status
+                      {sortBy === 'status' && (
+                        <span className="ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                      )}
+                    </div>
+                  </th>
+                  <th className="px-6 py-4 text-left text-base font-semibold text-gray-600 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {paginatedUsers.length > 0 ? (
+                  paginatedUsers.map((user) => (
+                    <tr key={user._id} className="hover:bg-gray-50 transition-colors duration-150">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-12 w-12">
+                            <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-200 to-indigo-300 flex items-center justify-center text-blue-800 font-bold text-lg shadow-sm">
+                              {user.name ? user.name.charAt(0).toUpperCase() : <User className="h-6 w-6 text-blue-600" />}
+                            </div>
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-lg font-medium text-gray-900">
+                              {user.name}
+                            </div>
+                            {user.phone && (
+                              <div className="text-sm text-gray-500">
+                                {user.phone}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-base text-gray-800">{user.email}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-base text-gray-800">
+                          {formatDate(user.createdAt)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-base text-gray-800 font-semibold">{user.totalBookings}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold border ${getStatusColor(user.status)}`}>
+                          {getStatusIcon(user.status)}
+                          <span className="ml-2 capitalize">{user.status}</span>
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-base font-medium">
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => handleMoreInfo(user)}
+                            className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-md transition-colors duration-200"
+                          >
+                            <Eye className="w-4 h-4 mr-1" />
+                            View
+                          </button>
+                          <button
+                            onClick={() => startEdit(user)}
+                            className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 shadow-md transition-colors duration-200"
+                          >
+                            <Edit className="w-4 h-4 mr-1" />
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => setShowDeleteConfirm(user)}
+                            className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 shadow-md transition-colors duration-200"
+                          >
+                            <Trash2 className="w-4 h-4 mr-1" />
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="6" className="text-center py-10 text-gray-500 text-xl">
+                      {searchTerm || statusFilter !== 'all' ? 'No users match your filters.' : 'No users found.'}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+              <div className="flex-1 flex justify-between sm:hidden">
+                <button
+                  onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                  className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                  disabled={currentPage === totalPages}
+                  className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
+              <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm text-gray-700">
+                    Showing{' '}
+                    <span className="font-medium">{(currentPage - 1) * usersPerPage + 1}</span>
+                    {' '}to{' '}
+                    <span className="font-medium">
+                      {Math.min(currentPage * usersPerPage, processedUsers.length)}
+                    </span>
+                    {' '}of{' '}
+                    <span className="font-medium">{processedUsers.length}</span>
+                    {' '}results
+                  </p>
+                </div>
+                <div>
+                  <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                    <button
+                      onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                      disabled={currentPage === 1}
+                      className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Previous
+                    </button>
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      const page = i + 1;
+                      return (
+                        <button
+                          key={page}
+                          onClick={() => handlePageChange(page)}
+                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                            currentPage === page
+                              ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      );
+                    })}
+                    <button
+                      onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                      disabled={currentPage === totalPages}
+                      className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Next
+                    </button>
+                  </nav>
                 </div>
               </div>
             </div>
           )}
         </div>
+
+        {/* Edit User Modal */}
+        {editingUser && (
+          <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-gray-900">Edit User</h3>
+                <button onClick={cancelEdit} className="text-gray-400 hover:text-gray-600">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                  <input
+                    type="text"
+                    value={editForm.name || ''}
+                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={editForm.email || ''}
+                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                  <input
+                    type="tel"
+                    value={editForm.phone || ''}
+                    onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                  <select
+                    value={editForm.status || 'inactive'}
+                    onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="pending">Pending</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle Type</label>
+                  <input
+                    type="text"
+                    value={editForm.vehicleType || ''}
+                    onChange={(e) => setEditForm({ ...editForm, vehicleType: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="e.g., Car, Motorcycle, Truck"
+                  />
+                </div>
+                
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="isActive"
+                    checked={editForm.isActive || false}
+                    onChange={(e) => setEditForm({ ...editForm, isActive: e.target.checked })}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="isActive" className="ml-2 block text-sm text-gray-700">
+                    Account is active
+                  </label>
+                </div>
+              </div>
+              
+              <div className="flex space-x-3 mt-6">
+                <button
+                  onClick={saveEdit}
+                  disabled={updateLoading}
+                  className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                >
+                  {updateLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  ) : (
+                    <Save className="w-4 h-4 mr-2" />
+                  )}
+                  {updateLoading ? 'Saving...' : 'Save Changes'}
+                </button>
+                <button
+                  onClick={cancelEdit}
+                  className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-red-900">Confirm Delete</h3>
+                <button 
+                  onClick={() => setShowDeleteConfirm(null)} 
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              
+              <div className="mb-6">
+                <p className="text-gray-700 mb-2">
+                  Are you sure you want to delete this user?
+                </p>
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <p className="font-semibold text-gray-900">{showDeleteConfirm.name}</p>
+                  <p className="text-gray-600">{showDeleteConfirm.email}</p>
+                </div>
+                <p className="text-red-600 text-sm mt-2">
+                  This action cannot be undone.
+                </p>
+              </div>
+              
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => deleteUser(showDeleteConfirm._id)}
+                  disabled={updateLoading}
+                  className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                >
+                  {updateLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  ) : (
+                    <Trash2 className="w-4 h-4 mr-2" />
+                  )}
+                  {updateLoading ? 'Deleting...' : 'Delete User'}
+                </button>
+                <button
+                  onClick={() => setShowDeleteConfirm(null)}
+                  className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* User Details Modal */}
+        {selectedUser && (
+          <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+              {/* Modal Header */}
+              <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="h-16 w-16 rounded-full bg-white bg-opacity-20 flex items-center justify-center text-white font-bold text-2xl mr-4">
+                      {selectedUser.name ? selectedUser.name.charAt(0).toUpperCase() : <User className="h-8 w-8" />}
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold">{selectedUser.name}</h2>
+                      <p className="text-blue-100">{selectedUser.email}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={closeModal}
+                    className="text-white hover:text-gray-200 transition-colors duration-200"
+                  >
+                    <X className="w-8 h-8" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+                {/* User Information */}
+                <div className="grid md:grid-cols-2 gap-6 mb-8">
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                      <User className="w-5 h-5 mr-2 text-blue-600" />
+                      User Information
+                    </h3>
+                    <div className="space-y-3">
+                      <div className="flex items-center text-gray-700">
+                        <Mail className="w-4 h-4 mr-3 text-gray-500" />
+                        <span className="font-medium mr-2">Email:</span>
+                        <span>{selectedUser.email}</span>
+                      </div>
+                      {selectedUser.phone && (
+                        <div className="flex items-center text-gray-700">
+                          <Phone className="w-4 h-4 mr-3 text-gray-500" />
+                          <span className="font-medium mr-2">Phone:</span>
+                          <span>{selectedUser.phone}</span>
+                        </div>
+                      )}
+                      {selectedUser.vehicleType && (
+                        <div className="flex items-center text-gray-700">
+                          <Activity className="w-4 h-4 mr-3 text-gray-500" />
+                          <span className="font-medium mr-2">Vehicle:</span>
+                          <span>{selectedUser.vehicleType}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center text-gray-700">
+                        <Calendar className="w-4 h-4 mr-3 text-gray-500" />
+                        <span className="font-medium mr-2">Joined:</span>
+                        <span>{formatDate(selectedUser.createdAt)}</span>
+                      </div>
+                      {selectedUser.lastLogin && (
+                        <div className="flex items-center text-gray-700">
+                          <Clock className="w-4 h-4 mr-3 text-gray-500" />
+                          <span className="font-medium mr-2">Last Login:</span>
+                          <span>{formatDate(selectedUser.lastLogin)}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                      <Activity className="w-5 h-5 mr-2 text-green-600" />
+                      Account Status
+                    </h3>
+                    <div className="space-y-3">
+                      <div className="flex items-center">
+                        <span className="font-medium text-gray-700 mr-3">Status:</span>
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold border ${getStatusColor(selectedUser.status)}`}>
+                          {getStatusIcon(selectedUser.status)}
+                          <span className="ml-2 capitalize">{selectedUser.status}</span>
+                        </span>
+                      </div>
+                      <div className="flex items-center text-gray-700">
+                        <span className="font-medium mr-3">Active Account:</span>
+                        <span className={selectedUser.isActive ? 'text-green-600' : 'text-red-600'}>
+                          {selectedUser.isActive ? 'Yes' : 'No'}
+                        </span>
+                      </div>
+                      <div className="flex items-center text-gray-700">
+                        <span className="font-medium mr-3">Total Bookings:</span>
+                        <span className="text-blue-600 font-semibold">{selectedUser.totalBookings}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Booking History */}
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    <Calendar className="w-5 h-5 mr-2 text-purple-600" />
+                    Booking History
+                  </h3>
+
+                  {bookingsLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="animate-spin h-8 w-8 text-blue-600 mr-3" />
+                      <span className="text-gray-600">Loading bookings...</span>
+                    </div>
+                  ) : bookingError ? (
+                    <div className="text-center py-8">
+                      <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-3" />
+                      <p className="text-red-600 mb-4">{bookingError}</p>
+                      <button
+                        onClick={() => fetchUserBookings(selectedUser._id)}
+                        className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors duration-200"
+                      >
+                        <RefreshCw className="w-4 h-4 mr-2 inline" />
+                        Retry
+                      </button>
+                    </div>
+                  ) : userBookings.length > 0 ? (
+                    <div className="space-y-3 max-h-64 overflow-y-auto">
+                      {userBookings.map((booking) => (
+                        <div key={booking._id} className="bg-white rounded-lg p-4 border border-gray-200 hover:shadow-md transition-shadow duration-200">
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex-1">
+                              <div className="flex items-center mb-1">
+                                <MapPin className="w-4 h-4 text-gray-500 mr-2" />
+                                <span className="font-medium text-gray-900">{booking.bunkId.name}</span>
+                              </div>
+                              <p className="text-sm text-gray-600 ml-6">{booking.bunkId.address}</p>
+                            </div>
+                            <div className="ml-4">
+                              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold border ${getStatusColor(booking.status)}`}>
+                                {getStatusIcon(booking.status)}
+                                <span className="ml-1 capitalize">{booking.status}</span>
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-4 text-sm text-gray-600 mt-3">
+                            <div>
+                              <span className="font-medium">Slot:</span> {booking.slotNumber || 'N/A'}
+                            </div>
+                            <div>
+                              <span className="font-medium">Amount:</span> ₹{booking.amount}
+                            </div>
+                            <div>
+                              <span className="font-medium">Start:</span> {formatDate(booking.startTime)}
+                            </div>
+                            <div>
+                              <span className="font-medium">End:</span> {formatDate(booking.endTime)}
+                            </div>
+                          </div>
+                          
+                          {/* Admin Actions for Bookings */}
+                          <div className="flex space-x-2 mt-3 pt-3 border-t border-gray-100">
+                            {booking.status === 'pending' && (
+                              <>
+                                <button
+                                  onClick={() => updateBookingStatus(booking._id, 'confirmed')}
+                                  className="text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition-colors duration-200"
+                                >
+                                  Confirm
+                                </button>
+                                <button
+                                  onClick={() => updateBookingStatus(booking._id, 'cancelled')}
+                                  className="text-xs bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition-colors duration-200"
+                                >
+                                  Cancel
+                                </button>
+                              </>
+                            )}
+                            {booking.status === 'confirmed' && (
+                              <button
+                                onClick={() => updateBookingStatus(booking._id, 'completed')}
+                                className="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition-colors duration-200"
+                              >
+                                Mark Complete
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <Calendar className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                      <p>No bookings found for this user.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
