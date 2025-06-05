@@ -35,62 +35,62 @@ const faqData = [
   {
     question: "Can I see real-time slot availability?",
     answer:
-      "Yes, the system shows real-time availability of slots for each recharge station so you can plan accordingly.",
+    "Yes, the system shows real-time availability of slots for each recharge station so you can plan accordingly.",
   },
   {
     question: "What happens if I miss my booked slot?",
     answer:
-      "If a user does not check-in during their scheduled time, the slot may be marked as missed and can be released for others.",
+    "If a user does not check-in during their scheduled time, the slot may be marked as missed and can be released for others.",
   },
   {
     question: "How do I contact support if I face issues?",
     answer:
-      "You can reach our support team via the 'Contact Us' section available in the website footer or from your dashboard.",
+    "You can reach our support team via the 'Contact Us' section available in the website footer or from your dashboard.",
   },
   {
     question: "Is EV Recharge Hub available across India?",
     answer:
-      "Currently, EV Recharge Hub is expanding across major cities in India. You can check the availability of recharge bunks in your area via the platform.",
+    "Currently, EV Recharge Hub is expanding across major cities in India. You can check the availability of recharge bunks in your area via the platform.",
   },
   {
     question: "How long does a typical EV recharge take?",
     answer:
-      "Recharge times vary based on your vehicle and the charging station. Typically, a full charge can take anywhere from 30 minutes to a few hours.",
+    "Recharge times vary based on your vehicle and the charging station. Typically, a full charge can take anywhere from 30 minutes to a few hours.",
   },
   {
     question: "What types of vehicles are supported?",
     answer:
-      "Our platform supports all types of electric vehicles, including two-wheelers, three-wheelers, and four-wheelers.",
+    "Our platform supports all types of electric vehicles, including two-wheelers, three-wheelers, and four-wheelers.",
   },
   {
     question: "Are there any penalties for late check-ins?",
     answer:
-      "Repeated late check-ins without notice may lead to temporary suspension of booking privileges to ensure fairness for other users.",
+    "Repeated late check-ins without notice may lead to temporary suspension of booking privileges to ensure fairness for other users.",
   },
   {
     question: "Can I view my booking history?",
     answer:
-      "Yes, you can view all past and current bookings in your dashboard under the 'My Bookings' section.",
+    "Yes, you can view all past and current bookings in your dashboard under the 'My Bookings' section.",
   },
   {
     question: "Is the EV Recharge Hub mobile-friendly?",
     answer:
-      "Absolutely. The platform is fully responsive and works smoothly on all devices including smartphones and tablets.",
+    "Absolutely. The platform is fully responsive and works smoothly on all devices including smartphones and tablets.",
   },
   {
     question: "How often is station data updated?",
     answer:
-      "Station data including availability and location is updated in real time by station admins and system sensors.",
+    "Station data including availability and location is updated in real time by station admins and system sensors.",
   },
   {
     question: "Do I need to bring anything for verification?",
     answer:
-      "Most stations verify your booking using your phone number or booking ID. Some may request additional verification like your vehicle number.",
+    "Most stations verify your booking using your phone number or booking ID. Some may request additional verification like your vehicle number.",
   },
   {
     question: "Can I use the service without GPS?",
     answer:
-      "While GPS helps to automatically detect nearby stations, you can manually search by location if GPS access is disabled.",
+    "While GPS helps to automatically detect nearby stations, you can manually search by location if GPS access is disabled.",
   }
 ];
 
@@ -105,30 +105,53 @@ const FAQ = () => {
   return (
     <div>
       <Navbar />
-      <section className="min-h-screen bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 py-12 px-6 md:px-20">
+      <section className="min-h-screen bg-gradient-to-br from-white to-blue-50 dark:from-gray-950 dark:to-gray-800 text-gray-800 dark:text-gray-100 py-20 px-6 md:px-20">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-4xl font-bold text-center text-blue-600 dark:text-blue-400 mb-10">
-            Frequently Asked Questions
-          </h1>
+          {/* Enhanced Title Section */}
+          <div className="text-center mb-16">
+            <h1 className="text-6xl font-extrabold text-blue-800 dark:text-blue-300 mb-5 tracking-tight">
+              Questions & Answers
+            </h1>
+            <p className="text-xl md:text-2xl text-gray-700 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed">
+              Find quick answers to the most common questions about EV Recharge Hub.
+            </p>
+            <div className="w-28 h-1.5 bg-blue-600 dark:bg-blue-400 mx-auto mt-8 rounded-full shadow-md"></div>
+          </div>
 
           <div className="space-y-6">
             {faqData.map((faq, index) => (
               <div
                 key={index}
-                className="border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-hidden"
+                className="bg-white dark:bg-gray-850 rounded-xl shadow-lg dark:shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-700 transition-all duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-xl"
               >
                 <button
                   onClick={() => toggle(index)}
-                  className="w-full flex justify-between items-center p-4 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+                  aria-expanded={activeIndex === index ? "true" : "false"}
+                  className={`w-full flex justify-between items-center p-6 text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-850 transition-all duration-300 ease-in-out
+                    ${activeIndex === index
+                      ? 'bg-blue-50 dark:bg-blue-950 text-blue-800 dark:text-blue-100 font-semibold'
+                      : 'bg-white dark:bg-gray-850 hover:bg-gray-100 dark:hover:bg-gray-800'
+                    }`}
                 >
-                  <span className="text-lg font-medium text-left">{faq.question}</span>
-                  <span className="text-xl">{activeIndex === index ? "−" : "+"}</span>
+                  <span className="text-lg md:text-xl font-medium flex-1 pr-4">{faq.question}</span>
+                  <span className={`text-2xl font-bold transition-transform duration-300 ease-in-out ${activeIndex === index ? "rotate-45 text-blue-600 dark:text-blue-300" : "text-gray-500 dark:text-gray-400"}`}>
+                    +
+                  </span>
                 </button>
-                {activeIndex === index && (
-                  <div className="p-4 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
-                    <p className="text-gray-600 dark:text-gray-300">{faq.answer}</p>
+                {/* Answer Content */}
+                <div
+                  className={`grid overflow-hidden transition-[grid-template-rows,opacity] duration-500 ease-in-out ${
+                    activeIndex === index ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+                  }`}
+                >
+                  <div className="overflow-hidden"> {/* This div ensures content inside grid-rows is hidden */}
+                    <div className="p-6 pt-0 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-700">
+                      <p className="text-base text-gray-700 dark:text-gray-300 leading-relaxed">
+                        {faq.answer}
+                      </p>
+                    </div>
                   </div>
-                )}
+                </div>
               </div>
             ))}
           </div>
