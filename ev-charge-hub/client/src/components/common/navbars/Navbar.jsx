@@ -25,9 +25,9 @@ const Navbar = () => {
         <div className="hidden md:flex space-x-6 items-center font-medium">
           <Link to="/" className="hover:underline">Home</Link>
           <Link to="/about" className="hover:underline">About</Link>
-          <Link to="/contact" className="hover:underline">Contact</Link>
           <Link to="/how-it-works" className="hover:underline">How It Works</Link>
           <Link to="/faq" className="hover:underline">FAQ</Link>
+          <Link to="/contact" onClick={toggleMenu} className="block hover:underline">Contact</Link>
           <div className="relative group cursor-pointer">
             <span className="hover:underline">Login</span>
             <div className="absolute left-0 mt-2 w-32 bg-white text-black rounded shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-50">
@@ -43,9 +43,9 @@ const Navbar = () => {
         <div className="md:hidden px-4 pb-4 space-y-2 bg-blue-600 text-white font-medium">
           <Link to="/" onClick={toggleMenu} className="block hover:underline">Home</Link>
           <Link to="/about" onClick={toggleMenu} className="block hover:underline">About</Link>
-          <Link to="/contact" onClick={toggleMenu} className="block hover:underline">Contact</Link>
           <Link to="/how-it-works" onClick={toggleMenu} className="block hover:underline">How It Works</Link>
           <Link to="/faq" onClick={toggleMenu} className="block hover:underline">FAQ</Link>
+          <Link to="/contact" onClick={toggleMenu} className="block hover:underline">Contact</Link>
           <div className="pt-2">
             <span className="block text-sm text-gray-200">Login</span>
             <div className="pl-4">
