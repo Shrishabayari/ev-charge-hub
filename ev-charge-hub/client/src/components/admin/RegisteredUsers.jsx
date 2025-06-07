@@ -121,7 +121,6 @@ const AdminUserManagement = () => {
         endTime: booking.endTime || null,
         createdAt: booking.createdAt || new Date().toISOString(),
         slotNumber: booking.slotNumber || null,
-        amount: booking.amount || 0,
         bunkId: {
           name: booking.bunkId?.name || 'Unknown Station',
           address: booking.bunkId?.address || 'Address not available',
@@ -973,9 +972,6 @@ const AdminUserManagement = () => {
                             <div className="grid grid-cols-2 gap-4 text-sm text-gray-600 mt-3">
                               <div>
                                 <span className="font-medium">Slot:</span> {booking.slotNumber || 'N/A'}
-                              </div>
-                              <div>
-                                <span className="font-medium">Amount:</span> ₹{booking.amount}
                               </div>
                               <div>
                                 <span className="font-medium">Start:</span> {formatDate(booking.startTime)}

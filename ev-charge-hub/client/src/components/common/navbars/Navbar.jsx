@@ -27,6 +27,7 @@ const Navbar = () => {
           <Link to="/about" className="hover:underline">About</Link>
           <Link to="/how-it-works" className="hover:underline">How It Works</Link>
           <Link to="/faq" className="hover:underline">FAQ</Link>
+          <Link to="/why-ev-charge-hub" className="hover:underline">Why Ev Charge Hub</Link>
           <Link to="/contact" onClick={toggleMenu} className="block hover:underline">Contact</Link>
           <div className="relative group cursor-pointer">
             <span className="hover:underline">Login</span>

@@ -927,10 +927,7 @@ const EvBunkMapView = () => {
                           <MapPin size={14} className="mr-2 text-gray-400" />
                           {bunk.address}
                         </div>
-                        <div className="flex items-center">
-                          <Phone size={14} className="mr-2 text-gray-400" />
-                          {bunk.phone}
-                        </div>
+                        
                         <div className="flex items-center">
                           <Clock size={14} className="mr-2 text-gray-400" />
                           {bunk.operatingHours}

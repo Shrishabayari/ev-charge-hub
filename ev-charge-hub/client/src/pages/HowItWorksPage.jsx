@@ -175,6 +175,32 @@ const HowItWorks = () => {
           </div>
         </div>
       </section>
+      <footer className="bg-gray-800 dark:bg-gray-950 text-white py-12 px-6">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-10">
+            <div className="text-center md:text-left">
+                <h3 className="text-2xl font-bold mb-4 text-blue-400">EV Charge Hub</h3>
+                <p className="text-gray-400">Your ultimate partner for seamless EV charging in India.</p>
+            </div>
+            <div className="text-center md:text-left">
+                <h3 className="text-2xl font-bold mb-1 text-blue-400">Quick Links</h3>
+                <ul className="space-y">
+                    <li><a href="#hero" className="text-gray-300 hover:text-white transition-colors duration-200">Home</a></li>
+                    <li><a href="#about" className="text-gray-300 hover:text-white transition-colors duration-200">About Us</a></li>
+                    <li><a href="#how-it-works" className="text-gray-300 hover:text-white transition-colors duration-200">How It Works</a></li>
+                    <li><a href="#features" className="text-gray-300 hover:text-white transition-colors duration-200">Features</a></li>
+                    <li><a href="#faq" className="text-gray-300 hover:text-white transition-colors duration-200">FAQ</a></li>
+                    <li><a href="#contact" className="text-gray-300 hover:text-white transition-colors duration-200">Contact</a></li>
+                </ul>
+            </div>
+            <div className="text-center md:text-left">
+                <h3 className="text-2xl font-bold mb-4 text-blue-400">Contact Info</h3>
+                <p className="text-gray-400 mb-2">Email: <a href="mailto:support@evchargehub.com" className="hover:underline">support@evchargehub.com</a></p>
+                <p className="text-gray-400 mb-2">Phone: <a href="tel:+917348941111" className="hover:underline">+91-9876543210</a></p>
+                <p className="text-gray-400">Location: Udupi, Karnataka, India</p>
+                <p className="text-gray-500 text-sm mt-6">&copy; {new Date().getFullYear()} EV Charge Hub. All rights reserved.</p>
+            </div>
+        </div>
+        </footer>
     </div>
   );
 };

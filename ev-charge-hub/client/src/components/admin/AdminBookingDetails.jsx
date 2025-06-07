@@ -330,12 +330,6 @@ const AdminBookingDetail = () => {
                     {booking.userId?.email || booking.user?.email || 'N/A'}
                   </p>
                 </div>
-                <div className="bg-gray-50 p-5 rounded-lg shadow-sm border border-gray-100">
-                  <p className="text-sm text-gray-500 font-medium">Phone Number</p>
-                  <p className="font-semibold text-gray-900 mt-1.5 text-lg">
-                    {booking.userId?.phone || booking.user?.phone || booking.phoneNumber || 'N/A'}
-                  </p>
-                </div>
                 <div className="bg-gray-50 p-5 rounded-lg shadow-sm border border-gray-100 col-span-1 sm:col-span-2 lg:col-span-1">
                   <p className="text-sm text-gray-500 font-medium">User ID</p>
                   <p className="font-mono text-sm text-gray-800 mt-1.5 break-all">
@@ -454,67 +448,6 @@ const AdminBookingDetail = () => {
                       </p>
                     </div>
                   )}
-                </div>
-              </div>
-            )}
-
-            {/* Payment Information */}
-            <div className="mb-10">
-              <h3 className="text-xl font-bold mb-6 text-gray-900 pb-3 flex items-center border-b border-gray-200">
-                <svg className="w-6 h-6 mr-3 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                </svg>
-                Payment Information
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div className="bg-yellow-50 p-5 rounded-lg shadow-sm border border-yellow-100">
-                  <p className="text-sm text-yellow-600 font-medium">Amount</p>
-                  <p className="font-extrabold text-gray-900 mt-1.5 text-2xl">
-                    {booking.amount || booking.payment?.amount ?
-                      `₹${booking.amount || booking.payment?.amount}` :
-                      'N/A'}
-                  </p>
-                </div>
-                <div className="bg-yellow-50 p-5 rounded-lg shadow-sm border border-yellow-100">
-                  <p className="text-sm text-yellow-600 font-medium">Payment Status</p>
-                  <div className="mt-1.5">
-                    <span className={`inline-flex px-4 py-2 text-sm font-semibold rounded-full ${
-                      (booking.paymentStatus === 'paid' || booking.payment?.status === 'paid') ?
-                        'bg-green-200 text-green-900' :
-                        'bg-red-200 text-red-900'
-                    }`}>
-                      {booking.paymentStatus || booking.payment?.status || 'Pending'}
-                    </span>
-                  </div>
-                </div>
-                <div className="bg-yellow-50 p-5 rounded-lg shadow-sm border border-yellow-100">
-                  <p className="text-sm text-yellow-600 font-medium">Payment Method</p>
-                  <p className="font-semibold text-gray-900 mt-1.5 text-lg">
-                    {booking.paymentMethod || booking.payment?.method || 'N/A'}
-                  </p>
-                </div>
-                <div className="bg-yellow-50 p-5 rounded-lg shadow-sm border border-yellow-100 col-span-1 sm:col-span-2 lg:col-span-1">
-                  <p className="text-sm text-yellow-600 font-medium">Transaction ID</p>
-                  <p className="font-mono text-sm text-gray-800 mt-1.5 break-all">
-                    {booking.transactionId || booking.payment?.transactionId || 'N/A'}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Notes/Comments */}
-            {(booking.notes || booking.comments) && (
-              <div className="mb-10">
-                <h3 className="text-xl font-bold mb-6 text-gray-900 pb-3 flex items-center border-b border-gray-200">
-                  <svg className="w-6 h-6 mr-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                  </svg>
-                  Notes & Comments
-                </h3>
-                <div className="bg-gray-50 p-6 rounded-lg shadow-sm border border-gray-100">
-                  <p className="whitespace-pre-wrap text-gray-700 leading-relaxed text-base">
-                    {booking.notes || booking.comments || 'No notes available.'}
-                  </p>
                 </div>
               </div>
             )}
