@@ -68,7 +68,7 @@ const AddEvBunk = () => {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <AdminNavbar />
 
-      <div className="max-w-4xl mx-auto mt-12 px-6 py-10 bg-white dark:bg-gray-800 shadow-lg rounded-xl">
+      <div className="max-w-4xl mx-auto mt-12 px-6 py-10 bg-white dark:bg-gray-800 shadow-lg rounded-xl mb-6" >
         <h1 className="text-3xl font-bold text-center text-gray-800 dark:text-white mb-6">
           Add New EV Bunk
         </h1>

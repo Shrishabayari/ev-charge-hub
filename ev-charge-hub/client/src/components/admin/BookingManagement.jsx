@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getAllBookings, getBookingsByBunk } from '../../services/BookingService';
 import { getAllBunks } from '../../services/BunkService';
-import Footer from "../common/Footer";
 
 const BookingManagement = () => {
   const [bookings, setBookings] = useState([]);
@@ -297,7 +296,7 @@ const BookingManagement = () => {
             </div>
           </div>
         )}
-      </div><Footer/>
+      </div>
     </div>
   );
 };

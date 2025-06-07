@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { registerUser } from '../../services/api';
 import { useNavigate } from 'react-router-dom';
 import Navbar from "../common/navbars/Navbar";
+import Footer from "../common/Footer";
 
 export default function Register() {
   const [formData, setFormData] = useState({ name: '', email: '', password: '' });
@@ -92,7 +93,7 @@ export default function Register() {
             </a>
           </p>
         </div>
-      </div>
+      </div><Footer/>
     </div>
   );
 }

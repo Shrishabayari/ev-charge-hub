@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { loginUser } from '../../services/api';
 import { useNavigate } from 'react-router-dom';
 import Navbar from "../common/navbars/Navbar";
+import Footer from "../common/Footer";
 
 export default function Login() {
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -81,7 +82,7 @@ export default function Login() {
             </a>
           </p>
         </div>
-      </div>
+      </div><Footer/>
     </div>
   );
 }

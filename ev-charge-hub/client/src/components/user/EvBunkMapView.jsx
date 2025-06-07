@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, Zap, Clock, Phone, Map, List, Navigation } from 'lucide-react';
 import UserNavbar from "../common/navbars/UserNavbar";
+import Footer from "../common/Footer";
 
 const EvBunkMapView = () => {
   const [bunkLocations, setBunkLocations] = useState([]);
@@ -1002,7 +1003,7 @@ const EvBunkMapView = () => {
             )}
           </div>
         )}
-      </div>
+      </div><Footer/>
     </div>
   );
 };

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { User, Mail, Lock, Save, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import UserNavbar from "../common/navbars/UserNavbar";
+import Footer from "../common/Footer";
 
 const MyProfile = () => {
   const [user, setUser] = useState({ name: '', email: '' });
@@ -228,7 +229,7 @@ const MyProfile = () => {
             </div>
           </div>
         </div>
-      </div>
+      </div><Footer/>
     </div>
   );
 };

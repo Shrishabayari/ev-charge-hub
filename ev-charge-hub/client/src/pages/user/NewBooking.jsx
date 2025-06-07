@@ -2,6 +2,7 @@
 import React from 'react';
 import BookingForm from '../../components/user/BookSlot';
 import UserNavbar from '../../components/common/navbars/UserNavbar';
+import Footer from "../../components/common/Footer";
 
 const NewBooking = () => {
   
@@ -29,7 +30,7 @@ const NewBooking = () => {
             <li>• Please arrive on time, as your slot may be given away after 10 minutes</li>
           </ul>
         </div>
-      </div>
+      </div><Footer/>
     </div>
   );
 };

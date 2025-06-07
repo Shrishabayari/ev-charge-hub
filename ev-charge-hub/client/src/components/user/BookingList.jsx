@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import RescheduleBookingForm from "../../components/user/ResheduleSlot";
 import { useNavigate } from 'react-router-dom';
+import Footer from "../common/Footer";
 
 const BookingsList = () => {
   const navigate = useNavigate();
@@ -184,7 +185,7 @@ const BookingsList = () => {
             </div>
           ))}
         </div>
-      )}
+      )}<Footer/>
     </div>
   );
 };

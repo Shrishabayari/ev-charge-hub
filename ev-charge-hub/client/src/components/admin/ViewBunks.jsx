@@ -71,7 +71,7 @@ const ViewBunks = () => {
   return (
     <>
       <AdminNavbar /> {/* Renders the admin navigation bar */}
-      <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8 ">
         <div className="max-w-7xl mx-auto">
           {/* Main Page Heading - Reverted to previous style */}
           <h1 className="text-4xl font-extrabold text-gray-900 text-center mb-10">
@@ -130,8 +130,8 @@ const ViewBunks = () => {
               ))}
             </div>
           )}
-        </div><Footer/>
-      </div>
+        </div>
+      </div><Footer/>
     </>
   );
 };

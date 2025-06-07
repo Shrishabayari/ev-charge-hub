@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import UserBookings from '../../components/user/MyBookings';
 import UserNavbar from '../../components/common/navbars/UserNavbar';
+import Footer from "../../components/common/Footer";
 
 const MyBookingsPage = () => {
   const [bookings, setBookings] = useState([]);
@@ -347,7 +348,7 @@ const MyBookingsPage = () => {
             </div>
           </div>
         )}
-      </div>
+      </div><Footer/>
     </div>
   );
 };

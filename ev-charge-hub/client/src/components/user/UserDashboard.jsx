@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import UserNavbar from '../common/navbars/UserNavbar';
 import { Zap, CalendarCheck, MapPin, User, LogOut } from 'lucide-react'; // Importing relevant icons
+import Footer from "../common/Footer";
 
 export default function UserDashboard() {
   const navigate = useNavigate();
@@ -117,7 +118,7 @@ export default function UserDashboard() {
             ))}
           </div>
         </div>
-      </div>
+      </div><Footer/>
     </div>
   );
 }
