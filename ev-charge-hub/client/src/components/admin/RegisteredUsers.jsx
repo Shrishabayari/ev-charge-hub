@@ -5,6 +5,7 @@ import {
   Filter, UserCheck, Activity, Edit, Trash2, Save, X
 } from 'lucide-react';
 import AdminNavbar from "../common/navbars/AdminNavbar";
+import Footer from "../common/Footer";
 
 const AdminUserManagement = () => {
   // User management state
@@ -1023,7 +1024,7 @@ const AdminUserManagement = () => {
             </div>
           )}
         </div>
-      </div>
+      </div><Footer/>
     </div>
   );
 };

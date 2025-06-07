@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../common/navbars/Navbar";
+import Footer from "../common/Footer";
 
 const AdminRegister = () => {
   const [adminData, setAdminData] = useState({
@@ -117,7 +118,7 @@ const AdminRegister = () => {
             </a>
           </p>
         </div>
-      </div>
+      </div><Footer/>
     </div>
   );
 };

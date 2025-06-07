@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { User, Mail, Lock, Save, CheckCircle, AlertCircle, Loader2, KeyRound } from 'lucide-react'; // Added KeyRound for admin specific icon
 import AdminNavbar from "../common/navbars/AdminNavbar"; // Assuming AdminNavbar exists
+import Footer from "../common/Footer";
 
 const AdminProfile = () => {
   const [admin, setAdmin] = useState({ name: '', email: '' });
@@ -246,7 +247,7 @@ const AdminProfile = () => {
             </div>
           </div>
         </div>
-      </div>
+      </div><Footer/>
     </div>
   );
 };

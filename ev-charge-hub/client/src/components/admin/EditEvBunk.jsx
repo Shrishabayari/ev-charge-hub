@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import AdminNavbar from "../common/navbars/AdminNavbar"; // Assuming this is your AdminNavbar component
+import Footer from "../common/Footer";
 
 const EditEvBunk = () => {
   const { id } = useParams(); // Getting the Bunk ID from the URL
@@ -261,7 +262,7 @@ const EditEvBunk = () => {
             </div>
           </form>
         </div>
-      </div>
+      </div><Footer/>
     </div>
   );
 };

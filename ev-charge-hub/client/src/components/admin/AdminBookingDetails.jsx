@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { format } from 'date-fns';
 import AdminNavbar from "../common/navbars/AdminNavbar"; // Assuming this path is correct
+import Footer from "../common/Footer";
 
 const AdminBookingDetail = () => {
   const { id } = useParams();
@@ -500,7 +501,7 @@ const AdminBookingDetail = () => {
             </div>
           </div>
         </div>
-      </div>
+      </div><Footer/>
     </div>
   );
 };

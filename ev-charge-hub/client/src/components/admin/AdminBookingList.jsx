@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import AdminNavbar from "../common/navbars/AdminNavbar";
+import Footer from "../common/Footer";
 
 const AdminBookingsList = () => {
   const navigate = useNavigate();
@@ -457,7 +458,7 @@ const AdminBookingsList = () => {
             )}
           </>
         )}
-      </div>
+      </div><Footer/>
     </div>
   );
 };

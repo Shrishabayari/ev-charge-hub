@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import AdminNavbar from "../common/navbars/AdminNavbar"; // Assuming this is your AdminNavbar component
+import Footer from "../common/Footer";
 
 const ViewBunks = () => {
   const navigate = useNavigate();
@@ -129,7 +130,7 @@ const ViewBunks = () => {
               ))}
             </div>
           )}
-        </div>
+        </div><Footer/>
       </div>
     </>
   );

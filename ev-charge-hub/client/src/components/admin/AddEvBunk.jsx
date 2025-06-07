@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import AdminNavbar from '../common/navbars/AdminNavbar';
+import Footer from "../common/Footer";
 
 const AddEvBunk = () => {
   const [formData, setFormData] = useState({
@@ -119,7 +120,7 @@ const AddEvBunk = () => {
             </button>
           </div>
         </form>
-      </div>
+      </div><Footer/>
     </div>
   );
 };

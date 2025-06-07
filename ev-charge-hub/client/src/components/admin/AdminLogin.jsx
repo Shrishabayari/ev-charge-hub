@@ -3,6 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../common/navbars/Navbar"; // Assuming Navbar exists
 import { Mail, Lock, Loader2, AlertCircle, CheckCircle } from 'lucide-react'; // Importing Lucide icons
+import Footer from "../common/Footer";
 
 const AdminLogin = () => {
   const [email, setEmail] = useState("");
@@ -138,7 +139,7 @@ const AdminLogin = () => {
             </p>
           </form>
         </div>
-      </div>
+      </div><Footer/>
     </div>
   );
 };
