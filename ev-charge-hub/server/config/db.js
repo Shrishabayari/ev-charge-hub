@@ -10,7 +10,7 @@ const connectDB = async () => {
     // Remove deprecated options - they're not needed in MongoDB driver v4.0.0+
     await mongoose.connect(uri);
     
-    console.log('MongoDB connected successfully!');
+    console.log('MongoDB Atlas connected successfully!');
   } catch (error) {
     console.error(`MongoDB connection error: ${error}`);
     process.exit(1);
