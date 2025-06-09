@@ -1,21 +1,16 @@
 {
-  "name": "ev-charge-hub-server",
+  "name": "server",
   "version": "1.0.0",
-  "description": "EV Charge Hub Backend API",
-  "main": "server.js",
+  "main": "index.js",
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js",
-    "build": "echo 'No build required for Node.js'"
+    "dev": "nodemon server.js"
   },
-  "engines": {
-    "node": ">=16.0.0",
-    "npm": ">=8.0.0"
-  },
-  "keywords": ["ev", "charging", "api", "nodejs"],
-  "author": "Your Name",
-  "license": "MIT",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
   "dependencies": {
     "bcrypt": "^5.1.1",
     "bcryptjs": "^3.0.2",
