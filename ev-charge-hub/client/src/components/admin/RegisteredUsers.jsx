@@ -462,68 +462,57 @@ const AdminUserManagement = () => {
           {/* Users Table */}
           <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th 
-                      className="px-6 py-4 text-left text-base font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                      onClick={() => handleSort('name')}
-                    >
-                      <div className="flex items-center">
-                        User
-                        {sortBy === 'name' && (
-                          <span className="ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>
-                        )}
-                      </div>
-                    </th>
-                    <th 
-                      className="px-6 py-4 text-left text-base font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                      onClick={() => handleSort('email')}
-                    >
-                      <div className="flex items-center">
-                        Email
-                        {sortBy === 'email' && (
-                          <span className="ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>
-                        )}
-                      </div>
-                    </th>
-                    <th 
-                      className="px-6 py-4 text-left text-base font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                      onClick={() => handleSort('createdAt')}
-                    >
-                      <div className="flex items-center">
-                        Join Date
-                        {sortBy === 'createdAt' && (
-                          <span className="ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>
-                        )}
-                      </div>
-                    </th>
-                    <th 
-                      className="px-6 py-4 text-left text-base font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                      onClick={() => handleSort('totalBookings')}
-                    >
-                      <div className="flex items-center">
-                        Total Bookings
-                        {sortBy === 'totalBookings' && (
-                          <span className="ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>
-                        )}
-                      </div>
-                    </th>
-                    <th 
-                      className="px-6 py-4 text-left text-base font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                      onClick={() => handleSort('status')}
-                    >
-                      <div className="flex items-center">
-                        Status
-                        {sortBy === 'status' && (
-                          <span className="ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>
-                        )}
-                      </div>
-                    </th>
-                    <th className="px-6 py-4 text-left text-base font-semibold text-gray-600 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
+              <table className="w-full border-collapse">
+  <thead>
+    <tr className="border-b">
+      <th 
+        className="text-align-center p-3 cursor-pointer hover:bg-gray-50" 
+        onClick={() => handleSort('name')}
+      >
+        User
+        {sortBy === 'name' && (
+          <span className="ml-1">
+            {sortOrder === 'asc' ? '↑' : '↓'}
+          </span>
+        )}
+      </th>
+      <th 
+        className="text-center p-3 cursor-pointer hover:bg-gray-50" 
+        onClick={() => handleSort('email')}
+      >
+        Email
+        {sortBy === 'email' && (
+          <span className="ml-1">
+            {sortOrder === 'asc' ? '↑' : '↓'}
+          </span>
+        )}
+      </th>
+      <th 
+        className="text-center p-3 cursor-pointer hover:bg-gray-50" 
+        onClick={() => handleSort('totalBookings')}
+      >
+        Total Bookings
+        {sortBy === 'totalBookings' && (
+          <span className="ml-1">
+            {sortOrder === 'asc' ? '↑' : '↓'}
+          </span>
+        )}
+      </th>
+      <th 
+        className="text-center p-3 cursor-pointer hover:bg-gray-50" 
+        onClick={() => handleSort('status')}
+      >
+        Status
+        {sortBy === 'status' && (
+          <span className="ml-1">
+            {sortOrder === 'asc' ? '↓' : '↑'}
+          </span>
+        )}
+      </th>
+      <th className="text-center p-3">
+        Actions
+      </th>
+    </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {paginatedUsers.length > 0 ? (
@@ -548,25 +537,21 @@ const AdminUserManagement = () => {
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-base text-gray-800">{user.email}</div>
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                          <div className="text-base text-gray-800 ">{user.email}</div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-base text-gray-800">
-                            {formatDate(user.createdAt)}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
                           <div className="text-base text-gray-800 font-semibold">{user.totalBookings}</div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
                           <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold border ${getStatusColor(user.status)}`}>
                             {getStatusIcon(user.status)}
                             <span className="ml-2 capitalize">{user.status}</span>
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-base font-medium">
-                          <div className="flex space-x-2">
+                        <td className="px-6 py-4 whitespace-nowrap text-base font-medium justify-center">
+                          <div className="flex space-x-2" >
                             <button
                               onClick={() => handleMoreInfo(user)}
                               className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-md transition-colors duration-200"
