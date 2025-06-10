@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
-  Search, Eye, Calendar, MapPin, Phone, Mail, User, Clock, 
+  Search, Eye, Calendar, MapPin, Mail, User, Clock, 
   CheckCircle, XCircle, AlertCircle, Loader2, RefreshCw, 
   Filter, UserCheck, Activity, Edit, Trash2, Save, X
 } from 'lucide-react';
@@ -86,8 +86,6 @@ const AdminUserManagement = () => {
         status: user.status || 'inactive',
         createdAt: user.createdAt || new Date().toISOString(),
         totalBookings: Number(user.totalBookings) || 0,
-        phone: user.phone || null,
-        vehicleType: user.vehicleType || null,
         lastLogin: user.lastLogin || null,
         isActive: user.isActive !== false // Default to true if not specified
       }));
@@ -218,8 +216,7 @@ const AdminUserManagement = () => {
       const searchLower = searchTerm.toLowerCase().trim();
       filtered = filtered.filter(user =>
         user.name.toLowerCase().includes(searchLower) ||
-        user.email.toLowerCase().includes(searchLower) ||
-        (user.phone && user.phone.includes(searchTerm))
+        user.email.toLowerCase().includes(searchLower) 
       );
     }
 
@@ -343,10 +340,8 @@ const AdminUserManagement = () => {
     setEditingUser(user._id);
     setEditForm({
       name: user.name,
-      email: user.email,
-      phone: user.phone || '',
+      email: user.email || '',
       status: user.status,
-      vehicleType: user.vehicleType || '',
       isActive: user.isActive
     });
   }, []);
@@ -426,7 +421,7 @@ const AdminUserManagement = () => {
                 <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-6 h-6" />
                 <input
                   type="text"
-                  placeholder="Search users by name, email, or phone..."
+                  placeholder="Search users by name or email ..."
                   className="w-full pl-12 pr-6 py-1.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm text-lg"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -529,11 +524,6 @@ const AdminUserManagement = () => {
                               <div className="text-lg font-medium text-gray-900">
                                 {user.name}
                               </div>
-                              {user.phone && (
-                                <div className="text-sm text-gray-500">
-                                  {user.phone}
-                                </div>
-                              )}
                             </div>
                           </div>
                         </td>
@@ -693,16 +683,6 @@ const AdminUserManagement = () => {
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                    <input
-                      type="tel"
-                      value={editForm.phone || ''}
-                      onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-                  
-                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
                     <select
                       value={editForm.status || 'inactive'}
@@ -713,17 +693,6 @@ const AdminUserManagement = () => {
                       <option value="inactive">Inactive</option>
                       <option value="pending">Pending</option>
                     </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle Type</label>
-                    <input
-                      type="text"
-                      value={editForm.vehicleType || ''}
-                      onChange={(e) => setEditForm({ ...editForm, vehicleType: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="e.g., Car, Motorcycle, Truck"
-                    />
                   </div>
                   
                   <div className="flex items-center">
@@ -855,20 +824,6 @@ const AdminUserManagement = () => {
                           <span className="font-medium mr-2">Email:</span>
                           <span>{selectedUser.email}</span>
                         </div>
-                        {selectedUser.phone && (
-                          <div className="flex items-center text-gray-700">
-                            <Phone className="w-4 h-4 mr-3 text-gray-500" />
-                            <span className="font-medium mr-2">Phone:</span>
-                            <span>{selectedUser.phone}</span>
-                          </div>
-                        )}
-                        {selectedUser.vehicleType && (
-                          <div className="flex items-center text-gray-700">
-                            <Activity className="w-4 h-4 mr-3 text-gray-500" />
-                            <span className="font-medium mr-2">Vehicle:</span>
-                            <span>{selectedUser.vehicleType}</span>
-                          </div>
-                        )}
                         <div className="flex items-center text-gray-700">
                           <Calendar className="w-4 h-4 mr-3 text-gray-500" />
                           <span className="font-medium mr-2">Joined:</span>
