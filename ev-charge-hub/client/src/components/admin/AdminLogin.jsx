@@ -1,5 +1,8 @@
 import React, { useState } from "react";
-import axios from "axios";
+// CHANGE 1: Replace axios import with centralized API
+// OLD: import axios from "axios";
+import api from "../api"; // NEW: Import centralized API instance
+
 import { useNavigate } from "react-router-dom";
 import Navbar from "../common/navbars/Navbar"; // Assuming Navbar exists
 import { Mail, Lock, Loader2, AlertCircle, CheckCircle } from 'lucide-react'; // Importing Lucide icons
@@ -20,7 +23,9 @@ const AdminLogin = () => {
     setLoading(true); // Set loading to true
 
     try {
-      const response = await axios.post("http://localhost:5000/api/admin/login", {
+      // CHANGE 2: Replace axios.post with api.post and remove full URL
+      // OLD: const response = await axios.post("http://localhost:5000/api/admin/login", {
+      const response = await api.post("/api/admin/login", {
         email,
         password,
       });
