@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import axios from "axios";
+// OLD: import axios from "axios";
+import api from "../../api"; // NEW: Import centralized API instance
 import { useNavigate } from "react-router-dom";
 import Navbar from "../common/navbars/Navbar";
 import Footer from "../common/Footer";
@@ -29,7 +30,9 @@ const AdminRegister = () => {
     setRegistrationError("");
 
     try {
-      const response = await axios.post("http://localhost:5000/api/admin/register", adminData);
+      // OLD: const response = await axios.post("http://localhost:5000/api/admin/register", adminData);
+      // NEW: Use the centralized API instance and relative path
+      const response = await api.post("/api/admin/register", adminData);
       console.log("Registration successful:", response.data);
       alert("Registration successful!");
       navigate("/admin/login");
@@ -118,7 +121,8 @@ const AdminRegister = () => {
             </a>
           </p>
         </div>
-      </div><Footer/>
+      </div>
+      <Footer />
     </div>
   );
 };
