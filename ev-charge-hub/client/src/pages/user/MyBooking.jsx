@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import UserBookings from '../../components/user/MyBookings';
 import UserNavbar from '../../components/common/navbars/UserNavbar';
 import Footer from "../../components/common/Footer";
+import api from "../../api"; // Make sure your api.js is correctly configured with a baseURL
 
 const MyBookingsPage = () => {
   const [bookings, setBookings] = useState([]);
@@ -11,219 +12,146 @@ const MyBookingsPage = () => {
   const [error, setError] = useState(null);
   const [debugInfo, setDebugInfo] = useState(null);
 
-  useEffect(() => {
-    const fetchBookings = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        setDebugInfo(null);
-        
-        // Get the JWT token from localStorage
-        const token = localStorage.getItem('token');
-        console.log('Token exists:', !!token); // Debug log
-        
-        if (!token) {
-          throw new Error('Authentication token not found. Please log in again.');
-        }
-        
-        // Make the API request with the token in the Authorization header
-        console.log('Fetching bookings from API...');
-        const response = await fetch('/api/bookings/user', {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-          }
-        });
-        
-        console.log('Response status:', response.status); // Debug log
-        
-        // If the response is not ok, try to get more detailed error info
-        if (!response.ok) {
-          let errorData = {};
-          try {
-            errorData = await response.json();
-          } catch (e) {
-            console.error('Error parsing error response:', e);
-            errorData = { message: 'Could not parse error response' };
-          }
-          
-          console.error('Error response:', errorData);
-          setDebugInfo({
-            status: response.status,
-            statusText: response.statusText,
-            errorDetails: errorData
-          });
-          
-          // Handle specific error codes
-          if (response.status === 401) {
-            throw new Error('Your session has expired. Please log in again.');
-          } else {
-            throw new Error(`Server error: ${response.status} ${response.statusText}`);
-          }
-        }
+  // The fetchBookings function is defined inside useEffect to ensure it has access to the latest state.
+  // It's also wrapped in a useCallback or defined directly inside useEffect to prevent unnecessary re-creations.
+  // For a simple fetch, defining it directly inside useEffect or as a regular function and calling it is fine.
+  const fetchBookings = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      setDebugInfo(null);
 
-        // Parse the successful response
-        const result = await response.json();
-        console.log('API response received:', result);
-        
-        // Handle the nested data structure correctly
-        let bookingsData;
-        
-        // Check if the data is properly structured with success and data fields
-        if (result && result.success && Array.isArray(result.data)) {
-          bookingsData = result.data;
-          console.log('Bookings data extracted from nested structure:', bookingsData.length);
-        }
-        // Check if it's directly an array
-        else if (Array.isArray(result)) {
-          bookingsData = result;
-          console.log('Bookings data is directly an array:', bookingsData.length);
-        }
-        // Invalid format
-        else {
-          console.error('API did not return expected data format:', result);
-          setDebugInfo({
-            receivedData: result,
-            dataType: typeof result
-          });
-          throw new Error('Invalid data format received from server');
-        }
-        
-        setBookings(bookingsData);
-        setLoading(false);
-      } catch (err) {
-        console.error('Error fetching bookings:', err);
-        setError(`${err.message}`);
-        setLoading(false);
+      // Get the JWT token from localStorage
+      const token = localStorage.getItem('token');
+      console.log('Token exists:', !!token); // Debug log
+
+      if (!token) {
+        throw new Error('Authentication token not found. Please log in again.');
       }
-    };
 
-    fetchBookings();
-  }, []);
+      console.log('Fetching bookings from API using Axios instance...');
+      // Axios handles the response.ok equivalent by throwing an error for non-2xx status codes.
+      // Axios automatically parses JSON into response.data.
+      const response = await api.get('/api/bookings/user', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      console.log('Response status:', response.status); // Debug log
+
+      // --- REMOVE THE if (!response.ok) BLOCK ---
+      // Axios automatically throws an error for non-2xx responses.
+      // If we reach this point, the response status is 2xx (e.g., 200 OK).
+
+      // Parse the successful response
+      const result = response.data; // Axios provides the parsed JSON directly in .data
+      console.log('API response received:', result);
+
+      // Handle the nested data structure correctly
+      let bookingsData;
+
+      // Check if the data is properly structured with success and data fields
+      if (result && result.success && Array.isArray(result.data)) {
+        bookingsData = result.data;
+        console.log('Bookings data extracted from nested structure:', bookingsData.length);
+      }
+      // Check if it's directly an array (for cases where the backend might send an array directly)
+      else if (Array.isArray(result)) {
+        bookingsData = result;
+        console.log('Bookings data is directly an array:', bookingsData.length);
+      }
+      // Invalid format
+      else {
+        console.error('API did not return expected data format:', result);
+        setDebugInfo({
+          receivedData: result,
+          dataType: typeof result
+        });
+        throw new Error('Invalid data format received from server');
+      }
+
+      setBookings(bookingsData);
+      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching bookings:', err);
+      // Axios errors often have a 'response' property with more details
+      if (err.response) {
+        // Server responded with a status other than 2xx
+        console.error("Axios error response data:", err.response.data);
+        console.error("Axios error response status:", err.response.status);
+        console.error("Axios error response headers:", err.response.headers);
+        setDebugInfo(prev => ({ ...prev, axiosResponse: err.response.data, axiosStatus: err.response.status }));
+
+        // Handle specific error codes
+        if (err.response.status === 401) {
+          setError('Your session has expired. Please log in again.');
+        } else if (err.response.data && err.response.data.message) {
+          setError(`Server error: ${err.response.data.message}`);
+        } else {
+          setError(`Server error: ${err.response.status} ${err.response.statusText || 'Unknown Error'}`);
+        }
+      } else if (err.request) {
+        // Request was made but no response was received (e.g., network error)
+        console.error("Axios no response received:", err.request);
+        setDebugInfo(prev => ({ ...prev, axiosRequest: err.request }));
+        setError('Network error or server is unreachable. Please try again.');
+      } else {
+        // Something else happened while setting up the request
+        console.error("Axios error message:", err.message);
+        setDebugInfo(prev => ({ ...prev, axiosMessage: err.message }));
+        setError(`An unexpected error occurred: ${err.message}`);
+      }
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchBookings(); // Initial fetch on component mount
+  }, []); // Empty dependency array means this runs once on mount
 
   // Function to manually retry fetching
   const handleRetry = () => {
-    setLoading(true);
-    setError(null);
-    // Force a re-fetch by updating a state that triggers useEffect
-    const fetchBookings = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        setDebugInfo(null);
-        
-        const token = localStorage.getItem('token');
-        
-        if (!token) {
-          throw new Error('Authentication token not found. Please log in again.');
-        }
-        
-        const response = await fetch('/api/bookings/user', {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-          }
-        });
-        
-        if (!response.ok) {
-          let errorData = {};
-          try {
-            errorData = await response.json();
-          } catch (e) {
-            errorData = { message: 'Could not parse error response' };
-          }
-          
-          setDebugInfo({
-            status: response.status,
-            statusText: response.statusText,
-            errorDetails: errorData
-          });
-          
-          if (response.status === 401) {
-            throw new Error('Your session has expired. Please log in again.');
-          } else {
-            throw new Error(`Server error: ${response.status} ${response.statusText}`);
-          }
-        }
-
-        const result = await response.json();
-        let bookingsData;
-        
-        if (result && result.success && Array.isArray(result.data)) {
-          bookingsData = result.data;
-        } else if (Array.isArray(result)) {
-          bookingsData = result;
-        } else {
-          setDebugInfo({
-            receivedData: result,
-            dataType: typeof result
-          });
-          throw new Error('Invalid data format received from server');
-        }
-        
-        setBookings(bookingsData);
-        setLoading(false);
-      } catch (err) {
-        console.error('Error fetching bookings:', err);
-        setError(`${err.message}`);
-        setLoading(false);
-      }
-    };
-
-    fetchBookings();
+    fetchBookings(); // Simply re-call the main fetch logic
   };
 
   // Handle booking cancellation at the page level
   const handleCancelBooking = async (bookingId) => {
     try {
       const token = localStorage.getItem('token');
-      
+
       if (!token) {
         throw new Error('Authentication required');
       }
-      
-      const response = await fetch(`/api/bookings/cancel/${bookingId}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+
+      const response = await api.put(`/api/bookings/cancel/${bookingId}`, {}, { // Empty object for body
+        headers: { Authorization: `Bearer ${token}` }
       });
-      
-      if (!response.ok) {
-        throw new Error('Failed to cancel booking');
-      }
-      
-      const result = await response.json();
-      
-      if (result && result.success) {
+
+      const result = response.data; // Axios automatically provides the parsed JSON in .data
+
+      if (result?.success) {
         // Update the bookings state to reflect cancellation
-        setBookings(prevBookings => 
-          prevBookings.map(booking => 
-            booking._id === bookingId 
-              ? { ...booking, status: 'cancelled' } 
+        setBookings(prevBookings =>
+          prevBookings.map(booking =>
+            booking._id === bookingId
+              ? { ...booking, status: 'cancelled' }
               : booking
           )
         );
       } else {
-        throw new Error(result.message || 'Failed to cancel booking');
+        throw new Error(result?.message || 'Failed to cancel booking');
       }
     } catch (err) {
       console.error('Error cancelling booking:', err);
-      alert(err.message || 'Failed to cancel booking');
+      alert(err.response?.data?.message || err.message || 'Failed to cancel booking');
     }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/30">
       <UserNavbar/>
-      
+
       <div className="container mx-auto px-4 py-8">
         {/* Header Section */}
         <div className="mb-8">
@@ -242,10 +170,10 @@ const MyBookingsPage = () => {
                 </div>
                 <p className="text-gray-600 text-lg">Manage your EV charging appointments with ease</p>
               </div>
-              
+
               <div className="flex items-center gap-4">
-                <Link 
-                  to="/user/book-slot" 
+                <Link
+                  to="/user/book-slot"
                   className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -283,7 +211,7 @@ const MyBookingsPage = () => {
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-4">Unable to Load Bookings</h3>
                 <p className="text-red-600 mb-6">{error}</p>
-                
+
                 {/* Debug information for development */}
                 {debugInfo && process.env.NODE_ENV === 'development' && (
                   <div className="bg-gray-50 rounded-xl p-4 mb-6 text-left">
@@ -293,7 +221,7 @@ const MyBookingsPage = () => {
                     </pre>
                   </div>
                 )}
-                
+
                 <div className="flex justify-center gap-4">
                   <button
                     onClick={handleRetry}
@@ -317,8 +245,8 @@ const MyBookingsPage = () => {
               </div>
             </div>
           ) : (
-            <UserBookings 
-              bookings={bookings} 
+            <UserBookings
+              bookings={bookings}
               onCancelBooking={handleCancelBooking}
             />
           )}
@@ -335,9 +263,9 @@ const MyBookingsPage = () => {
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-4">No Bookings Found</h3>
               <p className="text-gray-600 mb-6">You don't have any booking appointments yet. Start by booking your first EV charging slot!</p>
-              
-              <Link 
-                to="/user/book-slot" 
+
+              <Link
+                to="/user/book-slot"
                 className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -348,7 +276,8 @@ const MyBookingsPage = () => {
             </div>
           </div>
         )}
-      </div><Footer/>
+      </div>
+      <Footer/>
     </div>
   );
 };
