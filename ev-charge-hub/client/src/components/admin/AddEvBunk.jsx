@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../../api'; // Import your centralized API instance
 import AdminNavbar from '../common/navbars/AdminNavbar';
 import Footer from "../common/Footer";
 
@@ -36,7 +36,7 @@ const AddEvBunk = () => {
     }
 
     try {
-      const response = await axios.post(
+      const response = await api.post(
         '/api/bunks',
         formData,
         {
