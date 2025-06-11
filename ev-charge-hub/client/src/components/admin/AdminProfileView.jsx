@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../../api';
 import { User, Mail, Lock, Save, CheckCircle, AlertCircle, Loader2, KeyRound } from 'lucide-react'; // Added KeyRound for admin specific icon
 import AdminNavbar from "../common/navbars/AdminNavbar"; // Assuming AdminNavbar exists
 import Footer from "../common/Footer";
@@ -26,7 +26,7 @@ const AdminProfile = () => {
         }
 
         // Axios call to fetch admin profile
-        const { data } = await axios.get('/api/admin/profile', {
+        const { data } = await api.get('/api/admin/profile', {
           headers: { Authorization: `Bearer ${token}` }
         });
         
@@ -65,7 +65,7 @@ const AdminProfile = () => {
       }
 
       // Axios call to update admin profile
-      const { data } = await axios.put('/api/admin/profile',
+      const { data } = await api.put('/api/admin/profile',
         { name: formData.name, password: formData.password },
         { headers: { Authorization: `Bearer ${token}` } }
       );

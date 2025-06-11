@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../../api';
 import { User, Mail, Lock, Save, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import UserNavbar from "../common/navbars/UserNavbar";
 import Footer from "../common/Footer";
@@ -18,7 +18,7 @@ const MyProfile = () => {
       try {
         const token = localStorage.getItem('token');
         // Replace with your actual axios call
-        const { data } = await axios.get('/api/users/profile', {
+        const { data } = await api.get('/api/users/profile', {
         headers: { Authorization: `Bearer ${token}` }
         });
         // const data = { name: 'John Doe', email: 'john@example.com' }; // Mock data for demo
@@ -48,7 +48,7 @@ const MyProfile = () => {
     try {
       const token = localStorage.getItem('token');
       // Replace with your actual axios call
-      const { data } = await axios.put('/api/users/profile',
+      const { data } = await api.put('/api/users/profile',
       { name: formData.name, password: formData.password },
       { headers: { Authorization: `Bearer ${token}` } }
       );

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import axios from "axios";
+import api from '../../api';
 import RescheduleBookingForm from "../../components/user/ResheduleSlot";
 import { useNavigate } from 'react-router-dom';
 import Footer from "../common/Footer";
@@ -22,7 +22,7 @@ const BookingsList = () => {
   const fetchBookings = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await axios.get("/api/bookings/user", {
+      const response = await api.get("/api/bookings/user", {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
       });
 
@@ -49,7 +49,7 @@ const BookingsList = () => {
     if (!window.confirm("Are you sure you want to cancel this booking?")) return;
 
     try {
-      await axios.put(`/api/bookings/cancel/${bookingId}`, {}, {
+      await api.put(`/api/bookings/cancel/${bookingId}`, {}, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
       });
 

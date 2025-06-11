@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { registerUser } from '../../services/api';
+import api from '../../api';
 import { useNavigate } from 'react-router-dom';
 import Navbar from "../common/navbars/Navbar";
 import Footer from "../common/Footer";
@@ -16,8 +16,7 @@ export default function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await registerUser(formData);
-      navigate('/user/login');
+    await api.post('/api/users/register', formData);      navigate('/user/login');
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed');
     }

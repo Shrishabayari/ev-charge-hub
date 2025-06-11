@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import api from '../../api';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import AdminNavbar from "../common/navbars/AdminNavbar";
@@ -69,7 +69,7 @@ const AdminBookingsList = () => {
       const apiUrl = `/api/bookings?${params.toString()}`;
       console.log("Fetching bookings with URL:", apiUrl);
 
-      const response = await axios.get(apiUrl, { headers });
+      const response = await api.get(apiUrl, { headers });
 
       console.log("API response:", response.data);
 
@@ -173,7 +173,7 @@ const AdminBookingsList = () => {
 
       console.log(`Updating booking ${bookingId} status to ${newStatus}`);
 
-      const response = await axios.patch(`/api/bookings/${bookingId}/status`,
+      const response = await api.patch(`/api/bookings/${bookingId}/status`,
         { status: newStatus },
         { headers }
       );

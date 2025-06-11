@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../api';
 import { useParams, useNavigate } from 'react-router-dom';
 import AdminNavbar from "../common/navbars/AdminNavbar"; // Assuming this is your AdminNavbar component
 import Footer from "../common/Footer";
@@ -27,7 +27,7 @@ const EditEvBunk = () => {
   useEffect(() => {
     const fetchBunkDetails = async () => {
       try {
-        const response = await axios.get(`http://localhost:5000/api/admin/ev-bunks/${id}`, {
+        const response = await api.get(`http://localhost:5000/api/admin/ev-bunks/${id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -63,7 +63,7 @@ const EditEvBunk = () => {
     setMessage(''); // Clear previous messages
 
     try {
-      await axios.put(
+      await api.put(
         `http://localhost:5000/api/admin/ev-bunks/${id}`,
         formData,
         {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import api from '../../api';
 import { useLocation } from "react-router-dom"; // Add this import
 import { Clock, MapPin, Calendar, Zap, CheckCircle, AlertCircle } from "lucide-react";
 
@@ -21,7 +21,7 @@ const BookingForm = () => {
   useEffect(() => {
     const fetchBunks = async () => {
       try {
-        const res = await axios.get("/api/bunks");
+        const res = await api.get("/api/bunks");
         setBunks(res.data);
         
         // If there's a pre-selected bunk from navigation, set it as selected
@@ -54,7 +54,7 @@ const BookingForm = () => {
       
       setLoading(true);
       try {
-        const res = await axios.get(`/api/bookings/available-slots/${selectedBunk}/${selectedDate}`);
+        const res = await api.get(`/api/bookings/available-slots/${selectedBunk}/${selectedDate}`);
         // Fix: Access the availableSlots from the correct path in the response
         setAvailableSlots(res.data.data.availableSlots || []);
         setSelectedSlot(""); // Reset selected slot
@@ -80,7 +80,7 @@ const BookingForm = () => {
     setLoading(true);
     try {
       // First check if slot is still available
-      const checkRes = await axios.post("/api/bookings/check-availability", {
+      const checkRes = await api.post("/api/bookings/check-availability", {
         bunkId: selectedBunk,
         slotTime: selectedSlot
       });
@@ -91,7 +91,7 @@ const BookingForm = () => {
       }
       
       // If available, create the booking
-      await axios.post("/api/bookings/create", {
+      await api.post("/api/bookings/create", {
         bunkId: selectedBunk,
         slotTime: selectedSlot
       }, {
@@ -104,7 +104,7 @@ const BookingForm = () => {
       setSelectedSlot("");
       
       // Refresh available slots
-      const res = await axios.get(`/api/bookings/available-slots/${selectedBunk}/${selectedDate}`);
+      const res = await api.get(`/api/bookings/available-slots/${selectedBunk}/${selectedDate}`);
       setAvailableSlots(res.data.data.availableSlots || []);
       
     } catch (err) {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../api';
 import { useNavigate } from 'react-router-dom';
 import AdminNavbar from "../common/navbars/AdminNavbar";
 import Footer from "../common/Footer";
@@ -26,7 +26,7 @@ const ViewBunks = () => {
         return;
       }
 
-      const response = await axios.get('/api/admin/ev-bunks', {
+      const response = await api.get('/api/admin/ev-bunks', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -55,7 +55,7 @@ const ViewBunks = () => {
         setError('Authentication token not found. Please log in to delete.');
         return;
       }
-      await axios.delete(`/api/admin/ev-bunks/${bunkId}`, {
+      await api.delete(`/api/admin/ev-bunks/${bunkId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

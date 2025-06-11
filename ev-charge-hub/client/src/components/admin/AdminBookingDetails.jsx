@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../../api';
 import { format } from 'date-fns';
 import AdminNavbar from "../common/navbars/AdminNavbar"; // Assuming this path is correct
 import Footer from "../common/Footer";
@@ -36,8 +36,7 @@ const AdminBookingDetail = () => {
 
         console.log(`Fetching booking details for ID: ${id}`);
 
-        const response = await axios.get(`/api/bookings/${id}`, { headers });
-
+        const response = await api.get(`/api/bookings/${id}`, { headers });
         console.log("API Response:", response.data);
 
         let bookingData;
@@ -103,7 +102,7 @@ const AdminBookingDetail = () => {
 
       console.log(`Updating booking ${id} status to ${newStatus}`);
 
-      const response = await axios.patch(
+      const response = await api.patch(
         `/api/bookings/${id}/status`,
         { status: newStatus },
         { headers }
