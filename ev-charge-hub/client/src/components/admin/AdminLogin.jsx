@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 // CHANGE 1: Replace axios import with centralized API
 // OLD: import axios from "axios";
-import api from "../api"; // NEW: Import centralized API instance
+import api from "../../api"; // NEW: Import centralized API instance
 
 import { useNavigate } from "react-router-dom";
 import Navbar from "../common/navbars/Navbar"; // Assuming Navbar exists

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 // CHANGE 1: Replace the old import
 // OLD: import { loginUser } from '../../services/api';
-import api from '../api'; // NEW: Import centralized API instance
+import api from '../../api'; // NEW: Import centralized API instance
 
 import { useNavigate } from 'react-router-dom';
 import Navbar from "../common/navbars/Navbar";
