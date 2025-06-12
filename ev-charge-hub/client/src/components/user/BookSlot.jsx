@@ -142,8 +142,8 @@ const BookingForm = () => {
     // If slotData is just a time string like "14:30"
     if (typeof slotData === 'string' && slotData.includes(':')) {
       const [hours, minutes] = slotData.split(':');
-      const startHour = parseInt(hours, 10);
-      const startMinute = parseInt(minutes, 10);
+      const startHour = parseInt(hours, 1);
+      const startMinute = parseInt(minutes, 1);
       const endHour = startHour + 1;
       
       return `${formatTime(startHour, startMinute)} - ${formatTime(endHour, startMinute)}`;

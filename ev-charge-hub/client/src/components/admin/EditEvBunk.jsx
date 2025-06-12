@@ -27,7 +27,7 @@ const EditEvBunk = () => {
   useEffect(() => {
     const fetchBunkDetails = async () => {
       try {
-        const response = await api.get(`http://localhost:5000/api/admin/ev-bunks/${id}`, {
+        const response = await api.get(`api/admin/ev-bunks/${id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

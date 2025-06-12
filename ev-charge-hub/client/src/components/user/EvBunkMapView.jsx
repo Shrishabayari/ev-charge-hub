@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { MapPin, Zap, Clock, Map, List, Navigation } from 'lucide-react';
 import UserNavbar from "../common/navbars/UserNavbar";
 import Footer from "../common/Footer";
+import api, { apiMethods } from '../../api'; // Updated import
 
 const EvBunkMapView = () => {
   const [bunkLocations, setBunkLocations] = useState([]);
@@ -24,7 +25,7 @@ const EvBunkMapView = () => {
   const googleMapsScriptRef = useRef(null);
   const navigate = useNavigate();
 
-  const GOOGLE_MAPS_API_KEY = 'AIzaSyDozw7FDv161gMDT9lE-U0cSGZuWjYhyvw';
+  const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || 'AIzaSyDozw7FDv161gMDT9lE-U0cSGZuWjYhyvw';
 
   // Calculate distance between two coordinates using Haversine formula
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -657,7 +658,7 @@ const EvBunkMapView = () => {
     };
   }, [clearMarkers, clearDirections]);
 
-  // Fetch EV bunk locations
+  // Fetch EV bunk locations using proper API
   const fetchBunkLocations = async () => {
     try {
       setLoading(true);
@@ -665,22 +666,13 @@ const EvBunkMapView = () => {
       
       console.log('🔍 Fetching bunk locations...');
       
-      const response = await fetch('/api/bunks', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      console.log('📡 Response status:', response.status);
-      console.log('📡 Response ok:', response.ok);
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('📦 Raw API response:', data);
+      // Use the imported API methods
+      const response = await apiMethods.getAllBunks();
+      
+      console.log('📦 API response:', response.data);
+      
+      // Extract data from axios response
+      const data = response.data;
       
       let bunks = [];
       if (data.success) {
@@ -689,88 +681,95 @@ const EvBunkMapView = () => {
       } else if (Array.isArray(data)) {
         bunks = data;
         console.log('✅ Using array data:', bunks.length, 'items');
+      } else if (data.bunks) {
+        bunks = data.bunks;
+        console.log('✅ Using data.bunks:', bunks.length, 'items');
       } else {
-        console.log('❌ Unexpected data format:', typeof data);
+        console.log('⚠️ Unexpected data format:', data);
+        bunks = [];
       }
 
-      console.log('🏪 Final bunks array:', bunks);
-      console.log('🏪 Bunks count:', bunks.length);
+      // Validate and filter bunks
+      const validBunks = bunks.filter(bunk => {
+        const isValid = bunk && 
+                       typeof bunk.latitude === 'number' && 
+                       typeof bunk.longitude === 'number' &&
+                       bunk.latitude !== 0 && 
+                       bunk.longitude !== 0 &&
+                       bunk.name;
+        
+        if (!isValid) {
+          console.warn('⚠️ Invalid bunk data:', bunk);
+        }
+        return isValid;
+      });
 
-      if (userLocation && bunks.length > 0) {
-        bunks = addDistanceToBunks(bunks, userLocation.lat, userLocation.lng);
+      console.log('✅ Valid bunks:', validBunks.length);
+
+ // Add distance if user location is available
+      let processedBunks = validBunks;
+      if (userLocation) {
+        processedBunks = addDistanceToBunks(validBunks, userLocation.lat, userLocation.lng);
         console.log('📍 Added distances to bunks');
       }
 
-      setBunkLocations(bunks);
-      console.log('✅ Set bunk locations in state');
+      setBunkLocations(processedBunks);
+      console.log('✅ Bunk locations set successfully:', processedBunks.length);
       
     } catch (error) {
       console.error('❌ Error fetching bunk locations:', error);
-      setError(`Failed to fetch charging stations: ${error.message}`);
+      setError(`Failed to load EV charging stations: ${error.message}`);
     } finally {
       setLoading(false);
     }
   };
 
-// Initial data fetch and location setup
+  // Initial data fetch and location setup
   useEffect(() => {
     const initializeApp = async () => {
-      console.log('🚀 Initializing EvBunkMapView...');
-      
-      // Try to get user location first
       try {
-        await getCurrentLocation();
-        console.log('📍 User location obtained');
+        // Try to get user location first
+        try {
+          await getCurrentLocation();
+          console.log('✅ User location obtained');
+        } catch (locationError) {
+          console.log('⚠️ Location access denied or unavailable:', locationError.message);
+          // Continue without location
+        }
+        
+        // Fetch bunk locations
+        await fetchBunkLocations();
       } catch (error) {
-        console.log('📍 Could not get user location:', error.message);
-        // Continue without user location
+        console.error('❌ App initialization error:', error);
+        setError('Failed to initialize the application. Please refresh the page.');
       }
-      
-      // Fetch bunk locations
-      await fetchBunkLocations();
     };
 
     initializeApp();
   }, [getCurrentLocation]);
 
-  // Handle location permission change
-  const handleLocationRequest = async () => {
-    try {
-      setLocationPermission('requesting');
-      const location = await getCurrentLocation();
-      console.log('✅ Location permission granted:', location);
-      
-      // Re-fetch bunks to add distances
-      if (bunkLocations.length > 0) {
-        const bunksWithDistance = addDistanceToBunks(
-          bunkLocations, 
-          location.lat, 
-          location.lng
-        );
-        setBunkLocations(bunksWithDistance);
-      }
-      
-      // Update map center if in map view
-      if (map && viewMode === 'map') {
-        map.panTo({ lat: location.lat, lng: location.lng });
-        map.setZoom(13);
-      }
-      
-    } catch (error) {
-      console.error('❌ Location permission denied:', error);
-      setLocationPermission('denied');
+  // Refresh bunks when user location changes
+  useEffect(() => {
+    if (userLocation && bunkLocations.length > 0) {
+      const bunksWithDistance = addDistanceToBunks(bunkLocations, userLocation.lat, userLocation.lng);
+      setBunkLocations(bunksWithDistance);
     }
-  };
+  }, [userLocation]);
 
-  // Navigate to booking page
-  const handleBookSlot = (bunk) => {
+ const handleBookSlot = (bunk) => {
+    if (bunk.slotsAvailable === 0) {
+      alert("No slots available at this station.");
+      return;
+    }
+    // Navigate to the booking page, passing the selected bunk data
     navigate(`/user/book-slot`, { state: { bunk } });
   };
 
-  // Filter bunks by availability
-  const availableBunks = bunkLocations.filter(bunk => bunk.slotsAvailable > 0);
-  const unavailableBunks = bunkLocations.filter(bunk => bunk.slotsAvailable === 0);
+  // Filter bunks by availability for stats display
+  const availableBunksCount = bunkLocations.filter(bunk => bunk.slotsAvailable > 0).length;
+  const unavailableBunksCount = bunkLocations.filter(bunk => bunk.slotsAvailable === 0).length;
 
+  // --- Loading State Display ---
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -784,36 +783,58 @@ const EvBunkMapView = () => {
       </div>
     );
   }
+  const refreshLocation = async () => {
+    try {
+      setLocationPermission('requesting');
+      await getCurrentLocation();
+      console.log('✅ Location refreshed');
+    } catch (error) {
+      console.error('❌ Failed to refresh location:', error);
+      alert('Failed to get your location. Please check your browser settings and try again.');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <UserNavbar />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading EV charging stations...</p>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50">
         <UserNavbar />
-        <div className="flex items-center justify-center min-h-[calc(100vh-64px)]">
+        <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center max-w-md mx-auto p-6">
-            <div className="text-red-500 mb-4">
-              <Zap size={48} className="mx-auto" />
-            </div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">
-              Unable to Load Stations
-            </h2>
-            <p className="text-gray-600 mb-6">{error}</p>
+            <div className="text-red-500 text-5xl mb-4">⚠️</div>
+            <h2 className="text-xl font-semibold text-gray-800 mb-2">Error Loading Stations</h2>
+            <p className="text-gray-600 mb-4">{error}</p>
             <button
-              onClick={fetchBunkLocations}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+              onClick={() => window.location.reload()}
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
             >
-              Try Again
+              Retry
             </button>
           </div>
         </div>
+        <Footer />
       </div>
     );
   }
 
-  return (
+   return (
     <div className="min-h-screen bg-gray-50">
       <UserNavbar />
-      
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Header */}
         <div className="mb-6">
@@ -825,7 +846,7 @@ const EvBunkMapView = () => {
           </p>
         </div>
 
-        {/* Location Status */}
+        {/* Location Status Alert */}
         {locationPermission === 'denied' && (
           <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
             <div className="flex items-start">
@@ -837,19 +858,40 @@ const EvBunkMapView = () => {
                 <p className="text-sm text-yellow-700 mt-1">
                   Enable location access to see distances and get directions to charging stations.
                 </p>
-                <button
-                  onClick={handleLocationRequest}
-                  className="mt-3 bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
-                >
-                  Enable Location
-                </button>
+                
               </div>
             </div>
           </div>
         )}
 
-        {/* View Toggle */}
-        <div className="mb-6 flex items-center justify-between">
+        {/* Location Status / View Toggle */}
+        <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            {locationPermission === 'granted' ? (
+              <span className="text-green-600 flex items-center gap-1 text-sm font-medium">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                Location enabled {userLocation && ''}
+              </span>
+            ) : locationPermission === 'denied' ? (
+              <span className="text-orange-600 flex items-center gap-1 text-sm font-medium">
+                 Location denied
+              </span>
+            ) : locationPermission === 'requesting' ? (
+              <span className="text-blue-600 flex items-center gap-1 text-sm font-medium">
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                Getting location...
+              </span>
+            ) : (
+              <button
+                onClick={refreshLocation}
+                className="text-gray-600 hover:text-gray-700 flex items-center gap-1 underline text-sm font-medium"
+              >
+                <MapPin size={14} />
+                Get location
+              </button>
+            )}
+          </div>
+
           <div className="flex bg-white rounded-lg border border-gray-200 p-1">
             <button
               onClick={() => setViewMode('list')}
@@ -874,18 +916,6 @@ const EvBunkMapView = () => {
               Map View
             </button>
           </div>
-
-          {/* Stats */}
-          <div className="flex items-center space-x-4 text-sm text-gray-600">
-            <span className="flex items-center">
-              <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-              {availableBunks.length} Available
-            </span>
-            <span className="flex items-center">
-              <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
-              {unavailableBunks.length} Occupied
-            </span>
-          </div>
         </div>
 
         {/* Content */}
@@ -893,9 +923,10 @@ const EvBunkMapView = () => {
           // List View
           <div className="space-y-4">
             {bunkLocations.length === 0 ? (
-              <div className="text-center py-12">
+              <div className="bg-white rounded-lg shadow-sm p-12 text-center border border-gray-200">
                 <Zap size={48} className="mx-auto text-gray-400 mb-4" />
-                <p className="text-gray-500">No charging stations found</p>
+                <h3 className="text-lg font-medium text-gray-800 mb-2">No charging stations found</h3>
+                <p className="text-gray-600">We couldn't find any EV charging stations in your area.</p>
               </div>
             ) : (
               bunkLocations.map((bunk) => (
@@ -903,9 +934,9 @@ const EvBunkMapView = () => {
                   key={bunk._id}
                   className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow"
                 >
-                  <div className="flex items-start justify-between">
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                     <div className="flex-1">
-                      <div className="flex items-center mb-2">
+                      <div className="flex items-start justify-between mb-2">
                         <h3 className="text-lg font-semibold text-gray-900 mr-3">
                           {bunk.name}
                         </h3>
@@ -928,17 +959,22 @@ const EvBunkMapView = () => {
                           <MapPin size={14} className="mr-2 text-gray-400" />
                           {bunk.address}
                         </div>
-                        
+
                         <div className="flex items-center">
                           <Clock size={14} className="mr-2 text-gray-400" />
                           {bunk.operatingHours}
                         </div>
                         {bunk.distance && (
-                          <div className="flex items-center">
-                            <Navigation size={14} className="mr-2 text-gray-400" />
+                          <div className="flex items-center text-blue-600 font-medium">
+                            <Navigation size={14} className="mr-2 text-blue-400" />
                             {bunk.distance.toFixed(1)} km away
                             {bunk.drivingTime && ` • ${bunk.drivingTime}`}
                           </div>
+                        )}
+                        {bunk.phone && (
+                            <div className="flex items-center">
+                                📞 {bunk.phone}
+                            </div>
                         )}
                       </div>
 
@@ -959,29 +995,35 @@ const EvBunkMapView = () => {
                       )}
                     </div>
 
-                    <div className="flex flex-col space-y-2 ml-4">
-                      {bunk.slotsAvailable > 0 && (
+                    <div className="flex flex-col sm:flex-row gap-2 lg:ml-4">
+                      {userLocation && mapsLoaded && (
                         <button
-                          onClick={() => handleBookSlot(bunk)}
-                          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                          onClick={() => handleShowDirections(bunk)}
+                          className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium"
                         >
-                          Book Slot
+                          <Navigation size={16} />
+                          Directions
                         </button>
                       )}
                       <button
                         onClick={() => openInGoogleMaps(bunk)}
-                        className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                        className="flex items-center justify-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm font-medium"
                       >
-                        Open Map
+                        <Map size={16} />
+                        Google Maps
                       </button>
-                      {userLocation && (
-                        <button
-                          onClick={() => handleShowDirections(bunk)}
-                          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                        >
-                          Show Route
-                        </button>
-                      )}
+                      <button
+                        onClick={() => handleBookSlot(bunk)}
+                        disabled={bunk.slotsAvailable === 0}
+                        className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          bunk.slotsAvailable > 0
+                            ? 'bg-blue-600 text-white hover:bg-blue-700'
+                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        }`}
+                      >
+                        <Zap size={16} />
+                        {bunk.slotsAvailable > 0 ? 'Book Slot' : 'No Slots'}
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -999,11 +1041,12 @@ const EvBunkMapView = () => {
                 </div>
               </div>
             ) : (
-              <div ref={mapRef} className="w-full h-96"></div>
+              <div ref={mapRef} className="w-full h-[70vh]" style={{ minHeight: '500px' }}></div>
             )}
           </div>
         )}
-      </div><Footer/>
+      </div>
+      <Footer />
     </div>
   );
 };
