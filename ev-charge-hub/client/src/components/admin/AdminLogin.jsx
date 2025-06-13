@@ -138,7 +138,7 @@ const AdminLogin = () => {
             {/* Register Link */}
             <p className="text-sm text-center text-gray-600 dark:text-gray-400 mt-4">
               Don't have an account?{" "}
-              <a href="/admin/register" className="text-blue-600 hover:underline font-medium">
+              <a href="/api/auth/register" className="text-blue-600 hover:underline font-medium">
                 Register here
               </a>
             </p>
