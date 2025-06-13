@@ -30,7 +30,7 @@ const AdminLogin = () => {
         password,
       });
 
-      localStorage.setItem("adminToken", response.data.token);
+      localStorage.setItem("token", response.data.token);
       setMessage("Login successful! Redirecting to dashboard..."); // Set success message
       
       // Delay navigation slightly to allow message to be seen

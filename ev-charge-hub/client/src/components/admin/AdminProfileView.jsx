@@ -17,7 +17,7 @@ const AdminProfile = () => {
       setLoading(true);
       setError(''); // Clear previous errors before new fetch
       try {
-        const token = localStorage.getItem('adminToken'); // Use adminToken for admin profile
+        const token = localStorage.getItem('token'); // Use adminToken for admin profile
 
         if (!token) {
           setError('Authentication token not found. Please log in as admin.');
@@ -56,7 +56,7 @@ const AdminProfile = () => {
     setMessage(''); // Clear previous success messages
 
     try {
-      const token = localStorage.getItem('adminToken'); // Use adminToken for admin profile update
+      const token = localStorage.getItem('token'); // Use adminToken for admin profile update
 
       if (!token) {
         setError('Authentication token not found. Please log in as admin.');

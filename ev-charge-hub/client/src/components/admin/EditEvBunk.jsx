@@ -7,7 +7,7 @@ import Footer from "../common/Footer";
 const EditEvBunk = () => {
   const { id } = useParams(); // Getting the Bunk ID from the URL
   const navigate = useNavigate();
-  const token = localStorage.getItem('adminToken'); // Assuming token stored here
+  const token = localStorage.getItem('token'); // Assuming token stored here
 
   const [formData, setFormData] = useState({
     name: '',

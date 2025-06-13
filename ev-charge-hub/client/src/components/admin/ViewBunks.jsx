@@ -19,7 +19,7 @@ const ViewBunks = () => {
     setLoading(true);
     setError('');
     try {
-      const token = localStorage.getItem('adminToken');
+      const token = localStorage.getItem('token');
       if (!token) {
         setError('Authentication token not found. Please log in.');
         setLoading(false);
@@ -50,7 +50,7 @@ const ViewBunks = () => {
     }
 
     try {
-      const token = localStorage.getItem('adminToken');
+      const token = localStorage.getItem('token');
       if (!token) {
         setError('Authentication token not found. Please log in to delete.');
         return;
