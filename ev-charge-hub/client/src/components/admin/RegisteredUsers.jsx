@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
-  Search, Eye, Calendar, MapPin, Mail, User, Clock, 
-  CheckCircle, XCircle, AlertCircle, Loader2, RefreshCw, 
-  Filter, UserCheck, Activity, Edit, Trash2, Save, X,
+  Search, Eye, Calendar, MapPin, User, Clock, 
+  CheckCircle, XCircle, AlertCircle, Loader2, RefreshCw, UserCheck, Activity, Edit, Trash2, Save, X,
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight
 } from 'lucide-react';
+import api from '../../api';
+import AdminNavbar from "../common/navbars/AdminNavbar";
+import Footer from "../common/Footer";
 
 const AdminUserManagement = () => {
   // User management state
@@ -34,67 +36,26 @@ const AdminUserManagement = () => {
   const [editForm, setEditForm] = useState({});
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
 
-  // Auth token state
-  const [authToken, setAuthToken] = useState(null);
-
-  // Initialize auth token on component mount
-  useEffect(() => {
-    // Get auth token from localStorage, sessionStorage, or context
-    // Note: In production, consider using a more secure method like HTTP-only cookies
-    const token = localStorage?.getItem('authToken') || 
-                  sessionStorage?.getItem('authToken') || 
-                  null;
-    setAuthToken(token);
-  }, []);
 
   // API call helper with proper error handling
   const makeApiCall = useCallback(async (url, options = {}) => {
     try {
-      const headers = {
-        'Content-Type': 'application/json',
-        ...(authToken && { 'Authorization': `Bearer ${authToken}` }),
-        ...options.headers
-      };
-
-      const response = await fetch(url, {
-        ...options,
-        headers
+      const response = await api({
+        url,
+        method: options.method || 'GET',
+        data: options.data,   // For POST/PUT/PATCH request bodies (plain object)
+        params: options.params, // For URL query parameters (plain object)
+        headers: options.headers, // Any specific headers for this call
       });
 
-      // Check if response is HTML (common for 404 pages)
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('text/html')) {
-        throw new Error(`API endpoint not found: ${url}. Server returned HTML instead of JSON.`);
-      }
-
-      if (!response.ok) {
-        let errorMessage = `HTTP error! status: ${response.status}`;
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorMessage;
-        } catch {
-          // If JSON parsing fails, use the status text
-          errorMessage = response.statusText || errorMessage;
-        }
-        throw new Error(errorMessage);
-      }
-
-      return await response.json();
+      // Axios wraps the actual response data in a `data` property
+      return response.data;
     } catch (error) {
-      console.error(`API call failed for ${url}:`, error);
-      
-      // Provide more helpful error messages
-      if (error.name === 'TypeError' && error.message.includes('fetch')) {
-        throw new Error('Cannot connect to server. Please check if the backend is running.');
-      }
-      
-      if (error.message.includes('Unexpected token')) {
-        throw new Error('Server returned invalid JSON. Check API endpoint configuration.');
-      }
-      
-      throw error;
+      const errorMessage = error.message || 'An unexpected error occurred.';
+      console.error(`Local API call failure for ${url}:`, error);
+      throw new Error(errorMessage);
     }
-  }, [authToken]);
+  }, []);
 
   // Fetch users with enhanced error handling
   const fetchUsers = useCallback(async () => {
@@ -424,7 +385,9 @@ const AdminUserManagement = () => {
     setShowDeleteConfirm(null);
   }, []);
 
-  return (
+return (
+  <>
+  <AdminNavbar/>
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
@@ -522,19 +485,16 @@ const AdminUserManagement = () => {
                   <table className="w-full">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-center text-xs font text-gray-500 uppercase tracking-wider">
                           User
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-center text-xs font text-gray-500 uppercase tracking-wider">
                           Status
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-center text-xs font text-gray-500 uppercase tracking-wider">
                           Bookings
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Joined
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-center text-xs font text-gray-500 uppercase tracking-wider">
                           Actions
                         </th>
                       </tr>
@@ -568,12 +528,12 @@ const AdminUserManagement = () => {
                               </div>
                             ) : (
                               <div>
-                                <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                                <div className="text-sm text-gray-500">{user.email}</div>
+                                <div className="text-sm text-center font-medium text-gray-900">{user.name}</div>
+                                <div className="text-sm text-center text-gray-500">{user.email}</div>
                               </div>
                             )}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-6 py-4 text-center whitespace-nowrap">
                             {editingUser === user._id ? (
                               <select
                                 value={editForm.status}
@@ -592,13 +552,10 @@ const AdminUserManagement = () => {
                               </span>
                             )}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          <td className="px-6 py-4 text-center whitespace-nowrap text-sm text-gray-900 items-center">
                             {user.totalBookings}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {formatDate(user.createdAt)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium ">
                             {editingUser === user._id ? (
                               <div className="flex items-center gap-2">
                                 <button
@@ -911,8 +868,9 @@ const AdminUserManagement = () => {
             </div>
           </div>
         )}
-      </div>
+      </div><Footer/>
     </div>
+    </>
   );
 };
 

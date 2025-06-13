@@ -1,49 +1,51 @@
+// client/src/components/AdminLogin.jsx
 import React, { useState } from "react";
-// CHANGE 1: Replace axios import with centralized API
-// OLD: import axios from "axios";
-import api from "../../api"; // NEW: Import centralized API instance
-
+import api from "../../api"; // Import centralized API instance
 import { useNavigate } from "react-router-dom";
-import Navbar from "../common/navbars/Navbar"; // Assuming Navbar exists
-import { Mail, Lock, Loader2, AlertCircle, CheckCircle } from 'lucide-react'; // Importing Lucide icons
+import Navbar from "../common/navbars/Navbar";
+import { Mail, Lock, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import Footer from "../common/Footer";
 
 const AdminLogin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [message, setMessage] = useState(""); // For success messages
-  const [loading, setLoading] = useState(false); // For loading state
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(""); // Clear previous errors
-    setMessage(""); // Clear previous messages
-    setLoading(true); // Set loading to true
+    setError("");
+    setMessage("");
+    setLoading(true);
 
     try {
-      // CHANGE 2: Replace axios.post with api.post and remove full URL
-      // OLD: const response = await axios.post("http://localhost:5000/api/admin/login", {
-      const response = await api.post("/api/admin/login", {
+      const response = await api.post("/api/admin/login", { // Ensure this matches your backend route
         email,
         password,
       });
 
-      localStorage.setItem("adminToken", response.data.token);
-      setMessage("Login successful! Redirecting to dashboard..."); // Set success message
-      
-      // Delay navigation slightly to allow message to be seen
+      // FIX: Ensure this key matches what your api.js interceptor is looking for
+      // If api.js uses 'token', set 'token' here.
+      // If api.js uses 'adminToken', set 'adminToken' here.
+      // I'll assume 'token' for this full example for broader consistency.
+      localStorage.setItem("token", response.data.token); // <--- FIXED HERE
+
+      // Optional: Store admin info if your backend sends it
+      // localStorage.setItem("adminInfo", JSON.stringify(response.data.admin));
+
+      setMessage("Login successful! Redirecting to dashboard...");
+
       setTimeout(() => {
-        navigate("/admin/dashboard");
-      }, 1500); // Redirect after 1.5 seconds
+        navigate("/admin/dashboard"); // Ensure this route exists in your React Router
+      }, 1500);
 
     } catch (err) {
       console.error("Admin login error:", err);
-      // More specific error message extraction
       setError(err.response?.data?.message || "Login failed. Please check your credentials.");
     } finally {
-      setLoading(false); // Set loading to false regardless of success or failure
+      setLoading(false);
     }
   };
 
@@ -56,7 +58,6 @@ const AdminLogin = () => {
             Admin Login
           </h2>
 
-          {/* Error Message Display */}
           {error && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative mb-6 flex items-center space-x-3">
               <AlertCircle className="w-5 h-5 flex-shrink-0" />
@@ -64,7 +65,6 @@ const AdminLogin = () => {
             </div>
           )}
 
-          {/* Success Message Display */}
           {message && (
             <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg relative mb-6 flex items-center space-x-3">
               <CheckCircle className="w-5 h-5 flex-shrink-0" />
@@ -144,7 +144,8 @@ const AdminLogin = () => {
             </p>
           </form>
         </div>
-      </div><Footer/>
+      </div>
+      <Footer/>
     </div>
   );
 };
