@@ -82,7 +82,7 @@ export default function Login() {
           <p className="mt-6 text-sm text-center text-gray-600 dark:text-gray-400">
             Don’t have an account?{' '}
             <a
-              href="/user/register"
+              href="api/user/register"
               className="text-blue-600 hover:underline font-medium"
             >
               Register
