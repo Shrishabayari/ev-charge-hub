@@ -13,7 +13,7 @@ const getAuthToken = () => {
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 30000, // Increased timeout for deployed environment
+  timeout: 15000, // Increased timeout for better reliability
   headers: {
     'Content-Type': 'application/json',
   },
@@ -22,17 +22,14 @@ const api = axios.create({
 // Request interceptor - Add auth token if available
 api.interceptors.request.use(
   (config) => {
-    const token = getAuthToken();
+    const token = getAuthToken(); // Use the centralized function
     if (token) {
-      // Ensure Bearer format is correct
       config.headers.Authorization = `Bearer ${token}`;
     }
     
-    // Log the request for debugging (only in development)
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`🔄 API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
-      console.log('Token found:', token ? 'Yes' : 'No');
-    }
+    // Log the request for debugging
+    console.log(`🔄 API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
+    console.log('Token found:', token ? 'Yes' : 'No');
     
     return config;
   },
@@ -45,11 +42,9 @@ api.interceptors.request.use(
 // Response interceptor - Handle responses and errors globally
 api.interceptors.response.use(
   (response) => {
-    // Log successful response (only in development)
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`✅ API Response: ${response.status} ${response.config.url}`);
-      console.log('Response data:', response.data);
-    }
+    // Log successful response
+    console.log(`✅ API Response: ${response.status} ${response.config.url}`);
+    console.log('Response data:', response.data);
     
     return response;
   },
@@ -71,41 +66,29 @@ api.interceptors.response.use(
           localStorage.removeItem('userToken');
           sessionStorage.removeItem('authToken');
           
+          // Don't auto-redirect in production, let component handle it
           console.error('Authentication failed - tokens cleared');
-          
-          // Create a more descriptive error message
-          const authError = new Error('Authentication failed. Please log in again.');
-          authError.status = 401;
-          authError.isAuthError = true;
-          return Promise.reject(authError);
-          
+          break;
         case 403:
-          const forbiddenError = new Error('Access forbidden. You don\'t have permission to access this resource.');
-          forbiddenError.status = 403;
-          return Promise.reject(forbiddenError);
-          
+          console.error('Access forbidden');
+          break;
         case 404:
-          const notFoundError = new Error('API endpoint not found. Please check the URL.');
-          notFoundError.status = 404;
-          return Promise.reject(notFoundError);
-          
+          console.error('API endpoint not found');
+          break;
         case 500:
-          const serverError = new Error('Internal server error. Please try again later.');
-          serverError.status = 500;
-          return Promise.reject(serverError);
-          
+          console.error('Internal server error');
+          break;
         default:
-          const unexpectedError = new Error(data?.message || `HTTP Error ${status}`);
-          unexpectedError.status = status;
-          return Promise.reject(unexpectedError);
+          console.error('Unexpected error status:', status);
       }
+      
+      // Return the original error to let components handle it
+      return Promise.reject(error);
       
     } else if (error.request) {
       // Request was made but no response received
       console.error('No response received:', error.request);
-      const networkError = new Error('Cannot connect to server. Please check your internet connection and try again.');
-      networkError.isNetworkError = true;
-      return Promise.reject(networkError);
+      return Promise.reject(new Error('Cannot connect to server. Please check your internet connection.'));
       
     } else {
       // Something else happened
@@ -119,40 +102,27 @@ api.interceptors.response.use(
 export const endpoints = {
   // EV Bunks endpoints
   bunks: {
-    getAll: '/api/bunks',
-    getById: (id) => `/api/bunks/${id}`,
-    create: '/api/bunks',
-    update: (id) => `/api/bunks/${id}`,
-    delete: (id) => `/api/bunks/${id}`,
-    getAvailable: '/api/bunks/available',
-    getNearby: '/api/bunks/nearby',
-    search: '/api/bunks/search',
-    getByConnector: '/api/bunks/connector',
+    getAll: '/api/bunks',              // GET all bunks
+    getById: (id) => `/api/bunks/${id}`, // GET bunk by ID
+    create: '/api/bunks',              // POST create bunk
+    update: (id) => `/api/bunks/${id}`, // PUT update bunk
+    delete: (id) => `/api/bunks/${id}`, // DELETE bunk
+    getAvailable: '/api/bunks/available', // GET available bunks
+    getNearby: '/api/bunks/nearby',    // GET nearby bunks
+    search: '/api/bunks/search',       // GET search bunks
+    getByConnector: '/api/bunks/connector', // GET bunks by connector type
   },
   
-  // Auth endpoints
+  // Auth endpoints (if you have them)
   auth: {
     login: '/api/auth/login',
     register: '/api/auth/register',
     profile: '/api/auth/profile',
-    verify: '/api/auth/verify', // Add token verification endpoint
-  },
-  
-  // Admin endpoints
-  admin: {
-    users: '/api/admin/users',
-    userById: (id) => `/api/admin/users/${id}`,
-    userBookings: (id) => `/api/admin/users/${id}/bookings`,
-    userStatus: (id) => `/api/admin/users/${id}/status`,
-    searchUsers: '/api/admin/users/search',
-    bookings: '/api/admin/bookings',
-    bookingById: (id) => `/api/admin/bookings/${id}`,
-    updateBookingStatus: (id) => `/api/admin/bookings/${id}/status`,
   },
   
   // Booking endpoints
   bookings: {
-    getAll: '/api/bookings',
+    getAll: '/api/bookings',           // GET all bookings (admin)
     create: '/api/bookings',
     getByUser: '/api/bookings/user',
     getById: (id) => `/api/bookings/${id}`,
@@ -161,11 +131,8 @@ export const endpoints = {
   }
 };
 
-// Enhanced convenience methods for common operations
+// Convenience methods for common operations
 export const apiMethods = {
-  // Auth methods
-  verifyToken: () => api.get(endpoints.auth.verify),
-  
   // Get all bunks
   getAllBunks: () => api.get(endpoints.bunks.getAll),
   
@@ -193,62 +160,14 @@ export const apiMethods = {
       params: { type: connectorType }
     }),
 
-  // Admin methods
-  getAllUsers: (params = {}) => {
-    const queryString = new URLSearchParams(params).toString();
-    return api.get(`${endpoints.admin.users}${queryString ? `?${queryString}` : ''}`);
-  },
-  
-  getUserById: (id) => api.get(endpoints.admin.userById(id)),
-  
-  getUserBookings: (id) => api.get(endpoints.admin.userBookings(id)),
-  
-  updateUserStatus: (id, status) => 
-    api.put(endpoints.admin.userStatus(id), { status }),
-  
-  deleteUser: (id) => api.delete(endpoints.admin.userById(id)),
-  
-  updateUser: (id, userData) => 
-    api.put(endpoints.admin.userById(id), userData),
-  
-  searchUsers: (query) => 
-    api.get(endpoints.admin.searchUsers, {
-      params: { q: query }
-    }),
-
   // Booking methods
   getAllBookings: (params = {}) => {
     const queryString = new URLSearchParams(params).toString();
-    return api.get(`${endpoints.admin.bookings}${queryString ? `?${queryString}` : ''}`);
+    return api.get(`${endpoints.bookings.getAll}${queryString ? `?${queryString}` : ''}`);
   },
   
-  getBookingById: (id) => api.get(endpoints.admin.bookingById(id)),
-  
   updateBookingStatus: (id, status) => 
-    api.patch(endpoints.admin.updateBookingStatus(id), { status }),
-};
-
-// Utility function to check if user is authenticated
-export const isAuthenticated = () => {
-  const token = getAuthToken();
-  return !!token;
-};
-
-// Utility function to handle auth errors
-export const handleAuthError = (error) => {
-  if (error.status === 401 || error.isAuthError) {
-    // Clear all tokens
-    localStorage.removeItem('token');
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('userToken');
-    sessionStorage.removeItem('authToken');
-    
-    // Redirect to login if not already there
-    if (window.location.pathname !== '/login' && window.location.pathname !== '/admin/login') {
-      const isAdminRoute = window.location.pathname.startsWith('/admin');
-      window.location.href = isAdminRoute ? '/admin/login' : '/login';
-    }
-  }
+    api.patch(endpoints.bookings.updateStatus(id), { status }),
 };
 
 export default api;

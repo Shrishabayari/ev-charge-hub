@@ -4,7 +4,7 @@ import {
   CheckCircle, XCircle, AlertCircle, Loader2, RefreshCw, UserCheck, Activity, Edit, Trash2, Save, X,
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight
 } from 'lucide-react';
-import { apiMethods, handleAuthError, isAuthenticated } from '../../api';
+import api from '../../api';
 import AdminNavbar from "../common/navbars/AdminNavbar";
 import Footer from "../common/Footer";
 
@@ -36,35 +36,23 @@ const AdminUserManagement = () => {
   const [editForm, setEditForm] = useState({});
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
 
-  // Check authentication on component mount
-  useEffect(() => {
-    if (!isAuthenticated()) {
-      handleAuthError({ status: 401, isAuthError: true });
-      return;
-    }
-  }, []);
 
-  // Enhanced API call helper with better error handling
-  const makeApiCall = useCallback(async (apiMethod, ...args) => {
+  // API call helper with proper error handling
+  const makeApiCall = useCallback(async (url, options = {}) => {
     try {
-      const response = await apiMethod(...args);
+      const response = await api({
+        url,
+        method: options.method || 'GET',
+        data: options.data,   // For POST/PUT/PATCH request bodies (plain object)
+        params: options.params, // For URL query parameters (plain object)
+        headers: options.headers, // Any specific headers for this call
+      });
+
+      // Axios wraps the actual response data in a `data` property
       return response.data;
     } catch (error) {
-      console.error('API call failed:', error);
-      
-      // Handle authentication errors
-      if (error.status === 401 || error.isAuthError) {
-        handleAuthError(error);
-        throw new Error('Authentication failed. Please log in again.');
-      }
-      
-      // Handle network errors
-      if (error.isNetworkError) {
-        throw new Error('Network error. Please check your connection and try again.');
-      }
-      
-      // Handle other errors
-      const errorMessage = error.response?.data?.message || error.message || 'An unexpected error occurred.';
+      const errorMessage = error.message || 'An unexpected error occurred.';
+      console.error(`Local API call failure for ${url}:`, error);
       throw new Error(errorMessage);
     }
   }, []);
@@ -75,7 +63,7 @@ const AdminUserManagement = () => {
       setLoading(true);
       setError(null);
       
-      const data = await makeApiCall(apiMethods.getAllUsers);
+      const data = await makeApiCall('/api/admin/users');
       
       // Validate and sanitize user data
       const validatedUsers = (data.users || data || []).map(user => ({
@@ -110,7 +98,7 @@ const AdminUserManagement = () => {
       setBookingsLoading(true);
       setBookingError(null);
       
-      const data = await makeApiCall(apiMethods.getUserBookings, userId);
+      const data = await makeApiCall(`/api/admin/users/${userId}/bookings`);
       
       // Validate and sanitize booking data
       const bookings = data.bookings || data || [];
@@ -142,7 +130,10 @@ const AdminUserManagement = () => {
     try {
       setUpdateLoading(true);
       
-      await makeApiCall(apiMethods.updateUserStatus, userId, status);
+      await makeApiCall(`/api/admin/users/${userId}/status`, {
+        method: 'PUT',
+        body: JSON.stringify({ status })
+      });
       
       // Update local state
       setUsers(prevUsers => 
@@ -169,7 +160,9 @@ const AdminUserManagement = () => {
     try {
       setUpdateLoading(true);
       
-      await makeApiCall(apiMethods.deleteUser, userId);
+      await makeApiCall(`/api/admin/users/${userId}`, {
+        method: 'DELETE'
+      });
       
       // Remove from local state
       setUsers(prevUsers => prevUsers.filter(user => user._id !== userId));
@@ -197,7 +190,7 @@ const AdminUserManagement = () => {
       setLoading(true);
       setError(null);
       
-      const data = await makeApiCall(apiMethods.searchUsers, query);
+      const data = await makeApiCall(`/api/admin/users/search?q=${encodeURIComponent(query)}`);
       
       const users = data.users || data || [];
       const validatedUsers = users.map(user => ({
@@ -344,7 +337,10 @@ const AdminUserManagement = () => {
     try {
       setUpdateLoading(true);
       
-      await makeApiCall(apiMethods.updateUser, editingUser, editForm);
+      await makeApiCall(`/api/admin/users/${editingUser}`, {
+        method: 'PUT',
+        body: JSON.stringify(editForm)
+      });
       
       // Update local state
       setUsers(prevUsers => 
@@ -388,27 +384,6 @@ const AdminUserManagement = () => {
   const cancelDelete = useCallback(() => {
     setShowDeleteConfirm(null);
   }, []);
-
-  // Early return if not authenticated
-  if (!isAuthenticated()) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200">
-          <div className="text-center">
-            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Authentication Required</h2>
-            <p className="text-gray-600 mb-4">Please log in to access this page.</p>
-            <button
-              onClick={() => window.location.href = '/admin/login'}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Go to Login
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
 return (
   <>
