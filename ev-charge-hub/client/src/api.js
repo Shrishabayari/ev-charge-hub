@@ -3,9 +3,17 @@ import axios from 'axios';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
+// Centralized function to get auth token - same as in your component
+const getAuthToken = () => {
+  return localStorage.getItem('authToken') ||
+         localStorage.getItem('token') ||
+         localStorage.getItem('userToken') ||
+         sessionStorage.getItem('authToken');
+};
+
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 15000, // Increased timeout for better reliability
+  timeout: 30000, // Increased timeout for deployed environment
   headers: {
     'Content-Type': 'application/json',
   },
@@ -14,13 +22,17 @@ const api = axios.create({
 // Request interceptor - Add auth token if available
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     if (token) {
+      // Ensure Bearer format is correct
       config.headers.Authorization = `Bearer ${token}`;
     }
     
-    // Log the request for debugging
-    console.log(`🔄 API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
+    // Log the request for debugging (only in development)
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`🔄 API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
+      console.log('Token found:', token ? 'Yes' : 'No');
+    }
     
     return config;
   },
@@ -33,9 +45,11 @@ api.interceptors.request.use(
 // Response interceptor - Handle responses and errors globally
 api.interceptors.response.use(
   (response) => {
-    // Log successful response
-    console.log(`✅ API Response: ${response.status} ${response.config.url}`);
-    console.log('Response data:', response.data);
+    // Log successful response (only in development)
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`✅ API Response: ${response.status} ${response.config.url}`);
+      console.log('Response data:', response.data);
+    }
     
     return response;
   },
@@ -51,31 +65,47 @@ api.interceptors.response.use(
       // Handle specific error cases
       switch (status) {
         case 401:
-          // Unauthorized - clear token and redirect to login
+          // Unauthorized - clear all possible tokens
           localStorage.removeItem('token');
-          window.location.href = '/login';
-          break;
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('userToken');
+          sessionStorage.removeItem('authToken');
+          
+          console.error('Authentication failed - tokens cleared');
+          
+          // Create a more descriptive error message
+          const authError = new Error('Authentication failed. Please log in again.');
+          authError.status = 401;
+          authError.isAuthError = true;
+          return Promise.reject(authError);
+          
         case 403:
-          console.error('Access forbidden');
-          break;
+          const forbiddenError = new Error('Access forbidden. You don\'t have permission to access this resource.');
+          forbiddenError.status = 403;
+          return Promise.reject(forbiddenError);
+          
         case 404:
-          console.error('API endpoint not found');
-          break;
+          const notFoundError = new Error('API endpoint not found. Please check the URL.');
+          notFoundError.status = 404;
+          return Promise.reject(notFoundError);
+          
         case 500:
-          console.error('Internal server error');
-          break;
+          const serverError = new Error('Internal server error. Please try again later.');
+          serverError.status = 500;
+          return Promise.reject(serverError);
+          
         default:
-          console.error('Unexpected error status:', status);
+          const unexpectedError = new Error(data?.message || `HTTP Error ${status}`);
+          unexpectedError.status = status;
+          return Promise.reject(unexpectedError);
       }
-      
-      // Return a more user-friendly error message
-      const errorMessage = data?.message || `HTTP Error ${status}`;
-      return Promise.reject(new Error(errorMessage));
       
     } else if (error.request) {
       // Request was made but no response received
       console.error('No response received:', error.request);
-      return Promise.reject(new Error('Cannot connect to server. Please check your internet connection.'));
+      const networkError = new Error('Cannot connect to server. Please check your internet connection and try again.');
+      networkError.isNetworkError = true;
+      return Promise.reject(networkError);
       
     } else {
       // Something else happened
@@ -89,34 +119,53 @@ api.interceptors.response.use(
 export const endpoints = {
   // EV Bunks endpoints
   bunks: {
-    getAll: '/api/bunks',              // GET all bunks
-    getById: (id) => `/api/bunks/${id}`, // GET bunk by ID
-    create: '/api/bunks',              // POST create bunk
-    update: (id) => `/api/bunks/${id}`, // PUT update bunk
-    delete: (id) => `/api/bunks/${id}`, // DELETE bunk
-    getAvailable: '/api/bunks/available', // GET available bunks
-    getNearby: '/api/bunks/nearby',    // GET nearby bunks
-    search: '/api/bunks/search',       // GET search bunks
-    getByConnector: '/api/bunks/connector', // GET bunks by connector type
+    getAll: '/api/bunks',
+    getById: (id) => `/api/bunks/${id}`,
+    create: '/api/bunks',
+    update: (id) => `/api/bunks/${id}`,
+    delete: (id) => `/api/bunks/${id}`,
+    getAvailable: '/api/bunks/available',
+    getNearby: '/api/bunks/nearby',
+    search: '/api/bunks/search',
+    getByConnector: '/api/bunks/connector',
   },
   
-  // Auth endpoints (if you have them)
+  // Auth endpoints
   auth: {
     login: '/api/auth/login',
     register: '/api/auth/register',
     profile: '/api/auth/profile',
+    verify: '/api/auth/verify', // Add token verification endpoint
   },
   
-  // Booking endpoints (if you have them)
+  // Admin endpoints
+  admin: {
+    users: '/api/admin/users',
+    userById: (id) => `/api/admin/users/${id}`,
+    userBookings: (id) => `/api/admin/users/${id}/bookings`,
+    userStatus: (id) => `/api/admin/users/${id}/status`,
+    searchUsers: '/api/admin/users/search',
+    bookings: '/api/admin/bookings',
+    bookingById: (id) => `/api/admin/bookings/${id}`,
+    updateBookingStatus: (id) => `/api/admin/bookings/${id}/status`,
+  },
+  
+  // Booking endpoints
   bookings: {
+    getAll: '/api/bookings',
     create: '/api/bookings',
     getByUser: '/api/bookings/user',
+    getById: (id) => `/api/bookings/${id}`,
+    updateStatus: (id) => `/api/bookings/${id}/status`,
     cancel: (id) => `/api/bookings/${id}/cancel`,
   }
 };
 
-// Convenience methods for common operations
+// Enhanced convenience methods for common operations
 export const apiMethods = {
+  // Auth methods
+  verifyToken: () => api.get(endpoints.auth.verify),
+  
   // Get all bunks
   getAllBunks: () => api.get(endpoints.bunks.getAll),
   
@@ -143,6 +192,63 @@ export const apiMethods = {
     api.get(endpoints.bunks.getByConnector, {
       params: { type: connectorType }
     }),
+
+  // Admin methods
+  getAllUsers: (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return api.get(`${endpoints.admin.users}${queryString ? `?${queryString}` : ''}`);
+  },
+  
+  getUserById: (id) => api.get(endpoints.admin.userById(id)),
+  
+  getUserBookings: (id) => api.get(endpoints.admin.userBookings(id)),
+  
+  updateUserStatus: (id, status) => 
+    api.put(endpoints.admin.userStatus(id), { status }),
+  
+  deleteUser: (id) => api.delete(endpoints.admin.userById(id)),
+  
+  updateUser: (id, userData) => 
+    api.put(endpoints.admin.userById(id), userData),
+  
+  searchUsers: (query) => 
+    api.get(endpoints.admin.searchUsers, {
+      params: { q: query }
+    }),
+
+  // Booking methods
+  getAllBookings: (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return api.get(`${endpoints.admin.bookings}${queryString ? `?${queryString}` : ''}`);
+  },
+  
+  getBookingById: (id) => api.get(endpoints.admin.bookingById(id)),
+  
+  updateBookingStatus: (id, status) => 
+    api.patch(endpoints.admin.updateBookingStatus(id), { status }),
+};
+
+// Utility function to check if user is authenticated
+export const isAuthenticated = () => {
+  const token = getAuthToken();
+  return !!token;
+};
+
+// Utility function to handle auth errors
+export const handleAuthError = (error) => {
+  if (error.status === 401 || error.isAuthError) {
+    // Clear all tokens
+    localStorage.removeItem('token');
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userToken');
+    sessionStorage.removeItem('authToken');
+    
+    // Redirect to login if not already there
+    if (window.location.pathname !== '/login' && window.location.pathname !== '/admin/login') {
+      const isAdminRoute = window.location.pathname.startsWith('/admin');
+      window.location.href = isAdminRoute ? '/admin/login' : '/login';
+    }
+  }
 };
 
 export default api;
