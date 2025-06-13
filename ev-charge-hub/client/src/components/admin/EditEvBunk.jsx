@@ -64,7 +64,7 @@ const EditEvBunk = () => {
 
     try {
       await api.put(
-        `http://localhost:5000/api/admin/ev-bunks/${id}`,
+        `api/admin/ev-bunks/${id}`,
         formData,
         {
           headers: {
