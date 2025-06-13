@@ -32,8 +32,8 @@ const Navbar = () => {
           <div className="relative group cursor-pointer">
             <span className="hover:underline">Login</span>
             <div className="absolute left-0 mt-2 w-32 bg-white text-black rounded shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-50">
-              <Link to="/admin/register" className="block px-4 py-2 hover:bg-gray-100">Admin</Link>
-              <Link to="/user/register" className="block px-4 py-2 hover:bg-gray-100">User</Link>
+              <Link to="/admin/login" className="block px-4 py-2 hover:bg-gray-100">Admin</Link>
+              <Link to="/user/login" className="block px-4 py-2 hover:bg-gray-100">User</Link>
             </div>
           </div>
         </div>
