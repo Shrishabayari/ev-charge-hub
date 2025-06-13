@@ -27,10 +27,7 @@ const AdminBookingsList = () => {
 
   // Function to get auth token
   const getAuthToken = () => {
-    return localStorage.getItem('authToken') ||
-           localStorage.getItem('token') ||
-           localStorage.getItem('userToken') ||
-           sessionStorage.getItem('authToken');
+    return localStorage.getItem('token')
   };
 
   // Function to fetch bookings
