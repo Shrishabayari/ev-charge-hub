@@ -25,42 +25,27 @@ const AdminBookingsList = () => {
     search: ''
   });
 
-  // Function to get auth token with better error handling
+  // Function to get auth token
   const getAuthToken = () => {
-    try {
-      const token = localStorage.getItem('token');
-      console.log("Token retrieval:", token ? "Found token" : "No token found");
-      return token;
-    } catch (err) {
-      console.error("Error retrieving token:", err);
-      return null;
-    }
+    return localStorage.getItem('token')
   };
 
-  // Function to check if user is authenticated
-  const checkAuthentication = () => {
-    const token = getAuthToken();
-    if (!token) {
-      console.warn("No authentication token found, redirecting to login");
-      setError('Please log in to access admin features.');
-      navigate('/admin/login');
-      return false;
-    }
-    return true;
-  };
-
-  // Function to fetch bookings with improved error handling
+  // Function to fetch bookings
   const fetchBookings = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Check authentication first
-      if (!checkAuthentication()) {
+      const token = getAuthToken();
+
+      console.log("Authentication token:", token ? "Found" : "Not found");
+
+      if (!token) {
+        console.warn("No authentication token found in storage");
+        setError('You are not authenticated. Please log in again.');
+        setLoading(false);
         return;
       }
-
-      const token = getAuthToken();
 
       // Construct query params
       const params = new URLSearchParams();
@@ -78,84 +63,43 @@ const AdminBookingsList = () => {
         'Authorization': `Bearer ${token}`
       };
 
-      // Try different possible endpoints
-      const possibleEndpoints = [
-        `/api/bookings?${params.toString()}`,
-        `/api/admin/bookings?${params.toString()}`,
-        `/bookings?${params.toString()}`
-      ];
+      const apiUrl = `/api/bookings?${params.toString()}`;
+      console.log("Fetching bookings with URL:", apiUrl);
 
-      let response = null;
-      let lastError = null;
+      const response = await api.get(apiUrl, { headers });
 
-      for (const endpoint of possibleEndpoints) {
-        try {
-          console.log(`Attempting to fetch from: ${endpoint}`);
-          response = await api.get(endpoint, { 
-            headers,
-            timeout: 30000 // 30 second timeout
-          });
-          console.log(`Success with endpoint: ${endpoint}`, response.data);
-          break;
-        } catch (err) {
-          console.log(`Failed with endpoint ${endpoint}:`, err.response?.status || err.message);
-          lastError = err;
-          continue;
-        }
-      }
-
-      if (!response) {
-        throw lastError || new Error('All API endpoints failed');
-      }
+      console.log("API response:", response.data);
 
       // Handle response data
       if (response.data.success) {
-        const responseData = response.data.data || response.data;
+        const responseData = response.data.data;
 
-        setBookings(responseData.bookings || responseData || []);
-        setTotalPages(responseData.pagination?.pages || responseData.totalPages || 1);
-        setTotalBookings(responseData.pagination?.total || responseData.totalBookings || responseData.length || 0);
+        setBookings(responseData.bookings || []);
+        setTotalPages(responseData.pagination?.pages || 1);
+        setTotalBookings(responseData.pagination?.total || 0);
 
-        console.log("Successfully loaded bookings:", responseData.bookings?.length || responseData.length || 0);
+        console.log("Successfully loaded bookings:", responseData.bookings?.length || 0);
       } else {
-        // Handle different response structures
-        if (Array.isArray(response.data)) {
-          setBookings(response.data);
-          setTotalBookings(response.data.length);
-          setTotalPages(Math.ceil(response.data.length / limit));
-        } else {
-          setError(response.data.message || 'Failed to fetch bookings');
-        }
+        setError(response.data.message || 'Failed to fetch bookings');
       }
 
       setLoading(false);
     } catch (err) {
       console.error('Error fetching bookings:', err);
 
-      let errorMessage = 'Failed to fetch bookings';
-
       if (err.response?.status === 401) {
-        errorMessage = 'Session expired. Please log in again.';
-        localStorage.removeItem('token');
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('adminToken');
-        setTimeout(() => navigate('/admin/login'), 2000);
+        setError('Session expired. Please log in again.');
+        // Optionally redirect to login
+        // navigate('/login');
       } else if (err.response?.status === 403) {
-        errorMessage = 'Access denied. Admin privileges required.';
-      } else if (err.response?.status === 404) {
-        errorMessage = 'Bookings endpoint not found. Please contact support.';
-      } else if (err.code === 'ECONNABORTED' || err.message.includes('timeout')) {
-        errorMessage = 'Request timeout. Please check your connection and try again.';
-      } else if (err.message.includes('Network Error') || !err.response) {
-        errorMessage = 'Unable to connect to server. Please check your internet connection.';
+        setError('Access denied. Admin privileges required.');
       } else {
-        errorMessage = err.response?.data?.message || err.message || 'An unexpected error occurred';
+        setError(err.response?.data?.message || 'Failed to fetch bookings');
       }
 
-      setError(errorMessage);
       setLoading(false);
     }
-  }, [currentPage, limit, filters, navigate]);
+  }, [currentPage, limit, filters]);
 
   // Fetch bookings when component mounts or dependencies change
   useEffect(() => {
@@ -175,11 +119,6 @@ const AdminBookingsList = () => {
   // Handle search input submit
   const handleSearch = (e) => {
     e.preventDefault();
-    fetchBookings();
-  };
-
-  // Retry function
-  const handleRetry = () => {
     fetchBookings();
   };
 
@@ -203,8 +142,6 @@ const AdminBookingsList = () => {
         return 'bg-red-50 text-red-700 border-red-200';
       case 'completed':
         return 'bg-blue-50 text-blue-700 border-blue-200';
-      case 'pending':
-        return 'bg-yellow-50 text-yellow-700 border-yellow-200';
       default:
         return 'bg-gray-50 text-gray-700 border-gray-200';
     }
@@ -216,14 +153,16 @@ const AdminBookingsList = () => {
     console.log(`Navigating to booking details for ID: ${bookingId}`);
   };
 
-  // Update booking status with improved error handling
+  // Update booking status
   const updateStatus = async (bookingId, newStatus) => {
     try {
-      if (!checkAuthentication()) {
+      const token = getAuthToken();
+
+      if (!token) {
+        alert('You are not authenticated. Please log in again.');
         return;
       }
 
-      const token = getAuthToken();
       const headers = {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
@@ -231,31 +170,12 @@ const AdminBookingsList = () => {
 
       console.log(`Updating booking ${bookingId} status to ${newStatus}`);
 
-      // Try different endpoints for updating status
-      const possibleEndpoints = [
-        `/api/bookings/${bookingId}/status`,
-        `/api/admin/bookings/${bookingId}/status`,
-        `/bookings/${bookingId}/status`
-      ];
+      const response = await api.patch(`/api/bookings/${bookingId}/status`,
+        { status: newStatus },
+        { headers }
+      );
 
-      let response = null;
-      let lastError = null;
-
-      for (const endpoint of possibleEndpoints) {
-        try {
-          response = await api.patch(endpoint, { status: newStatus }, { headers });
-          break;
-        } catch (err) {
-          lastError = err;
-          continue;
-        }
-      }
-
-      if (!response) {
-        throw lastError || new Error('Failed to update booking status');
-      }
-
-      if (response.data.success || response.status === 200) {
+      if (response.data.success) {
         // Update the booking in the state
         setBookings(prevBookings =>
           prevBookings.map(booking =>
@@ -266,24 +186,12 @@ const AdminBookingsList = () => {
         );
 
         console.log('Booking status updated successfully');
-        // Show success message (you can implement a toast notification here)
       } else {
-        throw new Error(response.data.message || 'Failed to update booking status');
+        alert(response.data.message || 'Failed to update booking status');
       }
     } catch (err) {
       console.error('Error updating booking status:', err);
-      
-      let errorMessage = 'Failed to update booking status';
-      if (err.response?.status === 401) {
-        errorMessage = 'Session expired. Please log in again.';
-        navigate('/admin/login');
-      } else if (err.response?.status === 403) {
-        errorMessage = 'Access denied. Insufficient permissions.';
-      } else {
-        errorMessage = err.response?.data?.message || err.message || errorMessage;
-      }
-      
-      alert(errorMessage);
+      alert(err.response?.data?.message || 'Failed to update booking status');
     }
   };
 
@@ -316,15 +224,6 @@ const AdminBookingsList = () => {
                 <span className="text-sm text-gray-500">Total Bookings</span>
                 <div className="text-2xl font-bold text-gray-900">{totalBookings}</div>
               </div>
-              <button
-                onClick={handleRetry}
-                className="inline-flex items-center px-4 py-2 border border-blue-300 text-sm font-medium rounded-lg text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
-              >
-                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
-                </svg>
-                Refresh
-              </button>
             </div>
           </div>
         </div>
@@ -356,7 +255,6 @@ const AdminBookingsList = () => {
                 >
                   <option value="">All Statuses</option>
                   <option value="active">Active</option>
-                  <option value="pending">Pending</option>
                   <option value="cancelled">Cancelled</option>
                   <option value="completed">Completed</option>
                 </select>
@@ -446,22 +344,14 @@ const AdminBookingsList = () => {
               <div className="ml-4 text-center sm:text-left">
                 <h3 className="text-lg font-medium text-red-800 mb-2">Error Loading Bookings</h3>
                 <p className="text-red-600 mb-4">{error}</p>
-                <div className="flex flex-col sm:flex-row gap-3">
+                {!getAuthToken() && (
                   <button
-                    onClick={handleRetry}
+                    onClick={() => navigate('/admin/login')}
                     className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
                   >
-                    Try Again
+                    Go to Login
                   </button>
-                  {error.includes('Session expired') || error.includes('log in') && (
-                    <button
-                      onClick={() => navigate('/admin/login')}
-                      className="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
-                    >
-                      Go to Login
-                    </button>
-                  )}
-                </div>
+                )}
               </div>
             </div>
           </div>
@@ -487,20 +377,20 @@ const AdminBookingsList = () => {
             ) : (
               <div className="space-y-6">
                 {bookings.map((booking, index) => (
-                  <div key={booking._id || index} className="bg-white rounded-2xl shadow-sm border border-gray-200 hover:shadow-lg transition-all duration-300 overflow-hidden">
+                  <div key={booking._id} className="bg-white rounded-2xl shadow-sm border border-gray-200 hover:shadow-lg transition-all duration-300 overflow-hidden">
                     <div className="p-6">
                       {/* Card Header */}
                       <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center space-x-4">
                           <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-                            <span className="text-white font-bold text-lg">#{((currentPage - 1) * limit) + index + 1}</span>
+                            <span className="text-white font-bold text-lg">#{index + 1}</span>
                           </div>
                           <div>
                             <h3 className="text-lg font-semibold text-gray-900">
-                              Booking ID: {booking._id?.substring(0, 12) || `TEMP-${index}`}...
+                              Booking ID: {booking._id?.substring(0, 12) || 'N/A'}...
                             </h3>
                             <p className="text-sm text-gray-500">
-                              Created: {formatDate(booking.createdAt || booking.bookingDate)}
+                              Created: {formatDate(booking.createdAt)}
                             </p>
                           </div>
                         </div>
@@ -509,8 +399,7 @@ const AdminBookingsList = () => {
                             <div className={`w-2 h-2 rounded-full mr-2 ${
                               booking.status?.toLowerCase() === 'active' ? 'bg-emerald-400' :
                               booking.status?.toLowerCase() === 'cancelled' ? 'bg-red-400' :
-                              booking.status?.toLowerCase() === 'completed' ? 'bg-blue-400' :
-                              booking.status?.toLowerCase() === 'pending' ? 'bg-yellow-400' : 'bg-gray-400'
+                              booking.status?.toLowerCase() === 'completed' ? 'bg-blue-400' :'bg-gray-400'
                             }`}></div>
                             {booking.status || 'Unknown'}
                           </span>
@@ -524,16 +413,16 @@ const AdminBookingsList = () => {
                           <div className="flex items-center space-x-4">
                             <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center">
                               <span className="text-white font-semibold text-lg">
-                                {(safeGet(booking, 'userId.name') || safeGet(booking, 'user.name') || safeGet(booking, 'userName') || 'U').charAt(0).toUpperCase()}
+                                {(safeGet(booking, 'userId.name') || safeGet(booking, 'user.name') || 'U').charAt(0).toUpperCase()}
                               </span>
                             </div>
                             <div className="flex-1 min-w-0">
                               <h4 className="text-sm font-semibold text-gray-900 mb-1">Customer Details</h4>
                               <p className="text-sm font-medium text-gray-800 truncate">
-                                {safeGet(booking, 'userId.name') || safeGet(booking, 'user.name') || safeGet(booking, 'userName')}
+                                {safeGet(booking, 'userId.name') || safeGet(booking, 'user.name')}
                               </p>
                               <p className="text-sm text-gray-600 truncate">
-                                {safeGet(booking, 'userId.email') || safeGet(booking, 'user.email') || safeGet(booking, 'userEmail')}
+                                {safeGet(booking, 'userId.email') || safeGet(booking, 'user.email')}
                               </p>
                             </div>
                           </div>
@@ -550,10 +439,10 @@ const AdminBookingsList = () => {
                             <div className="flex-1 min-w-0">
                               <h4 className="text-sm font-semibold text-gray-900 mb-1">EV Station</h4>
                               <p className="text-sm font-medium text-gray-800 truncate">
-                                {safeGet(booking, 'bunkId.name') || safeGet(booking, 'bunk.name') || safeGet(booking, 'stationName')}
+                                {safeGet(booking, 'bunkId.name') || safeGet(booking, 'bunk.name')}
                               </p>
                               <p className="text-sm text-gray-600 truncate">
-                                {safeGet(booking, 'bunkId.address') || safeGet(booking, 'bunk.address') || safeGet(booking, 'stationAddress')}
+                                {safeGet(booking, 'bunkId.address') || safeGet(booking, 'bunk.address')}
                               </p>
                             </div>
                           </div>
@@ -566,7 +455,7 @@ const AdminBookingsList = () => {
                             <div className="flex items-center space-x-2">
                               <div className="w-2 h-2 bg-green-400 rounded-full"></div>
                               <span className="text-xs font-medium text-gray-700">Start:</span>
-                              <span className="text-sm text-gray-600">{formatDate(booking.startTime || booking.bookingDate)}</span>
+                              <span className="text-sm text-gray-600">{formatDate(booking.startTime)}</span>
                             </div>
                             <div className="flex items-center space-x-2">
                               <div className="w-2 h-2 bg-red-400 rounded-full"></div>
@@ -576,7 +465,8 @@ const AdminBookingsList = () => {
                           </div>
                         </div>
                       </div>
-{/* Card Actions */}
+
+                      {/* Card Actions */}
                       <div className="flex items-center justify-between mt-6 pt-6 border-t border-gray-100">
                         <div className="flex items-center space-x-4">
                           <button
