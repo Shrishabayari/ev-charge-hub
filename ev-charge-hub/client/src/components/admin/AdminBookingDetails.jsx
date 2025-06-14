@@ -12,21 +12,15 @@ const AdminBookingDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Function to get auth token - Fixed to check both admin and regular tokens
-  const getAuthToken = () => {
-    return localStorage.getItem('adminToken') || 
-           localStorage.getItem('token') || 
-           sessionStorage.getItem('adminToken') || 
-           sessionStorage.getItem('token');
-  };
-
   useEffect(() => {
     const fetchBookingDetail = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        const token = getAuthToken();
+        const token = localStorage.getItem('authToken') ||
+                      localStorage.getItem('token') ||
+                      sessionStorage.getItem('authToken');
 
         if (!token) {
           setError('Authentication required. Please log in.');
@@ -41,16 +35,10 @@ const AdminBookingDetail = () => {
 
         console.log(`Fetching booking details for ID: ${id}`);
 
-        // Use admin endpoint if admin token exists
-        const isAdmin = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
-        const endpoint = isAdmin 
-          ? `/api/admin/bookings/${id}` 
-          : `/api/bookings/${id}`;
-
-        const response = await api.get(endpoint, { headers });
+        // Fixed: Ensure we're using the correct API endpoint
+        const response = await api.get(`/api/admin/bookings/${id}`, { headers });
         console.log("API Response:", response.data);
 
-        // More flexible response data handling
         let bookingData;
         if (response.data.success && response.data.data) {
           bookingData = response.data.data;
@@ -73,17 +61,8 @@ const AdminBookingDetail = () => {
         if (err.response) {
           if (err.response.status === 401) {
             errorMessage = 'Authentication failed. Please log in again.';
-            // Clear all possible tokens
-            localStorage.removeItem('token');
-            localStorage.removeItem('adminToken');
-            sessionStorage.removeItem('token');
-            sessionStorage.removeItem('adminToken');
-            // Redirect to admin login
-            navigate('/admin/login');
           } else if (err.response.status === 404) {
-            errorMessage = 'Booking not found. Please check the booking ID or verify the API endpoint.';
-          } else if (err.response.status === 500) {
-            errorMessage = 'Server error. Please try again later.';
+            errorMessage = 'Booking not found. Please check the booking ID.';
           } else if (err.response.data?.message) {
             errorMessage = err.response.data.message;
           }
@@ -102,11 +81,13 @@ const AdminBookingDetail = () => {
       setError('No booking ID provided');
       setLoading(false);
     }
-  }, [id, navigate]);
+  }, [id]);
 
   const updateStatus = async (newStatus) => {
     try {
-      const token = getAuthToken();
+      const token = localStorage.getItem('authToken') ||
+                    localStorage.getItem('token') ||
+                    sessionStorage.getItem('authToken');
 
       if (!token) {
         alert('You are not authenticated. Please log in again.');
@@ -120,13 +101,12 @@ const AdminBookingDetail = () => {
 
       console.log(`Updating booking ${id} status to ${newStatus}`);
 
-      // Use admin endpoint for status updates
-      const isAdmin = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
-      const endpoint = isAdmin 
-        ? `/api/admin/bookings/${id}/status`
-        : `/api/bookings/${id}/status`;
-
-      const response = await api.patch(endpoint, { status: newStatus }, { headers });
+      // Fixed: Ensure we're using the correct API endpoint
+      const response = await api.patch(
+        `/api/bookings/${id}/status`,
+        { status: newStatus },
+        { headers }
+      );
 
       console.log('Status update response:', response.data);
 
@@ -145,17 +125,7 @@ const AdminBookingDetail = () => {
       if (err.response?.data?.message) {
         errorMessage = err.response.data.message;
       } else if (err.response?.status === 404) {
-        errorMessage = 'Booking not found or status update endpoint not available';
-      } else if (err.response?.status === 403) {
-        errorMessage = 'You do not have permission to update this booking';
-      } else if (err.response?.status === 401) {
-        errorMessage = 'Session expired. Please log in again.';
-        // Clear tokens and redirect
-        localStorage.removeItem('token');
-        localStorage.removeItem('adminToken');
-        navigate('/admin/login');
-      } else if (err.response?.status === 500) {
-        errorMessage = 'Server error. Please try again later.';
+        errorMessage = 'Booking not found or endpoint not available';
       }
 
       alert(errorMessage);
@@ -221,6 +191,47 @@ const AdminBookingDetail = () => {
       return 'N/A';
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-600"></div>
+          <p className="mt-5 text-gray-700 text-xl font-medium">Loading booking details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
+        <div className="bg-white shadow-xl rounded-lg p-8 max-w-md w-full text-center border border-red-200">
+          <div className="flex items-center justify-center text-red-500 mb-4">
+            <svg className="h-12 w-12" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-3">Error Loading Booking</h3>
+          <p className="text-gray-600 mb-6">{error}</p>
+          <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
+            <button
+              onClick={() => window.location.reload()}
+              className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105"
+            >
+              Retry
+            </button>
+            <button
+              onClick={() => navigate('/admin/view-bookings')}
+              className="w-full sm:w-auto bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105"
+            >
+              Back to List
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!booking) {
     return (

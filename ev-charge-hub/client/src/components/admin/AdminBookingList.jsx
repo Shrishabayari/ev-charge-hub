@@ -103,20 +103,6 @@ const AdminBookingsList = () => {
     } catch (err) {
       console.error('Error fetching bookings:', err);
 
-      if (err.response?.status === 401) {
-        setError('Session expired. Please log in again.');
-        // Clear all possible tokens
-        localStorage.removeItem('token');
-        localStorage.removeItem('adminToken');
-        sessionStorage.removeItem('token');
-        sessionStorage.removeItem('adminToken');
-        // Redirect to admin login
-        navigate('/admin/login');
-      } else if (err.response?.status === 403) {
-        setError('Access denied. Admin privileges required.');
-      } else {
-        setError(err.response?.data?.message || err.message || 'Failed to fetch bookings');
-      }
 
       setLoading(false);
     }
@@ -172,7 +158,7 @@ const AdminBookingsList = () => {
 
   // Navigate to booking details
   const viewBookingDetails = (bookingId) => {
-    navigate(`/admin/bookings/${bookingId}`);
+    navigate(`api/admin/bookings/${bookingId}`);
     console.log(`Navigating to booking details for ID: ${bookingId}`);
   };
 
