@@ -1,6 +1,6 @@
 // client/src/pages/admin/AdminBookingsList.jsx
 import React, { useState, useEffect, useCallback } from 'react';
-import { apiMethods } from '../../api'; // Import apiMethods instead of just api
+import { apiMethods } from '../../api'; // Import apiMethods
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import AdminNavbar from "../common/navbars/AdminNavbar";
@@ -53,7 +53,7 @@ const AdminBookingsList = () => {
 
       // Prepare filters for API call
       const apiFilters = { ...filters };
-      // Remove empty filters
+      // Remove empty filters before sending to API
       Object.keys(apiFilters).forEach(key => {
         if (!apiFilters[key]) delete apiFilters[key];
       });
@@ -64,11 +64,13 @@ const AdminBookingsList = () => {
       console.log("API response:", response.data);
 
       let responseData;
+      // Handle various backend response formats
       if (response.data.success) {
         responseData = response.data.data;
       } else if (response.data.bookings) {
         responseData = response.data;
       } else {
+        // Default structure if backend response is just an array or unexpected
         responseData = {
           bookings: Array.isArray(response.data) ? response.data : [],
           pagination: {
@@ -89,13 +91,15 @@ const AdminBookingsList = () => {
       setLoading(false);
       let errorMessage = 'Failed to load bookings. Please try again.';
       if (err.response) {
+        // Server responded with an error status
         if (err.response.status === 401 || err.response.status === 403) {
           errorMessage = 'Authentication required or not authorized to view bookings.';
-          navigate('/admin/login');
+          navigate('/admin/login'); // Redirect to login on auth failure
         } else if (err.response.data && err.response.data.message) {
           errorMessage = err.response.data.message;
         }
       } else if (err.request) {
+        // Request was made but no response received (network error)
         errorMessage = 'No response from server. Please check your network connection.';
       }
       setError(errorMessage);
@@ -123,18 +127,18 @@ const AdminBookingsList = () => {
     fetchBookings(); // Re-fetch with new filters
   };
 
-  // Format date for display
+  // Format date for display (e.g., "Jan 01, 2023 - 14:30")
   const formatDate = (dateString) => {
     try {
       if (!dateString) return 'N/A';
-      return format(new Date(dateString), 'MMM dd, yyyy HH:mm');
+      return format(new Date(dateString), 'MMM dd, yyyy - HH:mm');
     } catch (err) {
       console.error('Date formatting error:', err);
       return 'Invalid date';
     }
   };
 
-  // Handle status badge styling
+  // Get Tailwind CSS classes for status badges
   const getStatusBadgeClass = (status) => {
     switch (status?.toLowerCase()) {
       case 'active':
@@ -150,16 +154,16 @@ const AdminBookingsList = () => {
     }
   };
 
-  // Navigate to booking details
+  // Navigate to booking details page
   const viewBookingDetails = (bookingId) => {
-    navigate(`/admin/bookings/${bookingId}`); // Corrected: ensure this matches your router path
+    navigate(`/admin/bookings/${bookingId}`); // Ensure this matches your React Router path for details
     console.log(`Navigating to booking details for ID: ${bookingId}`);
   };
 
   // Update booking status
   const updateStatus = async (bookingId, newStatus) => {
     try {
-      const token = getAuthToken();
+      const token = getAuthToken(); // Re-check token before action
       if (!token) {
         alert('You are not authenticated. Please log in again.');
         navigate('/admin/login');
@@ -171,6 +175,7 @@ const AdminBookingsList = () => {
       const response = await apiMethods.updateAdminBookingStatus(bookingId, newStatus);
 
       if (response.data.success || response.status === 200) {
+        // Update the booking in the local state to reflect the new status
         setBookings(prevBookings =>
           prevBookings.map(booking =>
             booking._id === bookingId
@@ -199,13 +204,14 @@ const AdminBookingsList = () => {
     }
   };
 
-  // Helper function to safely get nested properties
+  // Helper function to safely access nested object properties
   const safeGet = (obj, path, defaultValue = 'N/A') => {
     return path.split('.').reduce((current, key) =>
       current && typeof current === 'object' && current[key] !== undefined ? current[key] : defaultValue, obj
     );
   };
 
+  // Render loading state
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -223,6 +229,7 @@ const AdminBookingsList = () => {
     );
   }
 
+  // Render error state
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -237,7 +244,7 @@ const AdminBookingsList = () => {
             <h3 className="text-lg font-semibold text-red-800 mb-2">Error Loading Bookings</h3>
             <p className="text-red-700 mb-4">{error}</p>
             <button
-              onClick={fetchBookings}
+              onClick={fetchBookings} // Allows retrying the fetch
               className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
             >
               Try Again

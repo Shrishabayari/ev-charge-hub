@@ -41,6 +41,7 @@ const AdminBookingDetail = () => {
         console.log("API Response:", response.data);
 
         let bookingData;
+        // Handle various backend response formats for a single booking
         if (response.data.success && response.data.data) {
           bookingData = response.data.data;
         } else if (response.data.booking) {
@@ -60,6 +61,7 @@ const AdminBookingDetail = () => {
         let errorMessage = 'Failed to fetch booking details';
 
         if (err.response) {
+          // Server responded with an error status
           if (err.response.status === 401 || err.response.status === 403) {
             errorMessage = 'Authentication failed or not authorized. Please log in again.';
             navigate('/admin/login'); // Redirect to admin login on auth failure
@@ -69,6 +71,7 @@ const AdminBookingDetail = () => {
             errorMessage = err.response.data.message;
           }
         } else if (err.message) {
+          // Client-side error (e.g., network issues)
           errorMessage = err.message;
         }
 
@@ -77,17 +80,17 @@ const AdminBookingDetail = () => {
       }
     };
 
-    if (id) {
+    if (id) { // Only fetch if an ID is present in the URL
       fetchBookingDetail();
     } else {
       setError('No booking ID provided');
       setLoading(false);
     }
-  }, [id, getAuthToken, navigate]); // Added getAuthToken and navigate to dependencies
+  }, [id, getAuthToken, navigate]); // Added getAuthToken and navigate to dependencies for useCallback
 
   const updateStatus = async (newStatus) => {
     try {
-      const token = getAuthToken();
+      const token = getAuthToken(); // Re-check token before performing action
       if (!token) {
         alert('You are not authenticated. Please log in again.');
         navigate('/admin/login');
@@ -101,6 +104,7 @@ const AdminBookingDetail = () => {
       console.log('Status update response:', response.data);
 
       if (response.data.success || response.status === 200) {
+        // Update the booking status in the local state
         setBooking(prev => ({
           ...prev,
           status: newStatus
@@ -127,21 +131,23 @@ const AdminBookingDetail = () => {
     }
   };
 
+  // Format date for display (e.g., "Jan 01, 2023 - 02:30 PM")
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
 
     try {
       const date = new Date(dateString);
-      if (isNaN(date.getTime())) {
+      if (isNaN(date.getTime())) { // Check for invalid date objects
         return 'Invalid date';
       }
-      return format(date, 'MMM dd, yyyy - hh:mm a'); // Included year for better clarity
+      return format(date, 'MMM dd, yyyy - hh:mm a'); // Changed to include year and AM/PM
     } catch (err) {
       console.error("Date formatting error:", err);
       return 'Invalid date';
     }
   };
 
+  // Get Tailwind CSS classes for status badges based on status string
   const getStatusBadgeClass = (status) => {
     switch (status?.toLowerCase()) {
       case 'active':
@@ -157,6 +163,7 @@ const AdminBookingDetail = () => {
     }
   };
 
+  // Calculate and format the duration between start and end times
   const calculateDuration = (startTime, endTime) => {
     if (!startTime || !endTime) return 'N/A';
 
@@ -187,6 +194,7 @@ const AdminBookingDetail = () => {
     }
   };
 
+  // Render loading state while data is being fetched
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
@@ -198,6 +206,7 @@ const AdminBookingDetail = () => {
     );
   }
 
+  // Render error state if an error occurred during fetch
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
@@ -211,13 +220,13 @@ const AdminBookingDetail = () => {
           <p className="text-gray-600 mb-6">{error}</p>
           <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
             <button
-              onClick={() => window.location.reload()}
+              onClick={() => window.location.reload()} // Reloads the page to retry
               className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105"
             >
               Retry
             </button>
             <button
-              onClick={() => navigate('/admin/view-bookings')}
+              onClick={() => navigate('/admin/view-bookings')} // Navigates back to the list
               className="w-full sm:w-auto bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105"
             >
               Back to List
@@ -228,6 +237,7 @@ const AdminBookingDetail = () => {
     );
   }
 
+  // Render "No Booking Data" state if booking is null after loading
   if (!booking) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
@@ -249,7 +259,7 @@ const AdminBookingDetail = () => {
     <div className="min-h-screen bg-gray-50">
       <AdminNavbar />
       <div className="container mx-auto px-4 py-10 max-w-7xl">
-        {/* Header */}
+        {/* Header Section */}
         <div className="flex flex-col sm:flex-row items-center justify-between mb-8 md:mb-10">
           <div>
             <h1 className="text-4xl font-extrabold text-gray-900 leading-tight">Booking Details</h1>
@@ -266,8 +276,9 @@ const AdminBookingDetail = () => {
           </button>
         </div>
 
+        {/* Main Booking Details Card */}
         <div className="bg-white shadow-2xl rounded-2xl overflow-hidden border border-gray-100">
-          {/* Header section with ID and status */}
+          {/* Header section with Booking ID and Status */}
           <div className="border-b border-gray-200 bg-gradient-to-br from-indigo-50 to-purple-50 px-8 py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold text-gray-900 flex items-center">
@@ -293,6 +304,7 @@ const AdminBookingDetail = () => {
                   value={booking.status || ''}
                   onChange={(e) => updateStatus(e.target.value)}
                   className="block w-full pl-4 pr-10 py-2 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-200 appearance-none bg-white font-medium text-gray-700 cursor-pointer"
+                  // Inline style for custom arrow icon
                   style={{ backgroundImage: "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3e%3cpath d='M7 7l3-3 3 3m0 6l-3 3-3-3' stroke='%236B7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3e%3c/svg%3e\")", backgroundPosition: "right 0.75rem center", backgroundRepeat: "no-repeat", backgroundSize: "1.5em 1.5em" }}
                 >
                   <option value="active">Active</option>
@@ -304,9 +316,9 @@ const AdminBookingDetail = () => {
             </div>
           </div>
 
-          {/* Main content */}
+          {/* Main content sections */}
           <div className="p-8 md:p-10">
-            {/* User information */}
+            {/* User Information Section */}
             <div className="mb-10">
               <h3 className="text-xl font-bold mb-6 text-gray-900 pb-3 flex items-center border-b border-gray-200">
                 <svg className="w-6 h-6 mr-3 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -336,7 +348,7 @@ const AdminBookingDetail = () => {
               </div>
             </div>
 
-            {/* Charging Station Information */}
+            {/* Charging Station Information Section */}
             <div className="mb-10">
               <h3 className="text-xl font-bold mb-6 text-gray-900 pb-3 flex items-center border-b border-gray-200">
                 <svg className="w-6 h-6 mr-3 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -373,7 +385,7 @@ const AdminBookingDetail = () => {
               </div>
             </div>
 
-            {/* Booking & Slot Details */}
+            {/* Booking & Slot Details Section */}
             <div className="mb-10">
               <h3 className="text-xl font-bold mb-6 text-gray-900 pb-3 flex items-center border-b border-gray-200">
                 <svg className="w-6 h-6 mr-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -411,7 +423,7 @@ const AdminBookingDetail = () => {
               </div>
             </div>
 
-            {/* Vehicle Information */}
+            {/* Vehicle Information Section (Conditionally rendered) */}
             {(booking.vehicle || booking.vehicleId || booking.vehicleModel || booking.vehicleNumber) && (
               <div className="mb-10">
                 <h3 className="text-xl font-bold mb-6 text-gray-900 pb-3 flex items-center border-b border-gray-200">
@@ -449,7 +461,7 @@ const AdminBookingDetail = () => {
               </div>
             )}
 
-            {/* System Information */}
+            {/* System Information Section */}
             <div className="mb-10">
               <h3 className="text-xl font-bold mb-6 text-gray-900 pb-3 flex items-center border-b border-gray-200">
                 <svg className="w-6 h-6 mr-3 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -474,7 +486,7 @@ const AdminBookingDetail = () => {
               </div>
             </div>
 
-            {/* Action Buttons */}
+            {/* Action Buttons Section */}
             <div className="flex flex-wrap justify-end gap-4 mt-12 pt-8 border-t border-gray-200">
               <button
                 onClick={() => window.print()}
