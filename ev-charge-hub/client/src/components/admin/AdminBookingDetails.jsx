@@ -1,7 +1,7 @@
 // client/src/pages/admin/AdminBookingDetail.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { apiMethods } from '../../api'; // Import apiMethods
+import { apiMethods } from '../../api'; // Import apiMethods from '../../api'
 import { format } from 'date-fns';
 import AdminNavbar from "../common/navbars/AdminNavbar";
 import Footer from "../common/Footer";
@@ -13,11 +13,12 @@ const AdminBookingDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Helper function to get auth token for client-side checks
+  // Helper function to get auth token from storage
   const getAuthToken = useCallback(() => {
+    // Prioritize adminToken, then generic token, checking both localStorage and sessionStorage
     return localStorage.getItem('adminToken') ||
-           localStorage.getItem('token') ||
            sessionStorage.getItem('adminToken') ||
+           localStorage.getItem('token') ||
            sessionStorage.getItem('token');
   }, []);
 
@@ -28,28 +29,34 @@ const AdminBookingDetail = () => {
         setError(null);
 
         const token = getAuthToken();
+        console.log("Authentication token:", token ? "Found" : "Not found");
+
         if (!token) {
-          setError('Authentication required. Please log in.');
+          console.warn("No authentication token found. Redirecting to admin login.");
+          setError('You are not authenticated. Please log in.');
           navigate('/admin/login'); // Redirect to admin login if no token
           setLoading(false);
           return;
         }
 
         console.log(`Fetching booking details for ID: ${id}`);
-        // Use the dedicated admin method from apiMethods
+        // Use the dedicated admin method from apiMethods for fetching specific admin booking details
         const response = await apiMethods.getAdminBookingDetails(id);
         console.log("API Response:", response.data);
 
         let bookingData;
-        // Handle various backend response formats for a single booking
+        // Backend response might vary, handle different successful structures
         if (response.data.success && response.data.data) {
           bookingData = response.data.data;
         } else if (response.data.booking) {
+          // Fallback for direct 'booking' field
           bookingData = response.data.booking;
-        } else if (response.data.data) { // Fallback if data is directly in 'data' field
+        } else if (response.data.data) {
+          // Another fallback if data is directly in 'data' field without 'success'
           bookingData = response.data.data;
         } else {
-          bookingData = response.data; // Fallback if response.data is the booking object itself
+          // Default to response.data itself if it's the booking object
+          bookingData = response.data;
         }
 
         console.log("Processed booking data:", bookingData);
@@ -57,40 +64,45 @@ const AdminBookingDetail = () => {
         setLoading(false);
       } catch (err) {
         console.error('Error fetching booking details:', err);
+        setLoading(false);
+        let errorMessage = 'Failed to fetch booking details. Please try again.';
 
-        let errorMessage = 'Failed to fetch booking details';
-
+        // More specific error handling based on response status
         if (err.response) {
-          // Server responded with an error status
           if (err.response.status === 401 || err.response.status === 403) {
             errorMessage = 'Authentication failed or not authorized. Please log in again.';
-            navigate('/admin/login'); // Redirect to admin login on auth failure
+            // Clear tokens and redirect on auth failure
+            localStorage.removeItem('token');
+            localStorage.removeItem('adminToken');
+            sessionStorage.removeItem('token');
+            sessionStorage.removeItem('adminToken');
+            navigate('/admin/login');
           } else if (err.response.status === 404) {
             errorMessage = 'Booking not found. Please check the booking ID or ensure it exists.';
-          } else if (err.response.data?.message) {
+          } else if (err.response.data && err.response.data.message) {
             errorMessage = err.response.data.message;
           }
-        } else if (err.message) {
-          // Client-side error (e.g., network issues)
-          errorMessage = err.message;
+        } else if (err.request) {
+          errorMessage = 'No response from server. Please check your network connection.';
+        } else {
+          errorMessage = err.message || 'An unknown error occurred.';
         }
-
         setError(errorMessage);
-        setLoading(false);
       }
     };
 
-    if (id) { // Only fetch if an ID is present in the URL
+    if (id) { // Only fetch if an ID is present in the URL parameters
       fetchBookingDetail();
     } else {
-      setError('No booking ID provided');
+      setError('No booking ID provided in the URL.');
       setLoading(false);
     }
-  }, [id, getAuthToken, navigate]); // Added getAuthToken and navigate to dependencies for useCallback
+  }, [id, getAuthToken, navigate]); // Added dependencies for useCallback
 
+  // Update booking status (e.g., active, cancelled, completed, pending)
   const updateStatus = async (newStatus) => {
     try {
-      const token = getAuthToken(); // Re-check token before performing action
+      const token = getAuthToken(); // Re-check token before performing the action
       if (!token) {
         alert('You are not authenticated. Please log in again.');
         navigate('/admin/login');
@@ -98,13 +110,13 @@ const AdminBookingDetail = () => {
       }
 
       console.log(`Updating booking ${id} status to ${newStatus}`);
-      // Use the dedicated admin method from apiMethods
+      // Use the dedicated admin method from apiMethods for updating booking status
       const response = await apiMethods.updateAdminBookingStatus(id, newStatus);
 
       console.log('Status update response:', response.data);
 
       if (response.data.success || response.status === 200) {
-        // Update the booking status in the local state
+        // Update the booking status in the local state immediately
         setBooking(prev => ({
           ...prev,
           status: newStatus
@@ -115,15 +127,16 @@ const AdminBookingDetail = () => {
       }
     } catch (err) {
       console.error('Error updating booking status:', err);
-
-      let errorMessage = 'Failed to update booking status';
+      let errorMessage = 'Failed to update booking status.';
       if (err.response?.data?.message) {
         errorMessage = err.response.data.message;
-      } else if (err.response?.status === 401) {
-        errorMessage = 'Session expired. Please log in again.';
+      } else if (err.response?.status === 401 || err.response?.status === 403) {
+        errorMessage = 'Session expired or unauthorized. Please log in again.';
+        localStorage.removeItem('token');
+        localStorage.removeItem('adminToken');
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('adminToken');
         navigate('/admin/login');
-      } else if (err.response?.status === 403) {
-        errorMessage = 'You do not have permission to update this booking.';
       } else if (err.response?.status === 404) {
         errorMessage = 'Booking not found or endpoint not available.';
       }
@@ -140,7 +153,7 @@ const AdminBookingDetail = () => {
       if (isNaN(date.getTime())) { // Check for invalid date objects
         return 'Invalid date';
       }
-      return format(date, 'MMM dd, yyyy - hh:mm a'); // Changed to include year and AM/PM
+      return format(date, 'MMM dd,yyyy - hh:mm a'); // Changed to include year and AM/PM
     } catch (err) {
       console.error("Date formatting error:", err);
       return 'Invalid date';
