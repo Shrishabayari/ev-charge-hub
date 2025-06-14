@@ -1,22 +1,26 @@
-// client/src/api.js - CORRECTED VERSION
+// client/src/api.js
 import axios from 'axios';
 
+// Base URL for the API. Uses environment variable or falls back to localhost.
+// Make sure REACT_APP_API_URL is set to 'https://ev-charge-hub-server1.onrender.com' in your client's .env file for production.
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 15000,
+  timeout: 15000, // Request timeout in milliseconds
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Request interceptor
+// Request interceptor: Adds Authorization header with token if available.
+// Prioritizes 'adminToken' over generic 'token'.
 api.interceptors.request.use(
   (config) => {
     const adminToken = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
     const userToken = localStorage.getItem('token') || sessionStorage.getItem('token');
     
+    // Attach the admin token if it exists, otherwise attach the generic user token
     if (adminToken) {
       config.headers.Authorization = `Bearer ${adminToken}`;
     } else if (userToken) {
@@ -24,6 +28,7 @@ api.interceptors.request.use(
     }
     
     console.log(`🔄 API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
+    
     return config;
   },
   (error) => {
@@ -32,7 +37,7 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor
+// Response interceptor: Handles responses and errors globally.
 api.interceptors.response.use(
   (response) => {
     console.log(`✅ API Response: ${response.status} ${response.config.url}`);
@@ -47,12 +52,15 @@ api.interceptors.response.use(
       
       switch (status) {
         case 401:
+          // Unauthorized: Clear all tokens and redirect to login
           localStorage.removeItem('token');
           localStorage.removeItem('adminToken');
           sessionStorage.removeItem('token');
           sessionStorage.removeItem('adminToken');
           
+          // Only redirect if not already on a login page to prevent infinite redirects
           if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/admin/login')) {
+            // Decide where to redirect based on context, here it's generic login
             window.location.href = '/login'; 
           }
           break;
@@ -73,31 +81,35 @@ api.interceptors.response.use(
       return Promise.reject(new Error(errorMessage));
       
     } else if (error.request) {
+      // The request was made but no response was received (e.g., network error)
       console.error('No response received from server:', error.request);
       return Promise.reject(new Error('Cannot connect to server. Please check your internet connection.'));
     } else {
+      // Something happened in setting up the request that triggered an Error
       console.error('Request setup error:', error.message);
       return Promise.reject(error);
     }
   }
 );
 
-// CORRECTED API endpoints - try multiple possible backend routes
+// API endpoints object for better organization
 export const endpoints = {
+  // EV Bunks endpoints
   bunks: {
     getAll: '/api/bunks',
     getById: (id) => `/api/bunks/${id}`,
     create: '/api/bunks',
     update: (id) => `/api/bunks/${id}`,
     delete: (id) => `/api/bunks/${id}`,
-    getAvailable: '/api/bunks/available',
-    getNearby: '/api/bunks/nearby',
-    search: '/api/bunks/search',
-    getByConnector: '/api/bunks/connector',
+    getAvailable: '/api/bunks/available', // Example, adjust if needed
+    getNearby: '/api/bunks/nearby',     // Example, adjust if needed
+    search: '/api/bunks/search',        // Example, adjust if needed
+    getByConnector: '/api/bunks/connector', // Example, adjust if needed
   },
   
+  // Booking endpoints
   bookings: {
-    // User-facing booking endpoints
+    // User-facing (non-admin) booking endpoints
     getByBunk: (bunkId) => `/api/bookings/bunk/${bunkId}`,
     checkAvailability: '/api/bookings/check-availability',
     getAvailableSlots: (bunkId, date) => `/api/bookings/available-slots/${bunkId}/${date}`,
@@ -106,37 +118,33 @@ export const endpoints = {
     cancel: (id) => `/api/bookings/cancel/${id}`,
     reschedule: (id) => `/api/bookings/reschedule/${id}`,
 
-    // CORRECTED: Try common admin booking route patterns
+    // Admin-specific booking endpoints - CORRECTED PATHS
     admin: {
-      // Try these different possible routes your backend might be using:
-      getAll: '/api/bookings', // Most common - all bookings (admin gets all by default)
-      // Alternative routes to try if above fails:
-      // getAll: '/api/admin/bookings', 
-      // getAll: '/api/bookings/all',
-      // getAll: '/api/bookings/admin',
-      
-      getStats: '/api/bookings/stats',
-      getDetails: (id) => `/api/bookings/${id}`,
-      updateStatus: (id) => `/api/bookings/${id}/status`,
+      getAll: '/api/bookings/admin/all', // CORRECTED: Matches backend route
+      getStats: '/api/bookings/admin/stats', // CORRECTED: Matches backend route
+      getDetails: (id) => `/api/bookings/admin/${id}`, // CORRECTED: Matches backend route
+      updateStatus: (id) => `/api/bookings/admin/${id}/status`, // CORRECTED: Matches backend route
     }
   },
   
+  // Auth endpoints (for regular users)
   auth: {
     login: '/api/users/login',
     register: '/api/users/register',
     profile: '/api/users/profile',
   },
   
+  // Admin-specific endpoints (for admin users)
   admin: {
     login: '/api/admin/login',
     register: '/api/admin/register',
     profile: '/api/admin/profile',
     users: '/api/admin/users',
-    stats: '/api/admin/stats',
+    stats: '/api/admin/stats', // General admin stats
   }
 };
 
-// Enhanced API methods with fallback route attempts
+// Enhanced convenience methods for making API calls
 export const apiMethods = {
   // Bunk operations
   getAllBunks: () => api.get(endpoints.bunks.getAll),
@@ -163,47 +171,16 @@ export const apiMethods = {
   checkSlotAvailability: (data) => api.post(endpoints.bookings.checkAvailability, data),
   getAvailableSlots: (bunkId, date) => api.get(endpoints.bookings.getAvailableSlots(bunkId, date)),
 
-  // ENHANCED: Admin booking operations with fallback attempts
-  getAllAdminBookings: async (page = 1, limit = 10, filters = {}) => {
+  // Admin-specific booking operations - ALWAYS target admin endpoints
+  getAllAdminBookings: (page = 1, limit = 10, filters = {}) => {
     const params = { page, limit, ...filters };
-    
-    // List of possible routes your backend might be using
-    const possibleRoutes = [
-      '/api/bookings',           // Most common - admin gets all bookings
-      '/api/admin/bookings',     // Admin-prefixed route
-      '/api/bookings/all',       // Explicit 'all' route
-      '/api/bookings/admin',     // Admin suffix
-      '/api/bookings/admin/all', // Your original route
-    ];
-    
-    // Try each route until one works
-    for (const route of possibleRoutes) {
-      try {
-        console.log(`🔄 Trying admin bookings route: ${route}`);
-        const response = await api.get(route, { params });
-        console.log(`✅ Successfully fetched admin bookings from: ${route}`);
-        return response;
-      } catch (error) {
-        if (error.response?.status === 404) {
-          console.log(`❌ Route not found: ${route}, trying next...`);
-          continue; // Try next route
-        } else {
-          // If it's not a 404, it's a different error (auth, server, etc)
-          console.error(`❌ Error with route ${route}:`, error.message);
-          throw error; // Re-throw non-404 errors
-        }
-      }
-    }
-    
-    // If all routes failed
-    throw new Error('No valid admin bookings endpoint found. Please check your backend routes.');
+    return api.get(endpoints.bookings.admin.getAll, { params });
   },
-  
-  getAdminBookingDetails: (id) => api.get(endpoints.bookings.admin.getDetails(id)),
-  getAdminBookingStats: () => api.get(endpoints.bookings.admin.getStats),
-  updateAdminBookingStatus: (id, status) => api.patch(endpoints.bookings.admin.updateStatus(id), { status }),
+  getAdminBookingDetails: (id) => api.get(endpoints.bookings.admin.getDetails(id)), // ADDED
+  getAdminBookingStats: () => api.get(endpoints.bookings.admin.getStats), // Renamed for clarity
+  updateAdminBookingStatus: (id, status) => api.patch(endpoints.bookings.admin.updateStatus(id), { status }), // Renamed for clarity
 
-  // Auth operations
+  // Auth operations (for regular users)
   login: (credentials) => api.post(endpoints.auth.login, credentials),
   register: (userData) => api.post(endpoints.auth.register, userData),
   getProfile: () => api.get(endpoints.auth.profile),
