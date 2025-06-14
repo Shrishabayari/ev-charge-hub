@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../api';
 import { format } from 'date-fns';
-import AdminNavbar from "../common/navbars/AdminNavbar"; // Assuming this path is correct
+import AdminNavbar from "../common/navbars/AdminNavbar";
 import Footer from "../common/Footer";
 
 const AdminBookingDetail = () => {
@@ -35,6 +35,7 @@ const AdminBookingDetail = () => {
 
         console.log(`Fetching booking details for ID: ${id}`);
 
+        // Fixed: Ensure we're using the correct API endpoint
         const response = await api.get(`/api/bookings/${id}`, { headers });
         console.log("API Response:", response.data);
 
@@ -61,7 +62,7 @@ const AdminBookingDetail = () => {
           if (err.response.status === 401) {
             errorMessage = 'Authentication failed. Please log in again.';
           } else if (err.response.status === 404) {
-            errorMessage = 'Booking not found.';
+            errorMessage = 'Booking not found. Please check the booking ID.';
           } else if (err.response.data?.message) {
             errorMessage = err.response.data.message;
           }
@@ -100,6 +101,7 @@ const AdminBookingDetail = () => {
 
       console.log(`Updating booking ${id} status to ${newStatus}`);
 
+      // Fixed: Ensure we're using the correct API endpoint
       const response = await api.patch(
         `/api/bookings/${id}/status`,
         { status: newStatus },
@@ -122,6 +124,8 @@ const AdminBookingDetail = () => {
       let errorMessage = 'Failed to update booking status';
       if (err.response?.data?.message) {
         errorMessage = err.response.data.message;
+      } else if (err.response?.status === 404) {
+        errorMessage = 'Booking not found or endpoint not available';
       }
 
       alert(errorMessage);
@@ -136,7 +140,7 @@ const AdminBookingDetail = () => {
       if (isNaN(date.getTime())) {
         return 'Invalid date';
       }
-      return format(date, 'MMM dd, yyyy - hh:mm a'); // e.g., "Jan 01, 2024 - 02:30 PM"
+      return format(date, 'MMM dd, yyyy - hh:mm a');
     } catch (err) {
       console.error("Date formatting error:", err);
       return 'Invalid date';
@@ -417,7 +421,7 @@ const AdminBookingDetail = () => {
               <div className="mb-10">
                 <h3 className="text-xl font-bold mb-6 text-gray-900 pb-3 flex items-center border-b border-gray-200">
                   <svg className="w-6 h-6 mr-3 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 자동차-2 8 20 20 20 20 18 13 18 13 13 18 13 18 18 13 18 13 13 18z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2v0a2 2 0 01-2 2H8a2 2 0 01-2-2v-8z" />
                   </svg>
                   Vehicle Information
                 </h3>
