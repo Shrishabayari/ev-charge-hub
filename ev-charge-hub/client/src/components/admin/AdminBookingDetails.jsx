@@ -20,7 +20,6 @@ const AdminBookingDetail = () => {
 
         const token = localStorage.getItem('authToken') ||
                       localStorage.getItem('token') ||
-                      localStorage.getItem('userToken') ||
                       sessionStorage.getItem('authToken');
 
         if (!token) {
@@ -87,7 +86,6 @@ const AdminBookingDetail = () => {
     try {
       const token = localStorage.getItem('authToken') ||
                     localStorage.getItem('token') ||
-                    localStorage.getItem('userToken') ||
                     sessionStorage.getItem('authToken');
 
       if (!token) {
