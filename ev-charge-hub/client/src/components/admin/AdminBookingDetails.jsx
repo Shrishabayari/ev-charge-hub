@@ -1,7 +1,6 @@
-// client/src/pages/admin/AdminBookingDetail.jsx
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { apiMethods } from '../../api'; // Import apiMethods from '../../api'
+import api from '../../api';
 import { format } from 'date-fns';
 import AdminNavbar from "../common/navbars/AdminNavbar";
 import Footer from "../common/Footer";
@@ -13,63 +12,40 @@ const AdminBookingDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Helper function to get auth token from storage
-  const getAuthToken = useCallback(() => {
-    // Prioritize adminToken, then generic token, checking both localStorage and sessionStorage
-    return localStorage.getItem('adminToken') ||
-           sessionStorage.getItem('adminToken') ||
-           localStorage.getItem('token') ||
-           sessionStorage.getItem('token');
-  }, []);
-
   useEffect(() => {
     const fetchBookingDetail = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        const token = getAuthToken();
-        console.log("Authentication token:", token ? "Found" : "Not found");
+        const token = localStorage.getItem('authToken') ||
+                      localStorage.getItem('token') ||
+                      sessionStorage.getItem('authToken');
 
         if (!token) {
-          console.warn("No authentication token found. Redirecting to admin login.");
-          setError('You are not authenticated. Please log in.');
-          navigate('/admin/login');
+          setError('Authentication required. Please log in.');
           setLoading(false);
           return;
         }
 
+        const headers = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        };
+
         console.log(`Fetching booking details for ID: ${id}`);
-        
-        // Try multiple possible API endpoints for getting booking details
-        let response;
-        try {
-          // First try the dedicated admin method
-          response = await apiMethods.getAdminBookingDetails(id);
-        } catch (error) {
-          if (error.response?.status === 404) {
-            // If admin-specific endpoint doesn't exist, try general booking endpoint
-            console.log('Admin endpoint not found, trying general booking endpoint...');
-            response = await apiMethods.getBookingById(id);
-          } else {
-            throw error;
-          }
-        }
-        
+
+        const response = await api.get(`/api/bookings/admin/${id}`, { headers });
         console.log("API Response:", response.data);
 
         let bookingData;
-        // Backend response might vary, handle different successful structures
         if (response.data.success && response.data.data) {
           bookingData = response.data.data;
         } else if (response.data.booking) {
-          // Fallback for direct 'booking' field
           bookingData = response.data.booking;
         } else if (response.data.data) {
-          // Another fallback if data is directly in 'data' field without 'success'
           bookingData = response.data.data;
         } else {
-          // Default to response.data itself if it's the booking object
           bookingData = response.data;
         }
 
@@ -78,99 +54,83 @@ const AdminBookingDetail = () => {
         setLoading(false);
       } catch (err) {
         console.error('Error fetching booking details:', err);
-        setLoading(false);
-        let errorMessage = 'Failed to fetch booking details. Please try again.';
 
-        // More specific error handling based on response status
+        let errorMessage = 'Failed to fetch booking details';
+
         if (err.response) {
-          if (err.response.status === 401 || err.response.status === 403) {
-            errorMessage = 'Authentication failed or not authorized. Please log in again.';
-            // Clear tokens and redirect on auth failure
-            localStorage.removeItem('token');
-            localStorage.removeItem('adminToken');
-            sessionStorage.removeItem('token');
-            sessionStorage.removeItem('adminToken');
-            navigate('/admin/login');
+          if (err.response.status === 401) {
+            errorMessage = 'Authentication failed. Please log in again.';
           } else if (err.response.status === 404) {
-            errorMessage = 'Booking not found. Please check the booking ID or ensure it exists.';
-          } else if (err.response.data && err.response.data.message) {
+            errorMessage = 'Booking not found. Please check the booking ID.';
+          } else if (err.response.data?.message) {
             errorMessage = err.response.data.message;
           }
-        } else if (err.request) {
-          errorMessage = 'No response from server. Please check your network connection.';
-        } else {
-          errorMessage = err.message || 'An unknown error occurred.';
+        } else if (err.message) {
+          errorMessage = err.message;
         }
+
         setError(errorMessage);
+        setLoading(false);
       }
     };
 
     if (id) {
       fetchBookingDetail();
     } else {
-      setError('No booking ID provided in the URL.');
+      setError('No booking ID provided');
       setLoading(false);
     }
-  }, [id, getAuthToken, navigate]);
+  }, [id]);
 
-  // Update booking status (e.g., active, cancelled, completed, pending)
   const updateStatus = async (newStatus) => {
     try {
-      const token = getAuthToken();
+      const token = localStorage.getItem('authToken') ||
+                      localStorage.getItem('token') ||
+                      sessionStorage.getItem('authToken');
+
       if (!token) {
         alert('You are not authenticated. Please log in again.');
-        navigate('/admin/login');
         return;
       }
 
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      };
+
       console.log(`Updating booking ${id} status to ${newStatus}`);
-      
-      // Try multiple possible API endpoints for updating booking status
-      let response;
-      try {
-        response = await apiMethods.updateAdminBookingStatus(id, newStatus);
-      } catch (error) {
-        if (error.response?.status === 404) {
-          // If admin-specific endpoint doesn't exist, try general update endpoint
-          console.log('Admin update endpoint not found, trying general update endpoint...');
-          response = await apiMethods.updateBookingStatus(id, { status: newStatus });
-        } else {
-          throw error;
-        }
-      }
+
+      // FIXED: Ensure we're using the correct API endpoint with the actual ID
+      const response = await api.patch(
+        `/api/bookings/admin/${id}/status`, // Corrected line
+        { status: newStatus },
+        { headers }
+      );
 
       console.log('Status update response:', response.data);
 
       if (response.data.success || response.status === 200) {
-        // Update the booking status in the local state immediately
         setBooking(prev => ({
           ...prev,
           status: newStatus
         }));
+
         alert(`Booking status updated to ${newStatus} successfully!`);
-      } else {
-        alert(response.data.message || 'Failed to update booking status');
       }
     } catch (err) {
       console.error('Error updating booking status:', err);
-      let errorMessage = 'Failed to update booking status.';
+
+      let errorMessage = 'Failed to update booking status';
       if (err.response?.data?.message) {
         errorMessage = err.response.data.message;
-      } else if (err.response?.status === 401 || err.response?.status === 403) {
-        errorMessage = 'Session expired or unauthorized. Please log in again.';
-        localStorage.removeItem('token');
-        localStorage.removeItem('adminToken');
-        sessionStorage.removeItem('token');
-        sessionStorage.removeItem('adminToken');
-        navigate('/admin/login');
       } else if (err.response?.status === 404) {
-        errorMessage = 'Booking not found or endpoint not available.';
+        errorMessage = 'Booking not found or endpoint not available';
       }
+
       alert(errorMessage);
     }
   };
 
-  // Format date for display (e.g., "Jan 01, 2023 - 02:30 PM")
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
 
@@ -186,7 +146,6 @@ const AdminBookingDetail = () => {
     }
   };
 
-  // Get Tailwind CSS classes for status badges based on status string
   const getStatusBadgeClass = (status) => {
     switch (status?.toLowerCase()) {
       case 'active':
@@ -202,7 +161,6 @@ const AdminBookingDetail = () => {
     }
   };
 
-  // Calculate and format the duration between start and end times
   const calculateDuration = (startTime, endTime) => {
     if (!startTime || !endTime) return 'N/A';
 
@@ -233,7 +191,6 @@ const AdminBookingDetail = () => {
     }
   };
 
-  // Render loading state while data is being fetched
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
@@ -245,7 +202,6 @@ const AdminBookingDetail = () => {
     );
   }
 
-  // Render error state if an error occurred during fetch
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
@@ -276,7 +232,6 @@ const AdminBookingDetail = () => {
     );
   }
 
-  // Render "No Booking Data" state if booking is null after loading
   if (!booking) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
@@ -298,7 +253,7 @@ const AdminBookingDetail = () => {
     <div className="min-h-screen bg-gray-50">
       <AdminNavbar />
       <div className="container mx-auto px-4 py-10 max-w-7xl">
-        {/* Header Section */}
+        {/* Header */}
         <div className="flex flex-col sm:flex-row items-center justify-between mb-8 md:mb-10">
           <div>
             <h1 className="text-4xl font-extrabold text-gray-900 leading-tight">Booking Details</h1>
@@ -315,9 +270,8 @@ const AdminBookingDetail = () => {
           </button>
         </div>
 
-        {/* Main Booking Details Card */}
         <div className="bg-white shadow-2xl rounded-2xl overflow-hidden border border-gray-100">
-          {/* Header section with Booking ID and Status */}
+          {/* Header section with ID and status */}
           <div className="border-b border-gray-200 bg-gradient-to-br from-indigo-50 to-purple-50 px-8 py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold text-gray-900 flex items-center">
@@ -343,12 +297,7 @@ const AdminBookingDetail = () => {
                   value={booking.status || ''}
                   onChange={(e) => updateStatus(e.target.value)}
                   className="block w-full pl-4 pr-10 py-2 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-200 appearance-none bg-white font-medium text-gray-700 cursor-pointer"
-                  style={{ 
-                    backgroundImage: "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3e%3cpath d='M7 7l3-3 3 3m0 6l-3 3-3-3' stroke='%236B7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3e%3c/svg%3e\")", 
-                    backgroundPosition: "right 0.75rem center", 
-                    backgroundRepeat: "no-repeat", 
-                    backgroundSize: "1.5em 1.5em" 
-                  }}
+                  style={{ backgroundImage: "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3e%3cpath d='M7 7l3-3 3 3m0 6l-3 3-3-3' stroke='%236B7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3e%3c/svg%3e\")", backgroundPosition: "right 0.75rem center", backgroundRepeat: "no-repeat", backgroundSize: "1.5em 1.5em" }}
                 >
                   <option value="active">Active</option>
                   <option value="cancelled">Cancelled</option>
@@ -359,9 +308,9 @@ const AdminBookingDetail = () => {
             </div>
           </div>
 
-          {/* Main content sections */}
+          {/* Main content */}
           <div className="p-8 md:p-10">
-            {/* User Information Section */}
+            {/* User information */}
             <div className="mb-10">
               <h3 className="text-xl font-bold mb-6 text-gray-900 pb-3 flex items-center border-b border-gray-200">
                 <svg className="w-6 h-6 mr-3 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -391,7 +340,7 @@ const AdminBookingDetail = () => {
               </div>
             </div>
 
-            {/* Charging Station Information Section */}
+            {/* Charging Station Information */}
             <div className="mb-10">
               <h3 className="text-xl font-bold mb-6 text-gray-900 pb-3 flex items-center border-b border-gray-200">
                 <svg className="w-6 h-6 mr-3 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -428,7 +377,7 @@ const AdminBookingDetail = () => {
               </div>
             </div>
 
-            {/* Booking & Slot Details Section */}
+            {/* Booking & Slot Details */}
             <div className="mb-10">
               <h3 className="text-xl font-bold mb-6 text-gray-900 pb-3 flex items-center border-b border-gray-200">
                 <svg className="w-6 h-6 mr-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -466,7 +415,7 @@ const AdminBookingDetail = () => {
               </div>
             </div>
 
-            {/* Vehicle Information Section (Conditionally rendered) */}
+            {/* Vehicle Information */}
             {(booking.vehicle || booking.vehicleId || booking.vehicleModel || booking.vehicleNumber) && (
               <div className="mb-10">
                 <h3 className="text-xl font-bold mb-6 text-gray-900 pb-3 flex items-center border-b border-gray-200">
@@ -503,8 +452,8 @@ const AdminBookingDetail = () => {
                 </div>
               </div>
             )}
-            
-            {/* System Information Section */}
+
+            {/* System Information */}
             <div className="mb-10">
               <h3 className="text-xl font-bold mb-6 text-gray-900 pb-3 flex items-center border-b border-gray-200">
                 <svg className="w-6 h-6 mr-3 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -529,7 +478,7 @@ const AdminBookingDetail = () => {
               </div>
             </div>
 
-            {/* Action Buttons Section */}
+            {/* Action Buttons */}
             <div className="flex flex-wrap justify-end gap-4 mt-12 pt-8 border-t border-gray-200">
               <button
                 onClick={() => window.print()}
