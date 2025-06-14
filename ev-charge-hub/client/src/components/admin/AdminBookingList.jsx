@@ -67,7 +67,7 @@ const AdminBookingsList = () => {
       };
 
       // Use admin endpoint for admin users - Fixed API endpoint
-      const isAdmin = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+      const isAdmin = localStorage.getItem('token') || sessionStorage.getItem('token');
       const apiUrl = isAdmin 
         ? `/api/admin/bookings?${params.toString()}` 
         : `/api/bookings?${params.toString()}`;
@@ -180,7 +180,7 @@ const AdminBookingsList = () => {
       console.log(`Updating booking ${bookingId} status to ${newStatus}`);
 
       // Use admin endpoint for status updates
-      const isAdmin = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+      const isAdmin = localStorage.getItem('token') || sessionStorage.getItem('token');
       const endpoint = isAdmin 
         ? `/api/admin/bookings/${bookingId}/status`
         : `/api/bookings/${bookingId}/status`;

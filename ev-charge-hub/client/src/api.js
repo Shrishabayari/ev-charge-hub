@@ -154,8 +154,8 @@ export const apiMethods = {
   // Booking operations
   getAllBookings: (page = 1, limit = 10) => {
     // Try admin endpoint first, fallback to regular endpoint
-    const adminToken = localStorage.getItem('adminToken');
-    if (adminToken) {
+    const token = localStorage.getItem('token');
+    if (token) {
       return api.get(endpoints.bookings.admin.getAll, {
         params: { page, limit }
       });
@@ -179,16 +179,16 @@ export const apiMethods = {
 
   // Admin booking operations
   getBookingStats: () => {
-    const adminToken = localStorage.getItem('adminToken');
-    if (adminToken) {
+    const token = localStorage.getItem('adminToken');
+    if (token) {
       return api.get(endpoints.bookings.admin.getStats);
     }
     throw new Error('Admin access required');
   },
   
   updateBookingStatus: (id, status) => {
-    const adminToken = localStorage.getItem('adminToken');
-    if (adminToken) {
+    const token = localStorage.getItem('adminToken');
+    if (token) {
       return api.patch(endpoints.bookings.admin.updateStatus(id), { status });
     }
     throw new Error('Admin access required');
