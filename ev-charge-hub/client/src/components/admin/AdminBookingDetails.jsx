@@ -12,15 +12,21 @@ const AdminBookingDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Function to get auth token - Fixed to check both admin and regular tokens
+  const getAuthToken = () => {
+    return localStorage.getItem('adminToken') || 
+           localStorage.getItem('token') || 
+           sessionStorage.getItem('adminToken') || 
+           sessionStorage.getItem('token');
+  };
+
   useEffect(() => {
     const fetchBookingDetail = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        const token = localStorage.getItem('authToken') ||
-                      localStorage.getItem('token') ||
-                      sessionStorage.getItem('authToken');
+        const token = getAuthToken();
 
         if (!token) {
           setError('Authentication required. Please log in.');
@@ -35,10 +41,16 @@ const AdminBookingDetail = () => {
 
         console.log(`Fetching booking details for ID: ${id}`);
 
-        // Consistent API endpoint usage - always use /api/ prefix
-        const response = await api.get(`/api/bookings/${id}`, { headers });
+        // Use admin endpoint if admin token exists
+        const isAdmin = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+        const endpoint = isAdmin 
+          ? `/api/admin/bookings/${id}` 
+          : `/api/bookings/${id}`;
+
+        const response = await api.get(endpoint, { headers });
         console.log("API Response:", response.data);
 
+        // More flexible response data handling
         let bookingData;
         if (response.data.success && response.data.data) {
           bookingData = response.data.data;
@@ -61,8 +73,13 @@ const AdminBookingDetail = () => {
         if (err.response) {
           if (err.response.status === 401) {
             errorMessage = 'Authentication failed. Please log in again.';
-            // Optional: Redirect to login page
-            // navigate('/login');
+            // Clear all possible tokens
+            localStorage.removeItem('token');
+            localStorage.removeItem('adminToken');
+            sessionStorage.removeItem('token');
+            sessionStorage.removeItem('adminToken');
+            // Redirect to admin login
+            navigate('/admin/login');
           } else if (err.response.status === 404) {
             errorMessage = 'Booking not found. Please check the booking ID or verify the API endpoint.';
           } else if (err.response.status === 500) {
@@ -85,13 +102,11 @@ const AdminBookingDetail = () => {
       setError('No booking ID provided');
       setLoading(false);
     }
-  }, [id]);
+  }, [id, navigate]);
 
   const updateStatus = async (newStatus) => {
     try {
-      const token = localStorage.getItem('authToken') ||
-                    localStorage.getItem('token') ||
-                    sessionStorage.getItem('authToken');
+      const token = getAuthToken();
 
       if (!token) {
         alert('You are not authenticated. Please log in again.');
@@ -105,12 +120,13 @@ const AdminBookingDetail = () => {
 
       console.log(`Updating booking ${id} status to ${newStatus}`);
 
-      // Consistent API endpoint usage - always use /api/ prefix
-      const response = await api.patch(
-        `/api/bookings/${id}/status`,
-        { status: newStatus },
-        { headers }
-      );
+      // Use admin endpoint for status updates
+      const isAdmin = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+      const endpoint = isAdmin 
+        ? `/api/admin/bookings/${id}/status`
+        : `/api/bookings/${id}/status`;
+
+      const response = await api.patch(endpoint, { status: newStatus }, { headers });
 
       console.log('Status update response:', response.data);
 
@@ -132,6 +148,12 @@ const AdminBookingDetail = () => {
         errorMessage = 'Booking not found or status update endpoint not available';
       } else if (err.response?.status === 403) {
         errorMessage = 'You do not have permission to update this booking';
+      } else if (err.response?.status === 401) {
+        errorMessage = 'Session expired. Please log in again.';
+        // Clear tokens and redirect
+        localStorage.removeItem('token');
+        localStorage.removeItem('adminToken');
+        navigate('/admin/login');
       } else if (err.response?.status === 500) {
         errorMessage = 'Server error. Please try again later.';
       }
