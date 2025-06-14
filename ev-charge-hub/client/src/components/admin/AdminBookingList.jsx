@@ -69,7 +69,7 @@ const AdminBookingsList = () => {
       // Use admin endpoint for admin users - Fixed API endpoint
       const isAdmin = localStorage.getItem('token') || sessionStorage.getItem('token');
       const apiUrl = isAdmin 
-        ? `/api/bookings/user?${params.toString()}` 
+        ? `/api/bookings/admin/all?${params.toString()}` 
         : `/api/bookings?${params.toString()}`;
       
       console.log("Fetching bookings with URL:", apiUrl);
@@ -158,7 +158,7 @@ const AdminBookingsList = () => {
 
   // Navigate to booking details
   const viewBookingDetails = (bookingId) => {
-    navigate(`api/admin/bookings/${bookingId}`);
+    navigate(`/api/bookings/admin/:id${bookingId}`);
     console.log(`Navigating to booking details for ID: ${bookingId}`);
   };
 
@@ -182,8 +182,8 @@ const AdminBookingsList = () => {
       // Use admin endpoint for status updates
       const isAdmin = localStorage.getItem('token') || sessionStorage.getItem('token');
       const endpoint = isAdmin 
-        ? `/api/admin/bookings/${bookingId}/status`
-        : `/api/bookings/${bookingId}/status`;
+        ? `/api/bookings/admin/:id/status`
+        : `/api/bookings/admin/${bookingId}/status`;
 
       const response = await api.patch(endpoint,
         { status: newStatus },
@@ -213,10 +213,7 @@ const AdminBookingsList = () => {
         errorMessage = err.response.data.message;
       } else if (err.response?.status === 401) {
         errorMessage = 'Session expired. Please log in again.';
-        // Clear tokens and redirect
-        localStorage.removeItem('token');
-        localStorage.removeItem('adminToken');
-        navigate('/admin/login');
+        
       } else if (err.response?.status === 403) {
         errorMessage = 'You do not have permission to update this booking';
       }

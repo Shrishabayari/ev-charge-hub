@@ -36,7 +36,7 @@ const AdminBookingDetail = () => {
         console.log(`Fetching booking details for ID: ${id}`);
 
         // Fixed: Ensure we're using the correct API endpoint
-        const response = await api.get(`/api/admin/bookings/${id}`, { headers });
+        const response = await api.get(`/api/bookings/admin/${id}`, { headers });
         console.log("API Response:", response.data);
 
         let bookingData;
@@ -103,7 +103,7 @@ const AdminBookingDetail = () => {
 
       // Fixed: Ensure we're using the correct API endpoint
       const response = await api.patch(
-        `/api/bookings/${id}/status`,
+        `/api/bookings/admin/:id/status`,
         { status: newStatus },
         { headers }
       );
