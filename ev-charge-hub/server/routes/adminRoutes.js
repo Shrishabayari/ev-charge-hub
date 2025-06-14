@@ -3,8 +3,8 @@ import express from 'express';
 import { 
   registerAdmin, 
   loginAdmin, 
-  getAdminProfile,    // Import new function
-  updateAdminProfile, // Import new function
+  getAdminProfile,
+  updateAdminProfile,
   getAllUsers,
   getUserBookings,
   getUserById,
@@ -15,7 +15,15 @@ import {
   getBookingAnalytics 
 } from '../controllers/adminController.js';
 
-import { protectAdmin } from '../middleware/protectAdmin.js'; // Correct import path for admin middleware
+// Import booking controller functions for admin use
+import { 
+  getAllBookings, 
+  getBookingStats, 
+  updateBookingStatus, 
+  getBookingDetails 
+} from '../controllers/bookingController.js';
+
+import { protectAdmin } from '../middleware/protectAdmin.js';
 
 const router = express.Router();
 
@@ -24,21 +32,26 @@ router.post('/register', registerAdmin);
 router.post('/login', loginAdmin);
 
 // Admin Profile Routes (Protected)
-// These routes will now use the specific protectAdmin middleware
 router.route('/profile')
-  .get(protectAdmin, getAdminProfile)    // GET admin profile
-  .put(protectAdmin, updateAdminProfile); // PUT update admin profile
+  .get(protectAdmin, getAdminProfile)
+  .put(protectAdmin, updateAdminProfile);
 
 // User Management Routes (Protected)
-router.get('/users', protectAdmin, getAllUsers);           // Get all users with booking counts
-router.get('/users/search', protectAdmin, searchUsers);    // Search users
-router.get('/users/:userId', protectAdmin, getUserById);   // Get specific user details
-router.get('/users/:userId/bookings', protectAdmin, getUserBookings); // Get user's booking history
-router.put('/users/:userId/status', protectAdmin, updateUserStatus); // Update user status
-router.delete('/users/:userId', protectAdmin, deleteUser); // Delete user (soft delete)
+router.get('/users', protectAdmin, getAllUsers);
+router.get('/users/search', protectAdmin, searchUsers);
+router.get('/users/:userId', protectAdmin, getUserById);
+router.get('/users/:userId/bookings', protectAdmin, getUserBookings);
+router.put('/users/:userId/status', protectAdmin, updateUserStatus);
+router.delete('/users/:userId', protectAdmin, deleteUser);
+
+// Admin Booking Management Routes (Protected) - NEW ADDITION
+router.get('/bookings', protectAdmin, getAllBookings);           // GET /api/admin/bookings
+router.get('/bookings/stats', protectAdmin, getBookingStats);    // GET /api/admin/bookings/stats
+router.get('/bookings/:id', protectAdmin, getBookingDetails);    // GET /api/admin/bookings/:id
+router.patch('/bookings/:id/status', protectAdmin, updateBookingStatus); // PATCH /api/admin/bookings/:id/status
 
 // Dashboard & Analytics Routes (Protected)
-router.get('/stats', protectAdmin, getDashboardStats);           // Get dashboard statistics
-router.get('/bookings/analytics', protectAdmin, getBookingAnalytics); // Get booking analytics
+router.get('/stats', protectAdmin, getDashboardStats);
+router.get('/analytics/bookings', protectAdmin, getBookingAnalytics);
 
 export default router;

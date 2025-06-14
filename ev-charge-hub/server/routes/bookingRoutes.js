@@ -19,22 +19,43 @@ import {
 const router = express.Router();
 
 // Public routes
-router.get('/api/bookings/bunk/:bunkId', getBookingsByBunk);
-router.post('/api/bookings/check-availability', checkSlotAvailability);
-router.get('/api/bookings/available-slots/:bunkId/:date', getAvailableSlots);
+router.get('/bunk/:bunkId', getBookingsByBunk);
+router.post('/check-availability', checkSlotAvailability);
+router.get('/available-slots/:bunkId/:date', getAvailableSlots);
 
 // Protected routes (User-level authentication)
-router.post('/api/bookings/create', authMiddleware, createBooking);
-router.get('/api/bookings/user', authMiddleware, getUserBookings);
-router.put('/api/bookings/cancel/:id', authMiddleware, cancelBooking);
-router.put('/api/bookings/reschedule/:id', authMiddleware, rescheduleBooking);
+router.post('/create', authMiddleware, createBooking);
+router.get('/user', authMiddleware, getUserBookings);
+router.put('/cancel/:id', authMiddleware, cancelBooking);
+router.put('/reschedule/:id', authMiddleware, rescheduleBooking);
 
-// Admin routes (Require admin authentication)
-router.get('/api/bookings/stats', protectAdmin, getBookingStats);
-router.get('/api/bookings/:id', protectAdmin, getBookingDetails);
-router.patch('/api/bookings/:id/status', protectAdmin, updateBookingStatus);
+// Admin-accessible routes for general booking management
+// These routes allow admins to access all bookings through /api/bookings
+router.get('/admin/all', protectAdmin, getAllBookings);          // GET /api/bookings/admin/all
+router.get('/admin/stats', protectAdmin, getBookingStats);       // GET /api/bookings/admin/stats
+router.get('/admin/:id', protectAdmin, getBookingDetails);       // GET /api/bookings/admin/:id
+router.patch('/admin/:id/status', protectAdmin, updateBookingStatus); // PATCH /api/bookings/admin/:id/status
 
-// This should be last to avoid conflicts with specific routes above
-router.get('/api/bookings/', protectAdmin, getAllBookings);
+// Main route for getting all bookings - accessible by both users and admins
+router.get('/', async (req, res, next) => {
+  // First try to authenticate as admin
+  try {
+    // Check if admin token is present
+    const adminAuth = await import('../middleware/protectAdmin.js');
+    return adminAuth.protectAdmin(req, res, () => {
+      return getAllBookings(req, res, next);
+    });
+  } catch (adminError) {
+    // If admin auth fails, try user auth
+    try {
+      return authMiddleware(req, res, () => {
+        // For regular users, only show their own bookings
+        return getUserBookings(req, res, next);
+      });
+    } catch (userError) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+  }
+});
 
 export default router;
