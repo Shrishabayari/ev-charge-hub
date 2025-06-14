@@ -1,33 +1,28 @@
 // routes/adminRoutes.js
 import express from 'express';
-import { 
-  registerAdmin, 
-  loginAdmin, 
+import {
+  registerAdmin,
+  loginAdmin,
   getAdminProfile,
   updateAdminProfile,
   getAllUsers,
   getUserBookings,
   getUserById,
-  getDashboardStats,
+  getDashboardStats, // This is for overall dashboard stats
   updateUserStatus,
   deleteUser,
   searchUsers,
-  getBookingAnalytics 
+  getBookingAnalytics // This is for general booking analytics
 } from '../controllers/adminController.js';
 
-// Import booking controller functions for admin use
-import { 
-  getAllBookings, 
-  getBookingStats, 
-  updateBookingStatus, 
-  getBookingDetails 
-} from '../controllers/bookingController.js';
+// No need to import bookingController functions here, as they will be used via bookingRoutes.js
+// import { getAllBookings, getBookingStats, updateBookingStatus, getBookingDetails } from '../controllers/bookingController.js';
 
 import { protectAdmin } from '../middleware/protectAdmin.js';
 
 const router = express.Router();
 
-// Public routes for Admin (no authentication needed)
+// Public routes for Admin (no authentication needed for login/register)
 router.post('/register', registerAdmin);
 router.post('/login', loginAdmin);
 
@@ -40,18 +35,20 @@ router.route('/profile')
 router.get('/users', protectAdmin, getAllUsers);
 router.get('/users/search', protectAdmin, searchUsers);
 router.get('/users/:userId', protectAdmin, getUserById);
-router.get('/users/:userId/bookings', protectAdmin, getUserBookings);
+router.get('/users/:userId/bookings', protectAdmin, getUserBookings); // Admin getting a specific user's bookings
 router.put('/users/:userId/status', protectAdmin, updateUserStatus);
 router.delete('/users/:userId', protectAdmin, deleteUser);
 
-// Admin Booking Management Routes (Protected) - NEW ADDITION
-router.get('/bookings', protectAdmin, getAllBookings);           // GET /api/admin/bookings
-router.get('/bookings/stats', protectAdmin, getBookingStats);    // GET /api/admin/bookings/stats
-router.get('/bookings/:id', protectAdmin, getBookingDetails);    // GET /api/admin/bookings/:id
-router.patch('/bookings/:id/status', protectAdmin, updateBookingStatus); // PATCH /api/admin/bookings/:id/status
+// Dashboard & Analytics Routes (Protected) - These use functions from adminController
+router.get('/stats', protectAdmin, getDashboardStats); // Overall system stats
+router.get('/analytics/bookings', protectAdmin, getBookingAnalytics); // Booking trends/popular stations
 
-// Dashboard & Analytics Routes (Protected)
-router.get('/stats', protectAdmin, getDashboardStats);
-router.get('/analytics/bookings', protectAdmin, getBookingAnalytics);
+// REMOVED DUPLICATE ADMIN BOOKING ROUTES:
+// These routes are already defined and handled in routes/bookingRoutes.js
+// router.get('/bookings', protectAdmin, getAllBookings);
+// router.get('/bookings/stats', protectAdmin, getBookingStats);
+// router.get('/bookings/:id', protectAdmin, getBookingDetails);
+// router.patch('/bookings/:id/status', protectAdmin, updateBookingStatus);
+
 
 export default router;
