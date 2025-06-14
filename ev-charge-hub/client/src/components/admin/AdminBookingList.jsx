@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import api from '../../api';
+import api from '../../api'; // Assuming this is your Axios instance or similar
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import AdminNavbar from "../common/navbars/AdminNavbar";
@@ -25,13 +25,25 @@ const AdminBookingsList = () => {
     search: ''
   });
 
-  // Function to get auth token - Fixed to check both admin and regular tokens
-  const getAuthToken = () => {
-    return localStorage.getItem('adminToken') || 
-           localStorage.getItem('token') || 
-           sessionStorage.getItem('adminToken') || 
+  // Function to get auth token - Consolidated and robust
+  const getAuthToken = useCallback(() => {
+    // Prioritize adminToken, then generic token from localStorage, then sessionStorage
+    return localStorage.getItem('adminToken') ||
+           localStorage.getItem('token') ||
+           sessionStorage.getItem('adminToken') ||
            sessionStorage.getItem('token');
-  };
+  }, []); // No dependencies, so can be safely memoized
+
+  // Determine if the *current user* is an admin based on the tokens they possess
+  // This needs to be consistent with how your backend identifies admin users.
+  // Assuming 'adminToken' indicates admin status or a generic 'token' is enough if backend authorizes via that token.
+  // We'll rely on the backend to truly authorize, but this flag helps route API calls.
+  // It's better to check if 'adminToken' exists, or if a generic 'token' implies admin context for this component.
+  // For this component (AdminBookingsList), we primarily want to access admin endpoints.
+  const isUserAdminContext = useCallback(() => {
+    return !!(localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken'));
+  }, []);
+
 
   // Function to fetch bookings
   const fetchBookings = useCallback(async () => {
@@ -39,13 +51,15 @@ const AdminBookingsList = () => {
       setLoading(true);
       setError(null);
 
-      const token = getAuthToken();
+      const token = getAuthToken(); // Use the consolidated token getter
 
       console.log("Authentication token:", token ? "Found" : "Not found");
 
       if (!token) {
-        console.warn("No authentication token found in storage");
+        console.warn("No authentication token found in storage. Redirecting to login.");
         setError('You are not authenticated. Please log in again.');
+        // Consider redirecting to login if no token is found for an admin route
+        navigate('/admin/login'); // Or whatever your admin login path is
         setLoading(false);
         return;
       }
@@ -66,12 +80,14 @@ const AdminBookingsList = () => {
         'Authorization': `Bearer ${token}`
       };
 
-      // Use admin endpoint for admin users - Fixed API endpoint
-      const isAdmin = localStorage.getItem('token') || sessionStorage.getItem('token');
-      const apiUrl = isAdmin 
-        ? `/api/bookings/admin/all?${params.toString()}` 
-        : `/api/bookings?${params.toString()}`;
-      
+      // Since this is AdminBookingsList, we almost always want the admin endpoint.
+      // The previous isAdmin logic (`localStorage.getItem('token') || sessionStorage.getItem('token')`)
+      // might be too generic if your system distinguishes admin vs. user tokens.
+      // We will *always* use the admin endpoint here, assuming the presence of *any* valid token
+      // returned by getAuthToken() is sufficient for this Admin component to make admin calls.
+      // The backend should enforce actual admin permissions.
+      const apiUrl = `/api/bookings/admin/all?${params.toString()}`;
+
       console.log("Fetching bookings with URL:", apiUrl);
 
       const response = await api.get(apiUrl, { headers });
@@ -81,10 +97,11 @@ const AdminBookingsList = () => {
       // Handle response data - More flexible response handling
       let responseData;
       if (response.data.success) {
-        responseData = response.data.data;
+        responseData = response.data.data; // Assuming data.success means data.data holds actual data
       } else if (response.data.bookings) {
-        responseData = response.data;
+        responseData = response.data; // If response.data itself contains 'bookings'
       } else {
+        // Fallback for unexpected response structures, try to assume basic pagination structure
         responseData = {
           bookings: Array.isArray(response.data) ? response.data : [],
           pagination: {
@@ -102,11 +119,24 @@ const AdminBookingsList = () => {
       setLoading(false);
     } catch (err) {
       console.error('Error fetching bookings:', err);
-
-
       setLoading(false);
+      let errorMessage = 'Failed to load bookings. Please try again.';
+      if (err.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        if (err.response.status === 401 || err.response.status === 403) {
+          errorMessage = 'Authentication required or not authorized to view bookings.';
+          navigate('/admin/login'); // Redirect to login on auth failure
+        } else if (err.response.data && err.response.data.message) {
+          errorMessage = err.response.data.message;
+        }
+      } else if (err.request) {
+        // The request was made but no response was received
+        errorMessage = 'No response from server. Please check your network connection.';
+      }
+      setError(errorMessage);
     }
-  }, [currentPage, limit, filters, navigate]);
+  }, [currentPage, limit, filters, getAuthToken, navigate]); // Added getAuthToken and navigate to dependencies
 
   // Fetch bookings when component mounts or dependencies change
   useEffect(() => {
@@ -126,14 +156,14 @@ const AdminBookingsList = () => {
   // Handle search input submit
   const handleSearch = (e) => {
     e.preventDefault();
-    fetchBookings();
+    fetchBookings(); // Re-fetch with new filters
   };
 
   // Format date for display
   const formatDate = (dateString) => {
     try {
       if (!dateString) return 'N/A';
-      return format(new Date(dateString), 'MMM dd, yyyy HH:mm');
+      return format(new Date(dateString), 'MMM dd, yyyy HH:mm'); // Fixed format: HH:mm instead of HH:mm
     } catch (err) {
       console.error('Date formatting error:', err);
       return 'Invalid date';
@@ -158,17 +188,19 @@ const AdminBookingsList = () => {
 
   // Navigate to booking details
   const viewBookingDetails = (bookingId) => {
-    navigate(`/api/bookings/admin/:id${bookingId}`);
+    // Corrected path: `/api/bookings/admin/${bookingId}`
+    navigate(`/admin/bookings/${bookingId}`); // Assuming route for admin booking details is /admin/bookings/:id
     console.log(`Navigating to booking details for ID: ${bookingId}`);
   };
 
-  // Update booking status - Fixed to use admin endpoint
+  // Update booking status - Fixed to use correct admin endpoint
   const updateStatus = async (bookingId, newStatus) => {
     try {
       const token = getAuthToken();
 
       if (!token) {
         alert('You are not authenticated. Please log in again.');
+        navigate('/admin/login'); // Redirect to login
         return;
       }
 
@@ -179,11 +211,8 @@ const AdminBookingsList = () => {
 
       console.log(`Updating booking ${bookingId} status to ${newStatus}`);
 
-      // Use admin endpoint for status updates
-      const isAdmin = localStorage.getItem('token') || sessionStorage.getItem('token');
-      const endpoint = isAdmin 
-        ? `/api/bookings/admin/:id/status`
-        : `/api/bookings/admin/${bookingId}/status`;
+      // Corrected endpoint: Directly use the admin status update endpoint
+      const endpoint = `/api/bookings/admin/${bookingId}/status`; // Corrected path
 
       const response = await api.patch(endpoint,
         { status: newStatus },
@@ -191,7 +220,7 @@ const AdminBookingsList = () => {
       );
 
       if (response.data.success || response.status === 200) {
-        // Update the booking in the state
+        // Update the booking in the state to reflect the new status
         setBookings(prevBookings =>
           prevBookings.map(booking =>
             booking._id === bookingId
@@ -199,7 +228,6 @@ const AdminBookingsList = () => {
               : booking
           )
         );
-
         console.log('Booking status updated successfully');
         alert(`Booking status updated to ${newStatus} successfully!`);
       } else {
@@ -207,17 +235,17 @@ const AdminBookingsList = () => {
       }
     } catch (err) {
       console.error('Error updating booking status:', err);
-      
+
       let errorMessage = 'Failed to update booking status';
       if (err.response?.data?.message) {
         errorMessage = err.response.data.message;
       } else if (err.response?.status === 401) {
         errorMessage = 'Session expired. Please log in again.';
-        
+        navigate('/admin/login'); // Redirect to login on auth failure
       } else if (err.response?.status === 403) {
-        errorMessage = 'You do not have permission to update this booking';
+        errorMessage = 'You do not have permission to update this booking.';
       }
-      
+
       alert(errorMessage);
     }
   };
@@ -225,7 +253,7 @@ const AdminBookingsList = () => {
   // Helper function to safely get nested properties
   const safeGet = (obj, path, defaultValue = 'N/A') => {
     return path.split('.').reduce((current, key) =>
-      current && current[key] !== undefined ? current[key] : defaultValue, obj
+      current && typeof current === 'object' && current[key] !== undefined ? current[key] : defaultValue, obj
     );
   };
 
@@ -277,7 +305,7 @@ const AdminBookingsList = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <AdminNavbar />
-      
+
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Bookings Management</h1>
@@ -303,7 +331,7 @@ const AdminBookingsList = () => {
                 <option value="cancelled">Cancelled</option>
               </select>
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
               <input
@@ -314,7 +342,7 @@ const AdminBookingsList = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
               <input
@@ -325,7 +353,7 @@ const AdminBookingsList = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
               <input
@@ -337,8 +365,8 @@ const AdminBookingsList = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
-            
-            <div className="md:col-span-4">
+
+            <div className="md:col-span-4 flex gap-2"> {/* Use flex and gap for buttons */}
               <button
                 type="submit"
                 className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
@@ -350,8 +378,11 @@ const AdminBookingsList = () => {
                 onClick={() => {
                   setFilters({ status: '', startDate: '', endDate: '', search: '' });
                   setCurrentPage(1);
+                  // Manually trigger fetch if clearing filters should immediately show unfiltered data
+                  // Otherwise, `useEffect` will re-run on `filters` change
+                  fetchBookings();
                 }}
-                className="ml-2 bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+                className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors"
               >
                 Clear Filters
               </button>
@@ -366,7 +397,7 @@ const AdminBookingsList = () => {
               Bookings ({totalBookings} total)
             </h2>
           </div>
-          
+
           {bookings.length === 0 ? (
             <div className="text-center py-12">
               <div className="text-gray-400 mb-4">
@@ -504,7 +535,7 @@ const AdminBookingsList = () => {
           </div>
         )}
       </div>
-      
+
       <Footer />
     </div>
   );

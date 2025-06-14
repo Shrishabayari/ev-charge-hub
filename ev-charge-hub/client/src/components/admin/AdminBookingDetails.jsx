@@ -35,7 +35,6 @@ const AdminBookingDetail = () => {
 
         console.log(`Fetching booking details for ID: ${id}`);
 
-        // Fixed: Ensure we're using the correct API endpoint
         const response = await api.get(`/api/bookings/admin/${id}`, { headers });
         console.log("API Response:", response.data);
 
@@ -86,8 +85,8 @@ const AdminBookingDetail = () => {
   const updateStatus = async (newStatus) => {
     try {
       const token = localStorage.getItem('authToken') ||
-                    localStorage.getItem('token') ||
-                    sessionStorage.getItem('authToken');
+                      localStorage.getItem('token') ||
+                      sessionStorage.getItem('authToken');
 
       if (!token) {
         alert('You are not authenticated. Please log in again.');
@@ -101,9 +100,9 @@ const AdminBookingDetail = () => {
 
       console.log(`Updating booking ${id} status to ${newStatus}`);
 
-      // Fixed: Ensure we're using the correct API endpoint
+      // FIXED: Ensure we're using the correct API endpoint with the actual ID
       const response = await api.patch(
-        `/api/bookings/admin/:id/status`,
+        `/api/bookings/admin/${id}/status`, // Corrected line
         { status: newStatus },
         { headers }
       );
