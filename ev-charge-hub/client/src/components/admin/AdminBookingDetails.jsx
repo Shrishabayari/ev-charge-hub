@@ -34,14 +34,28 @@ const AdminBookingDetail = () => {
         if (!token) {
           console.warn("No authentication token found. Redirecting to admin login.");
           setError('You are not authenticated. Please log in.');
-          navigate('/admin/login'); // Redirect to admin login if no token
+          navigate('/admin/login');
           setLoading(false);
           return;
         }
 
         console.log(`Fetching booking details for ID: ${id}`);
-        // Use the dedicated admin method from apiMethods for fetching specific admin booking details
-        const response = await apiMethods.getAdminBookingDetails(id);
+        
+        // Try multiple possible API endpoints for getting booking details
+        let response;
+        try {
+          // First try the dedicated admin method
+          response = await apiMethods.getAdminBookingDetails(id);
+        } catch (error) {
+          if (error.response?.status === 404) {
+            // If admin-specific endpoint doesn't exist, try general booking endpoint
+            console.log('Admin endpoint not found, trying general booking endpoint...');
+            response = await apiMethods.getBookingById(id);
+          } else {
+            throw error;
+          }
+        }
+        
         console.log("API Response:", response.data);
 
         let bookingData;
@@ -91,18 +105,18 @@ const AdminBookingDetail = () => {
       }
     };
 
-    if (id) { // Only fetch if an ID is present in the URL parameters
+    if (id) {
       fetchBookingDetail();
     } else {
       setError('No booking ID provided in the URL.');
       setLoading(false);
     }
-  }, [id, getAuthToken, navigate]); // Added dependencies for useCallback
+  }, [id, getAuthToken, navigate]);
 
   // Update booking status (e.g., active, cancelled, completed, pending)
   const updateStatus = async (newStatus) => {
     try {
-      const token = getAuthToken(); // Re-check token before performing the action
+      const token = getAuthToken();
       if (!token) {
         alert('You are not authenticated. Please log in again.');
         navigate('/admin/login');
@@ -110,8 +124,20 @@ const AdminBookingDetail = () => {
       }
 
       console.log(`Updating booking ${id} status to ${newStatus}`);
-      // Use the dedicated admin method from apiMethods for updating booking status
-      const response = await apiMethods.updateAdminBookingStatus(id, newStatus);
+      
+      // Try multiple possible API endpoints for updating booking status
+      let response;
+      try {
+        response = await apiMethods.updateAdminBookingStatus(id, newStatus);
+      } catch (error) {
+        if (error.response?.status === 404) {
+          // If admin-specific endpoint doesn't exist, try general update endpoint
+          console.log('Admin update endpoint not found, trying general update endpoint...');
+          response = await apiMethods.updateBookingStatus(id, { status: newStatus });
+        } else {
+          throw error;
+        }
+      }
 
       console.log('Status update response:', response.data);
 
@@ -150,10 +176,10 @@ const AdminBookingDetail = () => {
 
     try {
       const date = new Date(dateString);
-      if (isNaN(date.getTime())) { // Check for invalid date objects
+      if (isNaN(date.getTime())) {
         return 'Invalid date';
       }
-      return format(date, 'MMM dd,yyyy - hh:mm a'); // Changed to include year and AM/PM
+      return format(date, 'MMM dd, yyyy - hh:mm a');
     } catch (err) {
       console.error("Date formatting error:", err);
       return 'Invalid date';
@@ -233,13 +259,13 @@ const AdminBookingDetail = () => {
           <p className="text-gray-600 mb-6">{error}</p>
           <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
             <button
-              onClick={() => window.location.reload()} // Reloads the page to retry
+              onClick={() => window.location.reload()}
               className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105"
             >
               Retry
             </button>
             <button
-              onClick={() => navigate('/admin/view-bookings')} // Navigates back to the list
+              onClick={() => navigate('/admin/view-bookings')}
               className="w-full sm:w-auto bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105"
             >
               Back to List
@@ -317,8 +343,12 @@ const AdminBookingDetail = () => {
                   value={booking.status || ''}
                   onChange={(e) => updateStatus(e.target.value)}
                   className="block w-full pl-4 pr-10 py-2 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-200 appearance-none bg-white font-medium text-gray-700 cursor-pointer"
-                  // Inline style for custom arrow icon
-                  style={{ backgroundImage: "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3e%3cpath d='M7 7l3-3 3 3m0 6l-3 3-3-3' stroke='%236B7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3e%3c/svg%3e\")", backgroundPosition: "right 0.75rem center", backgroundRepeat: "no-repeat", backgroundSize: "1.5em 1.5em" }}
+                  style={{ 
+                    backgroundImage: "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3e%3cpath d='M7 7l3-3 3 3m0 6l-3 3-3-3' stroke='%236B7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3e%3c/svg%3e\")", 
+                    backgroundPosition: "right 0.75rem center", 
+                    backgroundRepeat: "no-repeat", 
+                    backgroundSize: "1.5em 1.5em" 
+                  }}
                 >
                   <option value="active">Active</option>
                   <option value="cancelled">Cancelled</option>
@@ -473,7 +503,7 @@ const AdminBookingDetail = () => {
                 </div>
               </div>
             )}
-
+            
             {/* System Information Section */}
             <div className="mb-10">
               <h3 className="text-xl font-bold mb-6 text-gray-900 pb-3 flex items-center border-b border-gray-200">
