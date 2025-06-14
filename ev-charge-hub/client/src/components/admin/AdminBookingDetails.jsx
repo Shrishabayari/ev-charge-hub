@@ -35,7 +35,7 @@ const AdminBookingDetail = () => {
 
         console.log(`Fetching booking details for ID: ${id}`);
 
-        // Fixed: Ensure we're using the correct API endpoint
+        // Consistent API endpoint usage - always use /api/ prefix
         const response = await api.get(`/api/bookings/${id}`, { headers });
         console.log("API Response:", response.data);
 
@@ -61,8 +61,12 @@ const AdminBookingDetail = () => {
         if (err.response) {
           if (err.response.status === 401) {
             errorMessage = 'Authentication failed. Please log in again.';
+            // Optional: Redirect to login page
+            // navigate('/login');
           } else if (err.response.status === 404) {
-            errorMessage = 'Booking not found. Please check the booking ID.';
+            errorMessage = 'Booking not found. Please check the booking ID or verify the API endpoint.';
+          } else if (err.response.status === 500) {
+            errorMessage = 'Server error. Please try again later.';
           } else if (err.response.data?.message) {
             errorMessage = err.response.data.message;
           }
@@ -101,7 +105,7 @@ const AdminBookingDetail = () => {
 
       console.log(`Updating booking ${id} status to ${newStatus}`);
 
-      // Fixed: Ensure we're using the correct API endpoint
+      // Consistent API endpoint usage - always use /api/ prefix
       const response = await api.patch(
         `/api/bookings/${id}/status`,
         { status: newStatus },
@@ -125,7 +129,11 @@ const AdminBookingDetail = () => {
       if (err.response?.data?.message) {
         errorMessage = err.response.data.message;
       } else if (err.response?.status === 404) {
-        errorMessage = 'Booking not found or endpoint not available';
+        errorMessage = 'Booking not found or status update endpoint not available';
+      } else if (err.response?.status === 403) {
+        errorMessage = 'You do not have permission to update this booking';
+      } else if (err.response?.status === 500) {
+        errorMessage = 'Server error. Please try again later.';
       }
 
       alert(errorMessage);
@@ -191,47 +199,6 @@ const AdminBookingDetail = () => {
       return 'N/A';
     }
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-600"></div>
-          <p className="mt-5 text-gray-700 text-xl font-medium">Loading booking details...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
-        <div className="bg-white shadow-xl rounded-lg p-8 max-w-md w-full text-center border border-red-200">
-          <div className="flex items-center justify-center text-red-500 mb-4">
-            <svg className="h-12 w-12" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-3">Error Loading Booking</h3>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
-            <button
-              onClick={() => window.location.reload()}
-              className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105"
-            >
-              Retry
-            </button>
-            <button
-              onClick={() => navigate('/admin/view-bookings')}
-              className="w-full sm:w-auto bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105"
-            >
-              Back to List
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   if (!booking) {
     return (
