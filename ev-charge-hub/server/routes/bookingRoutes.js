@@ -1,7 +1,8 @@
 // routes/bookingRoutes.js
 import express from 'express';
 import authMiddleware from '../middleware/auth.js';
-import { protectAdmin } from '../middleware/protectAdmin.js';
+import { protectAdmin } from '../middleware/protectAdmin.js'; // Import protectAdmin
+
 import {
   getBookingsByBunk,
   createBooking,
@@ -10,10 +11,10 @@ import {
   rescheduleBooking,
   checkSlotAvailability,
   getAvailableSlots,
-  getAllBookings, // Used for /admin/all
-  getBookingStats, // Used for /admin/stats
-  updateBookingStatus, // Used for /admin/:id/status
-  getBookingDetails // Used for /admin/:id
+  getAllBookings,
+  getBookingStats,
+  updateBookingStatus,
+  getBookingDetails
 } from '../controllers/bookingController.js';
 
 const router = express.Router();
@@ -29,14 +30,13 @@ router.get('/user', authMiddleware, getUserBookings);
 router.put('/cancel/:id', authMiddleware, cancelBooking);
 router.put('/reschedule/:id', authMiddleware, rescheduleBooking);
 
-// **ADMIN ROUTES - MUST BE DEFINED BEFORE GENERAL ROUTES**
-// Admin-specific booking routes with /admin prefix
-router.get('/admin/all', protectAdmin, getAllBookings);           // GET /api/bookings/admin/all
-router.get('/admin/stats', protectAdmin, getBookingStats);        // GET /api/bookings/admin/stats
-router.get('/admin/:id', protectAdmin, getBookingDetails);        // GET /api/bookings/admin/:id
-router.patch('/admin/:id/status', protectAdmin, updateBookingStatus); // PATCH /api/bookings/admin/:id/status
+// Admin routes (Require admin authentication - using protectAdmin)
+// These routes should be accessed only by authenticated admins
+router.get('/stats', protectAdmin, getBookingStats);
+router.get('/:id', protectAdmin, getBookingDetails); // To get details for *any* booking by ID (admin view)
+router.patch('/:id/status', protectAdmin, updateBookingStatus); // Admin-only status update
 
-// General booking route (fallback for authenticated users)
-router.get('/', authMiddleware, getUserBookings);
+// This should be last to avoid conflicts with specific routes above
+router.get('/', protectAdmin, getAllBookings); // Admin-only view of all bookings
 
 export default router;
