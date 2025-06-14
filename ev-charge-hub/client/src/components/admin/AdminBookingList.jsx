@@ -69,7 +69,7 @@ const AdminBookingsList = () => {
       // Use admin endpoint for admin users - Fixed API endpoint
       const isAdmin = localStorage.getItem('token') || sessionStorage.getItem('token');
       const apiUrl = isAdmin 
-        ? `/api/admin/bookings?${params.toString()}` 
+        ? `/api/bookings/user?${params.toString()}` 
         : `/api/bookings?${params.toString()}`;
       
       console.log("Fetching bookings with URL:", apiUrl);
