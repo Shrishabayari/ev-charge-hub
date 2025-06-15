@@ -120,7 +120,7 @@ export const endpoints = {
 
     // Admin-specific booking endpoints - CORRECTED PATHS
     admin: {
-      getAll: '/api/bookings/admin/all', // CORRECTED: Matches backend route
+      getAll: '/api/bookings/', // CORRECTED: Matches backend route
       getStats: '/api/bookings/admin/stats', // CORRECTED: Matches backend route
       getDetails: (id) => `/api/bookings/admin/${id}`, // CORRECTED: Matches backend route
       updateStatus: (id) => `/api/bookings/admin/${id}/status`, // CORRECTED: Matches backend route

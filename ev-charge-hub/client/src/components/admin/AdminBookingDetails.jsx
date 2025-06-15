@@ -35,7 +35,7 @@ const AdminBookingDetail = () => {
 
         console.log(`Fetching booking details for ID: ${id}`);
 
-        const response = await api.get(`/api/bookings/admin/${id}`, { headers });
+        const response = await api.get(`/api/bookings/${id}`, { headers });
         console.log("API Response:", response.data);
 
         let bookingData;
