@@ -63,7 +63,7 @@ const AdminBookingsList = () => {
       setLoading(true);
       setError('');
 
-      const token = getAuthToken();
+      const token = localStorage.getItem('token');
 
       console.log("Authentication token:", token ? "Found" : "Not found");
 
@@ -90,7 +90,7 @@ const AdminBookingsList = () => {
       };
 
       // Use the correct admin endpoint for getting all bookings
-      const apiUrl = `/api/bookings?${params.toString()}`;
+      const apiUrl = `/api/bookings/?${params.toString()}`;
       console.log("Fetching bookings with URL:", apiUrl);
 
       const response = await api.get(apiUrl, { headers });
@@ -199,7 +199,7 @@ const AdminBookingsList = () => {
   // Update booking status using the correct admin endpoint
   const updateBookingStatus = async (bookingId, newStatus) => {
     try {
-      const token = getAuthToken();
+      const token = localStorage.getItem('token');
 
       if (!token) {
         alert('Authentication token not found. Please log in.');

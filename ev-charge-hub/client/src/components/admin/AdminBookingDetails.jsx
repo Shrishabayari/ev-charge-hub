@@ -39,7 +39,7 @@ const AdminBookingDetail = () => {
         setLoading(true);
         setError('');
 
-        const token = getAuthToken();
+        const token = localStorage.getItem('token');
 
         if (!token) {
           setError('Authentication token not found. Please log in.');
