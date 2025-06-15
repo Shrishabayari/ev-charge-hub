@@ -27,15 +27,6 @@ const AdminDashboard = () => {
       path: "/admin/view-bunks",
     },
     {
-      title: "View Booking Slots",
-      description: "Monitor and manage all active and past booking slots.",
-      icon: <CalendarCheck className="w-10 h-10 text-purple-600 group-hover:text transition-colors duration-300" />,
-      bgColor: "bg-purple-50",
-      hoverBg: "bg-purple-600",
-      textColor: "text-purple-800",
-      path: "/admin/view-bookings",
-    },
-    {
       title: "View Bunk Locations",
       description: "See all EV bunk locations on an interactive map.",
       icon: <Globe className="w-10 h-10 text-yellow-600 group-hover:text transition-colors duration-300" />,
