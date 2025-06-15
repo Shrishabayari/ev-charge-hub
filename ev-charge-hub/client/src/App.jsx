@@ -19,8 +19,6 @@ import MyBookings from './pages/user/MyBooking';
 import AdminBookings from './components/admin/BookingManagement';
 import BookingsList from './components/user/BookingList';
 import RescheduleBookingForm from './components/user/ResheduleSlot';
-import AdminBookingDetail from './components/admin/AdminBookingDetails';
-import AdminBookingsList from './components/admin/AdminBookingList';
 import EvBunkAdminMap from './components/admin/EvBunkMapView';
 import EvBunkAdminMaps from './components/user/EvBunkMapView';
 import MyProfile from './components/user/MyProfile';
@@ -50,8 +48,6 @@ const App = () => {
         <Route path='/user/view-my-bookings' element={<MyBookings/>} />
         <Route path='/user/view-bookings' element={<BookingsList/>} />
         <Route path='/user/bookings/reshedule' element={<RescheduleBookingForm/>} />
-        <Route path='/admin/view-bookings' element={<AdminBookingsList/>} />
-        <Route path='/admin/bookings/:id' element={<AdminBookingDetail/>} />
         <Route path='/admin/view-bunk-locations' element={<EvBunkAdminMap/>} />
         <Route path='/user/view-bunk-locations' element={<EvBunkAdminMaps/>} />
         <Route path='/user/bookings/list' element={<BookingsList/>} />
