@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Edit,MapPin, Zap, Clock, Map, List, Navigation } from 'lucide-react';
 import AdminNavbar from "../common/navbars/AdminNavbar";
 import Footer from "../common/Footer";
-import api, { apiMethods } from '../../api'; // Updated import
+import  { apiMethods } from '../../api'; // Updated import
 
 const EvBunkMapViews = () => {
   const [bunkLocations, setBunkLocations] = useState([]);
@@ -327,6 +327,9 @@ const EvBunkMapViews = () => {
               errorMessage = 'Invalid directions request.';
               break;
             case 'UNKNOWN_ERROR':
+              errorMessage = 'Unknown error occurred. Please try again.';
+              break;
+            default:
               errorMessage = 'Unknown error occurred. Please try again.';
               break;
           }
@@ -748,14 +751,6 @@ const EvBunkMapViews = () => {
     initializeApp();
   }, [getCurrentLocation]);
 
-  // Refresh bunks when user location changes
-  useEffect(() => {
-    if (userLocation && bunkLocations.length > 0) {
-      const bunksWithDistance = addDistanceToBunks(bunkLocations, userLocation.lat, userLocation.lng);
-      setBunkLocations(bunksWithDistance);
-    }
-  }, [userLocation]);
-
  const handleBookSlot = (bunk) => {
     if (bunk.slotsAvailable === 0) {
       alert("No slots available at this station.");
@@ -769,10 +764,6 @@ const EvBunkMapViews = () => {
     navigate(`/admin/edit-bunk/${bunkId}`); // Ensure this route is defined in your router
   }, [navigate]);
 
-
-  // Filter bunks by availability for stats display
-  const availableBunksCount = bunkLocations.filter(bunk => bunk.slotsAvailable > 0).length;
-  const unavailableBunksCount = bunkLocations.filter(bunk => bunk.slotsAvailable === 0).length;
 
   // --- Loading State Display ---
   if (loading) {

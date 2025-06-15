@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { MapPin, Zap, Clock, Map, List, Navigation } from 'lucide-react';
 import UserNavbar from "../common/navbars/UserNavbar";
 import Footer from "../common/Footer";
-import api, { apiMethods } from '../../api'; // Updated import
+import  { apiMethods } from '../../api'; // Updated import
 
 const EvBunkMapView = () => {
   const [bunkLocations, setBunkLocations] = useState([]);
@@ -764,10 +764,6 @@ const EvBunkMapView = () => {
     // Navigate to the booking page, passing the selected bunk data
     navigate(`/user/book-slot`, { state: { bunk } });
   };
-
-  // Filter bunks by availability for stats display
-  const availableBunksCount = bunkLocations.filter(bunk => bunk.slotsAvailable > 0).length;
-  const unavailableBunksCount = bunkLocations.filter(bunk => bunk.slotsAvailable === 0).length;
 
   // --- Loading State Display ---
   if (loading) {

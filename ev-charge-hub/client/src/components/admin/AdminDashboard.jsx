@@ -1,7 +1,7 @@
 import React from "react";
 import { useNavigate } from 'react-router-dom';
 import AdminNavbar from "../common/navbars/AdminNavbar"; // Assuming AdminNavbar exists and is styled separately
-import { PlusCircle, MapPin, CalendarCheck, Users, Globe, Zap } from 'lucide-react'; // Importing icons from lucide-react
+import { PlusCircle, MapPin, Users, Globe, Zap } from 'lucide-react'; // Importing icons from lucide-react
 import Footer from "../common/Footer";
 const AdminDashboard = () => {
   const navigate = useNavigate();
