@@ -324,14 +324,6 @@ const RescheduleBookingForm = ({ booking, onRescheduleSuccess, onCancel }) => {
     maxDate.setDate(maxDate.getDate() + 30);
     return maxDate.toISOString().split('T')[0];
   };
-
-  // Get unique slot identifier for comparison
-  const getSlotId = (slot) => {
-    if (typeof slot === 'object') {
-      return slot.id || slot._id || slot.startTime || JSON.stringify(slot);
-    }
-    return slot;
-  };
   
   return (
     <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
