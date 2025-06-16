@@ -329,6 +329,9 @@ const EvBunkMapView = () => {
             case 'UNKNOWN_ERROR':
               errorMessage = 'Unknown error occurred. Please try again.';
               break;
+              default:
+              errorMessage = 'Unknown error occurred. Please try again.';
+              break;
           }
           
           alert(errorMessage);
