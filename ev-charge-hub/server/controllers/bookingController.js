@@ -389,8 +389,11 @@ export const getAvailableSlots = async (req, res) => {
 
     console.log(`Parsed operating hours: ${openHour}:${openMinute} to ${closeHour}:${closeMinute}`); // Debug log
     
-    // Generate time slots (1-hour slots)
+    // Generate ALL time slots (1-hour slots) with their status
+    const allSlots = [];
     const availableSlots = [];
+    const bookedSlots = [];
+    
     const startTime = new Date(selectedDate);
     startTime.setHours(openHour, openMinute, 0, 0);
     
@@ -404,7 +407,7 @@ export const getAvailableSlots = async (req, res) => {
       currentSlotEnd.setHours(currentSlotStart.getHours() + 1);
       
       // Check if this time slot conflicts with any booking
-      const isBooked = bookings.some(booking => {
+      const conflictingBooking = bookings.find(booking => {
         const bookingStart = new Date(booking.startTime);
         const bookingEnd = new Date(booking.endTime);
         
@@ -418,8 +421,20 @@ export const getAvailableSlots = async (req, res) => {
         );
       });
       
-      if (!isBooked) {
-        // Add as available slot
+      const slotInfo = {
+        startTime: currentSlotStart.toISOString(),
+        endTime: currentSlotEnd.toISOString(),
+        status: conflictingBooking ? 'booked' : 'available',
+        bookingId: conflictingBooking ? conflictingBooking._id : null,
+        userId: conflictingBooking ? conflictingBooking.userId : null
+      };
+      
+      // Add to appropriate arrays
+      allSlots.push(slotInfo);
+      
+      if (conflictingBooking) {
+        bookedSlots.push(slotInfo);
+      } else {
         availableSlots.push(currentSlotStart.toISOString());
       }
       
@@ -427,13 +442,18 @@ export const getAvailableSlots = async (req, res) => {
       startTime.setHours(startTime.getHours() + 1);
     }
     
-    console.log(`Generated ${availableSlots.length} available slots`); // Debug log
+    console.log(`Generated ${allSlots.length} total slots: ${availableSlots.length} available, ${bookedSlots.length} booked`); // Debug log
     
     res.json({
       success: true,
       data: {
-        bookings,
-        availableSlots, // These are the slots that are available
+        allSlots, // All slots with their status
+        availableSlots, // Only available slot times (for backward compatibility)
+        bookedSlots, // Only booked slots with details
+        bookings, // Original booking data
+        totalSlots: allSlots.length,
+        availableCount: availableSlots.length,
+        bookedCount: bookedSlots.length,
         bunkInfo: {
           name: bunk.name,
           operatingHours

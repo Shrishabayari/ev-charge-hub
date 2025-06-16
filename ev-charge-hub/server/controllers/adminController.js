@@ -104,36 +104,6 @@ export const updateAdminProfile = asyncHandler(async (req, res) => {
   }
 });
 
-// @desc    Get all users with booking counts
-// @route   GET /api/admin/users
-// @access  Private/Admin
-export const getAllUsers = asyncHandler(async (req, res) => {
-  const users = await User.aggregate([
-    {
-      $lookup: {
-        from: 'bookings',
-        localField: '_id',
-        foreignField: 'userId',
-        as: 'bookings'
-      }
-    },
-    {
-      $project: {
-        _id: 1,
-        name: 1,
-        email: 1,
-        createdAt: 1,
-        totalBookings: { $size: '$bookings' },
-        status: { $literal: 'active' } // You can modify this based on your user status logic
-      }
-    },
-    {
-      $sort: { createdAt: -1 }
-    }
-  ]);
-
-  res.status(200).json(users);
-});
 
 // @desc    Get specific user's bookings
 // @route   GET /api/admin/users/:userId/bookings
@@ -243,73 +213,6 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Update user status
-// @route   PUT /api/admin/users/:userId/status
-// @access  Private/Admin
-export const updateUserStatus = asyncHandler(async (req, res) => {
-  const { userId } = req.params;
-  const { status } = req.body;
-
-  if (!['active', 'inactive', 'suspended'].includes(status)) {
-    res.status(400);
-    throw new Error('Invalid status. Must be active, inactive, or suspended.');
-  }
-
-  const user = await User.findById(userId);
-  if (!user) {
-    res.status(404);
-    throw new Error('User not found');
-  }
-
-  // Update user status (you might need to add status field to User model)
-  user.status = status;
-  await user.save();
-
-  // If suspending user, you might want to cancel their active bookings
-  if (status === 'suspended') {
-    await Booking.updateMany(
-      { userId, status: 'active' },
-      { status: 'cancelled' }
-    );
-  }
-
-  res.status(200).json({ 
-    message: 'User status updated successfully', 
-    user: {
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      status: user.status
-    }
-  });
-});
-
-// @desc    Delete user (soft delete)
-// @route   DELETE /api/admin/users/:userId
-// @access  Private/Admin
-export const deleteUser = asyncHandler(async (req, res) => {
-  const { userId } = req.params;
-
-  const user = await User.findById(userId);
-  if (!user) {
-    res.status(404);
-    throw new Error('User not found');
-  }
-
-  // Cancel all active bookings
-  await Booking.updateMany(
-    { userId, status: 'active' },
-    { status: 'cancelled' }
-  );
-
-  // Soft delete - set status to inactive instead of actually deleting
-  user.status = 'inactive';
-  user.deletedAt = new Date(); // Ensure 'deletedAt' field exists in User model
-  await user.save();
-
-  res.status(200).json({ message: 'User deleted successfully' });
-});
-
 // @desc    Get user search results
 // @route   GET /api/admin/users/search
 // @access  Private/Admin
@@ -402,5 +305,118 @@ export const getBookingAnalytics = asyncHandler(async (req, res) => {
     period: parseInt(period),
     bookingTrends,
     popularStations
+  });
+});
+
+// Updated getAllUsers function for admin controller
+export const getAllUsers = asyncHandler(async (req, res) => {
+  const users = await User.aggregate([
+    {
+      // Only get users that are not deleted (soft delete check)
+      $match: {
+        $or: [
+          { deletedAt: null },
+          { deletedAt: { $exists: false } }
+        ]
+      }
+    },
+    {
+      $lookup: {
+        from: 'bookings',
+        localField: '_id',
+        foreignField: 'userId',
+        as: 'bookings'
+      }
+    },
+    {
+      $project: {
+        _id: 1,
+        name: 1,
+        email: 1,
+        status: 1,
+        isActive: 1,
+        lastLogin: 1,
+        createdAt: 1,
+        updatedAt: 1,
+        totalBookings: { $size: '$bookings' }
+      }
+    },
+    {
+      $sort: { createdAt: -1 }
+    }
+  ]);
+
+  res.status(200).json(users);
+});
+
+// Updated deleteUser function (soft delete)
+export const deleteUser = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+
+  const user = await User.findById(userId);
+  if (!user) {
+    res.status(404);
+    throw new Error('User not found');
+  }
+
+  // Cancel all active bookings
+  await Booking.updateMany(
+    { userId, status: 'active' },
+    { status: 'cancelled' }
+  );
+
+  // Soft delete - set status to inactive and mark as deleted
+  user.status = 'inactive';
+  user.isActive = false;
+  user.deletedAt = new Date();
+  await user.save();
+
+  res.status(200).json({ message: 'User deleted successfully' });
+});
+
+// Updated updateUserStatus function
+export const updateUserStatus = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+  const { status } = req.body;
+
+  if (!['active', 'inactive', 'suspended'].includes(status)) {
+    res.status(400);
+    throw new Error('Invalid status. Must be active, inactive, or suspended.');
+  }
+
+  const user = await User.findById(userId);
+  if (!user) {
+    res.status(404);
+    throw new Error('User not found');
+  }
+
+  // Update user status
+  user.status = status;
+  user.isActive = status === 'active';
+  
+  // If reactivating a deleted user, clear deletedAt
+  if (status === 'active' && user.deletedAt) {
+    user.deletedAt = null;
+  }
+
+  await user.save();
+
+  // If suspending user, cancel their active bookings
+  if (status === 'suspended') {
+    await Booking.updateMany(
+      { userId, status: 'active' },
+      { status: 'cancelled' }
+    );
+  }
+
+  res.status(200).json({ 
+    message: 'User status updated successfully', 
+    user: {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      status: user.status,
+      isActive: user.isActive
+    }
   });
 });
