@@ -1,11 +1,11 @@
-// client/src/api.js
+// client/src/api.js - Enhanced Debug Version
 import axios from 'axios';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 15000,
+  timeout: 30000, // Increased timeout to 30s for deployed environments
   headers: {
     'Content-Type': 'application/json',
   },
@@ -19,7 +19,15 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    console.log(`🔄 API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
+    // Enhanced logging for debugging
+    console.log(`🔄 API Request Details:`, {
+      method: config.method?.toUpperCase(),
+      url: `${config.baseURL}${config.url}`,
+      headers: config.headers,
+      data: config.data,
+      params: config.params
+    });
+    
     return config;
   },
   (error) => {
@@ -36,7 +44,12 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    console.error('❌ API Error:', error);
+    console.error('❌ API Error Details:', {
+      message: error.message,
+      response: error.response,
+      request: error.request,
+      config: error.config
+    });
 
     if (error.response) {
       const { status, data } = error.response;
@@ -64,7 +77,11 @@ api.interceptors.response.use(
       return Promise.reject(new Error(errorMessage));
 
     } else if (error.request) {
-      console.error('No response received:', error.request);
+      console.error('No response received:', {
+        request: error.request,
+        baseURL: API_BASE_URL,
+        timeout: api.defaults.timeout
+      });
       return Promise.reject(new Error('Cannot connect to server. Please check your internet connection.'));
 
     } else {
@@ -124,7 +141,7 @@ export const endpoints = {
   }
 };
 
-// Convenience methods for common operations
+// Enhanced convenience methods with better error handling and debugging
 export const apiMethods = {
   // Get all bunks
   getAllBunks: () => api.get(endpoints.bunks.getAll),
@@ -153,7 +170,7 @@ export const apiMethods = {
       params: { type: connectorType }
     }),
 
-  // CORRECTED: Admin API methods to match backend implementation
+  // ENHANCED: Admin API methods with better debugging
   // User Management
   adminGetAllUsers: (statusFilter = 'all', sortBy = 'createdAt', sortOrder = 'desc', searchTerm = '') => {
     const params = {};
@@ -162,21 +179,88 @@ export const apiMethods = {
     if (sortOrder) params.sortOrder = sortOrder;
     if (searchTerm) params.q = searchTerm;
     
+    console.log('🔍 adminGetAllUsers - Params:', params);
     return api.get(endpoints.admin.getAllUsers, { params });
   },
   
-  adminSearchUsers: (query) => api.get(endpoints.admin.searchUsers, { params: { q: query } }),
+  adminSearchUsers: (query) => {
+    console.log('🔍 adminSearchUsers - Query:', query);
+    return api.get(endpoints.admin.searchUsers, { params: { q: query } });
+  },
   
-  adminGetUserById: (id) => api.get(endpoints.admin.getUserById(id)),
+  adminGetUserById: (id) => {
+    console.log('🔍 adminGetUserById - ID:', id);
+    return api.get(endpoints.admin.getUserById(id));
+  },
   
-  adminGetUserBookings: (userId) => api.get(endpoints.admin.getUserBookings(userId)),
+  adminGetUserBookings: (userId) => {
+    console.log('🔍 adminGetUserBookings - UserID:', userId);
+    return api.get(endpoints.admin.getUserBookings(userId));
+  },
   
-  // CORRECTED: Using correct parameter structure
-  adminUpdateUserStatus: (userId, status) => 
-    api.put(endpoints.admin.updateUserStatus(userId), { status }),
+  // ENHANCED: With comprehensive logging and validation
+  adminUpdateUserStatus: (userId, status) => {
+    if (!userId || !status) {
+      console.error('❌ adminUpdateUserStatus - Missing required parameters:', { userId, status });
+      return Promise.reject(new Error('User ID and status are required'));
+    }
+    
+    const payload = { status };
+    const url = endpoints.admin.updateUserStatus(userId);
+    
+    console.log('🔄 adminUpdateUserStatus - Details:', {
+      userId,
+      status,
+      url,
+      payload,
+      fullUrl: `${API_BASE_URL}${url}`
+    });
+    
+    return api.put(url, payload)
+      .then(response => {
+        console.log('✅ adminUpdateUserStatus - Success:', response.data);
+        return response;
+      })
+      .catch(error => {
+        console.error('❌ adminUpdateUserStatus - Failed:', {
+          userId,
+          status,
+          url,
+          error: error.response?.data || error.message
+        });
+        throw error;
+      });
+  },
   
-  // CORRECTED: Using correct endpoint
-  adminDeleteUser: (userId) => api.delete(endpoints.admin.deleteUser(userId)),
+  // ENHANCED: With comprehensive logging and validation
+  adminDeleteUser: (userId) => {
+    if (!userId) {
+      console.error('❌ adminDeleteUser - Missing user ID');
+      return Promise.reject(new Error('User ID is required'));
+    }
+    
+    const url = endpoints.admin.deleteUser(userId);
+    
+    console.log('🔄 adminDeleteUser - Details:', {
+      userId,
+      url,
+      fullUrl: `${API_BASE_URL}${url}`
+    });
+    
+    return api.delete(url)
+      .then(response => {
+        console.log('✅ adminDeleteUser - Success:', response.data);
+        return response;
+      })
+      .catch(error => {
+        console.error('❌ adminDeleteUser - Failed:', {
+          userId,
+          url,
+          error: error.response?.data || error.message
+        });
+        throw error;
+      });
+  },
 
   // Admin Auth
   adminLogin: (credentials) => api.post(endpoints.admin.adminLogin, credentials),
@@ -192,6 +276,22 @@ export const apiMethods = {
   // Additional convenience methods
   adminGetUserStats: (userId) => api.get(`/api/admin/users/${userId}/stats`),
 };
+
+// Debug helper to check environment and configuration
+export const debugInfo = () => {
+  console.log('🐛 API Configuration Debug Info:', {
+    API_BASE_URL,
+    environment: process.env.NODE_ENV,
+    reactAppApiUrl: process.env.REACT_APP_API_URL,
+    timeout: api.defaults.timeout,
+    headers: api.defaults.headers
+  });
+};
+
+// Call debug info on load in development
+if (process.env.NODE_ENV === 'development') {
+  debugInfo();
+}
 
 // Export default api instance
 export default api;
