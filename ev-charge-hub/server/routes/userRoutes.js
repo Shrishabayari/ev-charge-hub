@@ -1,6 +1,6 @@
 import express from 'express';
 import { registerUser, loginUser, updateUserProfile } from '../controllers/userController.js';
-import authMiddleware from '../middleware/auth.js'; // Corrected the import to ES Module syntax
+import authMiddleware from '../middleware/authMiddleware.js'; // Corrected the import to ES Module syntax
 
 const router = express.Router();
 

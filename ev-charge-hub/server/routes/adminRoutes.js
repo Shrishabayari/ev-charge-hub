@@ -1,44 +1,45 @@
 // routes/adminRoutes.js
 import express from 'express';
-import { 
-  registerAdmin, 
-  loginAdmin, 
-  getAdminProfile,    // Import new function
-  updateAdminProfile, // Import new function
+import {
+  registerAdmin,
+  loginAdmin,
+  getAdminProfile,
+  updateAdminProfile,
   getAllUsers,
-  getUserBookings,
+  searchUsers,
   getUserById,
-  getDashboardStats,
+  getUserBookings,
   updateUserStatus,
   deleteUser,
-  searchUsers,
-  getBookingAnalytics 
+  getDashboardStats,
+  getBookingAnalytics
 } from '../controllers/adminController.js';
-
-import { protectAdmin } from '../middleware/protectAdmin.js'; // Correct import path for admin middleware
+import { protectAdmin } from '../middleware/authMiddleware.js'; // Make sure you have admin auth middleware
 
 const router = express.Router();
 
-// Public routes for Admin (no authentication needed)
+// Admin Authentication Routes
 router.post('/register', registerAdmin);
 router.post('/login', loginAdmin);
 
-// Admin Profile Routes (Protected)
-// These routes will now use the specific protectAdmin middleware
+// Protected Admin Routes - Require admin authentication
+router.use(protectAdmin); // Apply admin protection to all routes below
+
+// Admin Profile Management
 router.route('/profile')
-  .get(protectAdmin, getAdminProfile)    // GET admin profile
-  .put(protectAdmin, updateAdminProfile); // PUT update admin profile
+  .get(getAdminProfile)
+  .put(updateAdminProfile);
 
-// User Management Routes (Protected)
-router.get('/users', protectAdmin, getAllUsers);           // Get all users with booking counts
-router.get('/users/search', protectAdmin, searchUsers);    // Search users
-router.get('/users/:userId', protectAdmin, getUserById);   // Get specific user details
-router.get('/users/:userId/bookings', protectAdmin, getUserBookings); // Get user's booking history
-router.put('/users/:userId/status', protectAdmin, updateUserStatus); // Update user status
-router.delete('/users/:userId', protectAdmin, deleteUser); // Delete user (soft delete)
+// User Management Routes - FIXED TO MATCH CONTROLLER FUNCTIONS
+router.get('/users', getAllUsers); // GET all users
+router.get('/users/search', searchUsers); // GET search users (must come before /:userId routes)
+router.get('/users/:userId', getUserById); // GET specific user details
+router.get('/users/:userId/bookings', getUserBookings); // GET user's bookings
+router.put('/users/:userId/status', updateUserStatus); // PUT update user status
+router.delete('/users/:userId', deleteUser); // DELETE user
 
-// Dashboard & Analytics Routes (Protected)
-router.get('/stats', protectAdmin, getDashboardStats);           // Get dashboard statistics
-router.get('/bookings/analytics', protectAdmin, getBookingAnalytics); // Get booking analytics
+// Dashboard & Analytics Routes
+router.get('/stats', getDashboardStats);
+router.get('/bookings/analytics', getBookingAnalytics);
 
 export default router;

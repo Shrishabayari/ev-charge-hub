@@ -1,6 +1,6 @@
 // routes/bookingRoutes.js
 import express from 'express';
-import authMiddleware from '../middleware/auth.js';
+import authMiddleware from '../middleware/authMiddleware.js';
 
 import {
   getBookingsByBunk,
