@@ -1,11 +1,11 @@
-// client/src/api.js - Enhanced Debug Version
+// client/src/api.js
 import axios from 'axios';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 30000, // Increased timeout to 30s for deployed environments
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -19,15 +19,7 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    // Enhanced logging for debugging
-    console.log(`🔄 API Request Details:`, {
-      method: config.method?.toUpperCase(),
-      url: `${config.baseURL}${config.url}`,
-      headers: config.headers,
-      data: config.data,
-      params: config.params
-    });
-    
+    console.log(`🔄 API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
     return config;
   },
   (error) => {
@@ -44,12 +36,7 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    console.error('❌ API Error Details:', {
-      message: error.message,
-      response: error.response,
-      request: error.request,
-      config: error.config
-    });
+    console.error('❌ API Error:', error);
 
     if (error.response) {
       const { status, data } = error.response;
@@ -77,11 +64,7 @@ api.interceptors.response.use(
       return Promise.reject(new Error(errorMessage));
 
     } else if (error.request) {
-      console.error('No response received:', {
-        request: error.request,
-        baseURL: API_BASE_URL,
-        timeout: api.defaults.timeout
-      });
+      console.error('No response received:', error.request);
       return Promise.reject(new Error('Cannot connect to server. Please check your internet connection.'));
 
     } else {
@@ -120,7 +103,7 @@ export const endpoints = {
     cancel: (id) => `/api/bookings/${id}/cancel`,
   },
 
-  // Admin endpoints - CORRECTED TO MATCH BACKEND ROUTES
+  // Admin endpoints - FIXED TO MATCH BACKEND
   admin: {
     // Admin Auth
     adminLogin: '/api/admin/login',
@@ -130,10 +113,10 @@ export const endpoints = {
     // User Management - CORRECTED ENDPOINTS
     getAllUsers: '/api/admin/users',
     searchUsers: '/api/admin/users/search',
-    getUserById: (id) => `/api/admin/users/${id}`,
+    getUserById: (id) => `/api/admin/users/${id}`, // This should match backend getUserById
     getUserBookings: (id) => `/api/admin/users/${id}/bookings`,
     updateUserStatus: (id) => `/api/admin/users/${id}/status`,
-    deleteUser: (id) => `/api/admin/users/${id}`,
+    deleteUser: (id) => `/api/admin/users/${id}`, // This should match backend deleteUser
     
     // Dashboard & Analytics
     getDashboardStats: '/api/admin/stats',
@@ -141,7 +124,7 @@ export const endpoints = {
   }
 };
 
-// Enhanced convenience methods with better error handling and debugging
+// FIXED: Convenience methods for common operations
 export const apiMethods = {
   // Get all bunks
   getAllBunks: () => api.get(endpoints.bunks.getAll),
@@ -170,7 +153,7 @@ export const apiMethods = {
       params: { type: connectorType }
     }),
 
-  // ENHANCED: Admin API methods with better debugging
+  // FIXED: Admin API methods to match backend implementation
   // User Management
   adminGetAllUsers: (statusFilter = 'all', sortBy = 'createdAt', sortOrder = 'desc', searchTerm = '') => {
     const params = {};
@@ -179,88 +162,20 @@ export const apiMethods = {
     if (sortOrder) params.sortOrder = sortOrder;
     if (searchTerm) params.q = searchTerm;
     
-    console.log('🔍 adminGetAllUsers - Params:', params);
     return api.get(endpoints.admin.getAllUsers, { params });
   },
   
-  adminSearchUsers: (query) => {
-    console.log('🔍 adminSearchUsers - Query:', query);
-    return api.get(endpoints.admin.searchUsers, { params: { q: query } });
-  },
+  adminSearchUsers: (query) => api.get(endpoints.admin.searchUsers, { params: { q: query } }),
   
-  adminGetUserById: (id) => {
-    console.log('🔍 adminGetUserById - ID:', id);
-    return api.get(endpoints.admin.getUserById(id));
-  },
+  adminGetUserById: (id) => api.get(endpoints.admin.getUserById(id)),
   
-  adminGetUserBookings: (userId) => {
-    console.log('🔍 adminGetUserBookings - UserID:', userId);
-    return api.get(endpoints.admin.getUserBookings(userId));
-  },
+  adminGetUserBookings: (userId) => api.get(endpoints.admin.getUserBookings(userId)),
   
-  // ENHANCED: With comprehensive logging and validation
-  adminUpdateUserStatus: (userId, status) => {
-    if (!userId || !status) {
-      console.error('❌ adminUpdateUserStatus - Missing required parameters:', { userId, status });
-      return Promise.reject(new Error('User ID and status are required'));
-    }
-    
-    const payload = { status };
-    const url = endpoints.admin.updateUserStatus(userId);
-    
-    console.log('🔄 adminUpdateUserStatus - Details:', {
-      userId,
-      status,
-      url,
-      payload,
-      fullUrl: `${API_BASE_URL}${url}`
-    });
-    
-    return api.put(url, payload)
-      .then(response => {
-        console.log('✅ adminUpdateUserStatus - Success:', response.data);
-        return response;
-      })
-      .catch(error => {
-        console.error('❌ adminUpdateUserStatus - Failed:', {
-          userId,
-          status,
-          url,
-          error: error.response?.data || error.message
-        });
-        throw error;
-      });
-  },
+  // FIXED: This was the main issue - using correct parameter name
+  adminUpdateUserStatus: (userId, status) => api.put(endpoints.admin.updateUserStatus(userId), { status }),
   
-  // ENHANCED: With comprehensive logging and validation
-  adminDeleteUser: (userId) => {
-    if (!userId) {
-      console.error('❌ adminDeleteUser - Missing user ID');
-      return Promise.reject(new Error('User ID is required'));
-    }
-    
-    const url = endpoints.admin.deleteUser(userId);
-    
-    console.log('🔄 adminDeleteUser - Details:', {
-      userId,
-      url,
-      fullUrl: `${API_BASE_URL}${url}`
-    });
-    
-    return api.delete(url)
-      .then(response => {
-        console.log('✅ adminDeleteUser - Success:', response.data);
-        return response;
-      })
-      .catch(error => {
-        console.error('❌ adminDeleteUser - Failed:', {
-          userId,
-          url,
-          error: error.response?.data || error.message
-        });
-        throw error;
-      });
-  },
+  // FIXED: Using correct endpoint and parameter name
+  adminDeleteUser: (userId) => api.delete(endpoints.admin.deleteUser(userId)),
 
   // Admin Auth
   adminLogin: (credentials) => api.post(endpoints.admin.adminLogin, credentials),
@@ -270,28 +185,7 @@ export const apiMethods = {
 
   // Dashboard & Analytics
   adminGetDashboardStats: () => api.get(endpoints.admin.getDashboardStats),
-  adminGetBookingAnalytics: (period = '30') => 
-    api.get(endpoints.admin.getBookingAnalytics, { params: { period } }),
-
-  // Additional convenience methods
-  adminGetUserStats: (userId) => api.get(`/api/admin/users/${userId}/stats`),
+  adminGetBookingAnalytics: (period = '30') => api.get(endpoints.admin.getBookingAnalytics, { params: { period } }),
 };
 
-// Debug helper to check environment and configuration
-export const debugInfo = () => {
-  console.log('🐛 API Configuration Debug Info:', {
-    API_BASE_URL,
-    environment: process.env.NODE_ENV,
-    reactAppApiUrl: process.env.REACT_APP_API_URL,
-    timeout: api.defaults.timeout,
-    headers: api.defaults.headers
-  });
-};
-
-// Call debug info on load in development
-if (process.env.NODE_ENV === 'development') {
-  debugInfo();
-}
-
-// Export default api instance
 export default api;

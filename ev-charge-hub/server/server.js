@@ -18,7 +18,8 @@ const PORT = process.env.PORT || 5000;
 app.use(cors({
   origin: [
     'http://localhost:3000', // for development
-    'https://ev-charge-hubs1.onrender.com/', // replace with actual client URL
+    'https://ev-charge-hubs1.onrender.com', // FIXED: Removed trailing slash
+    process.env.CLIENT_URL || 'https://ev-charge-hubs1.onrender.com' // Add env variable support
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

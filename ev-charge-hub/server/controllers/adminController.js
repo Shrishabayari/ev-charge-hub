@@ -1,304 +1,380 @@
 // controllers/adminController.js
+import Admin from "../models/Admin.js"; // Import the Admin model
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 import User from '../models/User.js';
-import Admin from '../models/Admin.js';
 import Booking from '../models/Booking.js';
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
+import EvBunk from '../models/EvBunkSchema.js';
+import asyncHandler from 'express-async-handler'; // Ensure this is imported
 
-// Admin Authentication
-export const registerAdmin = async (req, res) => {
-  try {
-    const { name, email, password } = req.body;
-    
-    // Check if admin already exists
-    const existingAdmin = await Admin.findOne({ email });
-    if (existingAdmin) {
-      return res.status(400).json({ message: 'Admin already exists' });
-    }
+// Register Admin
+export const registerAdmin = asyncHandler(async (req, res) => {
+  const { name, email, password } = req.body;
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+  const existingAdmin = await Admin.findOne({ email });
+  if (existingAdmin) {
+    res.status(400);
+    throw new Error("Admin already exists");
+  }
 
-    // Create admin
-    const admin = new Admin({
-      name,
-      email,
-      password: hashedPassword
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  const newAdmin = new Admin({
+    name,
+    email,
+    password: hashedPassword,
+  });
+
+  await newAdmin.save();
+  res.status(201).json({ message: "Admin registered successfully" });
+});
+
+// Admin Login
+export const loginAdmin = asyncHandler(async (req, res) => {
+  const { email, password } = req.body;
+
+  const admin = await Admin.findOne({ email });
+  if (!admin) {
+    res.status(400); // Bad Request
+    throw new Error("Email not found. Please register or check your email."); // Specific error for email not found
+  }
+
+  const isMatch = await bcrypt.compare(password, admin.password);
+  if (!isMatch) {
+    res.status(400); // Bad Request
+    throw new Error("Incorrect password. Please try again."); // Specific error for incorrect password
+  }
+
+  // JWT token generation
+  const token = jwt.sign(
+    { id: admin._id, email: admin.email },
+    process.env.JWT_SECRET,
+    { expiresIn: "365d" }
+  );
+
+  res.status(200).json({ message: "Login successful", token });
+
+});
+// @desc    Get admin profile
+// @route   GET /api/admin/profile
+// @access  Private/Admin
+export const getAdminProfile = asyncHandler(async (req, res) => {
+  // req.admin is populated by the protectAdmin middleware
+  const admin = await Admin.findById(req.admin.id).select('-password');
+
+  if (admin) {
+    res.status(200).json({
+      _id: admin._id,
+      name: admin.name,
+      email: admin.email,
+      createdAt: admin.createdAt,
     });
+  } else {
+    res.status(404);
+    throw new Error('Admin not found');
+  }
+});
 
-    await admin.save();
+// @desc    Update admin profile
+// @route   PUT /api/admin/profile
+// @access  Private/Admin
+export const updateAdminProfile = asyncHandler(async (req, res) => {
+  const admin = await Admin.findById(req.admin.id);
 
-    // Generate token
-    const token = jwt.sign(
-      { id: admin._id, role: 'admin' },
-      process.env.JWT_SECRET,
-      { expiresIn: '30d' }
-    );
+  if (admin) {
+    admin.name = req.body.name || admin.name;
 
-    res.status(201).json({
-      message: 'Admin registered successfully',
-      token,
-      admin: {
-        id: admin._id,
-        name: admin.name,
-        email: admin.email
-      }
+    if (req.body.password) {
+      // Only update password if a new one is provided
+      admin.password = await bcrypt.hash(req.body.password, 10);
+    }
+
+    const updatedAdmin = await admin.save();
+
+    res.status(200).json({
+      _id: updatedAdmin._id,
+      name: updatedAdmin.name,
+      email: updatedAdmin.email,
+      createdAt: updatedAdmin.createdAt,
+      message: 'Admin profile updated successfully',
     });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+  } else {
+    res.status(404);
+    throw new Error('Admin not found');
   }
-};
+});
 
-export const loginAdmin = async (req, res) => {
-  try {
-    const { email, password } = req.body;
 
-    // Find admin
-    const admin = await Admin.findOne({ email });
-    if (!admin) {
-      return res.status(401).json({ message: 'Invalid credentials' });
-    }
+// @desc    Get specific user's bookings
+// @route   GET /api/admin/users/:userId/bookings
+// @access  Private/Admin
+export const getUserBookings = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
 
-    // Check password
-    const isMatch = await bcrypt.compare(password, admin.password);
-    if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid credentials' });
-    }
-
-    // Generate token
-    const token = jwt.sign(
-      { id: admin._id, role: 'admin' },
-      process.env.JWT_SECRET,
-      { expiresIn: '30d' }
-    );
-
-    res.json({
-      message: 'Login successful',
-      token,
-      admin: {
-        id: admin._id,
-        name: admin.name,
-        email: admin.email
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+  // Validate userId
+  if (!userId) {
+    res.status(400);
+    throw new Error('User ID is required');
   }
-};
 
-export const getAdminProfile = async (req, res) => {
-  try {
-    const admin = await Admin.findById(req.admin.id).select('-password');
-    res.json({ admin });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+  // Check if user exists
+  const userExists = await User.findById(userId);
+  if (!userExists) {
+    res.status(404);
+    throw new Error('User not found');
   }
-};
 
-export const updateAdminProfile = async (req, res) => {
-  try {
-    const { name, email } = req.body;
-    const admin = await Admin.findByIdAndUpdate(
-      req.admin.id,
-      { name, email },
-      { new: true }
-    ).select('-password');
-    
-    res.json({ message: 'Profile updated successfully', admin });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-};
-
-// User Management
-export const getAllUsers = async (req, res) => {
-  try {
-    const { 
-      status = 'all', 
-      sortBy = 'createdAt', 
-      sortOrder = 'desc', 
-      q = '',
-      page = 1,
-      limit = 10 
-    } = req.query;
-
-    // Build query
-    let query = {};
-    
-    if (status !== 'all') {
-      query.status = status;
-    }
-
-    if (q) {
-      query.$or = [
-        { name: { $regex: q, $options: 'i' } },
-        { email: { $regex: q, $options: 'i' } }
-      ];
-    }
-
-    // Build sort object
-    const sortObj = {};
-    sortObj[sortBy] = sortOrder === 'asc' ? 1 : -1;
-
-    // Execute query with pagination
-    const users = await User.find(query)
-      .sort(sortObj)
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .select('-password')
-      .lean();
-
-    // Get total count for pagination
-    const total = await User.countDocuments(query);
-
-    // Add booking counts
-    const usersWithBookings = await Promise.all(
-      users.map(async (user) => {
-        const totalBookings = await Booking.countDocuments({ userId: user._id });
-        return {
-          ...user,
-          totalBookings
-        };
-      })
-    );
-
-    res.json({
-      users: usersWithBookings,
-      pagination: {
-        current: page,
-        pages: Math.ceil(total / limit),
-        total
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-};
-
-export const searchUsers = async (req, res) => {
-  try {
-    const { q } = req.query;
-    
-    if (!q) {
-      return res.status(400).json({ message: 'Search query is required' });
-    }
-
-    const users = await User.find({
-      $or: [
-        { name: { $regex: q, $options: 'i' } },
-        { email: { $regex: q, $options: 'i' } }
-      ]
+  // Fetch bookings with populated EV station details
+  const bookings = await Booking.find({ userId })
+    .populate({
+      path: 'bunkId',
+      model: 'EvBunk',
+      select: 'name address phone latitude longitude operatingHours connectorTypes'
     })
-    .select('-password')
-    .limit(20)
-    .lean();
+    .sort({ createdAt: -1 }); // Most recent first
 
-    // Add booking counts
-    const usersWithBookings = await Promise.all(
-      users.map(async (user) => {
-        const totalBookings = await Booking.countDocuments({ userId: user._id });
-        return {
-          ...user,
-          totalBookings
-        };
-      })
-    );
+  res.status(200).json(bookings);
+});
 
-    res.json({ users: usersWithBookings });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+// @desc    Get specific user details
+// @route   GET /api/admin/users/:userId
+// @access  Private/Admin
+export const getUserById = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+
+  const user = await User.findById(userId).select('-password');
+  if (!user) {
+    res.status(404);
+    throw new Error('User not found');
   }
-};
 
-export const getUserById = async (req, res) => {
-  try {
-    const { userId } = req.params;
-    
-    const user = await User.findById(userId).select('-password').lean();
-    
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
+  // Get booking count and recent activity
+  const bookingCount = await Booking.countDocuments({ userId });
+  const recentBookings = await Booking.find({ userId })
+    .sort({ createdAt: -1 })
+    .limit(5)
+    .populate('bunkId', 'name address');
 
-    // Get user's booking count and other stats
-    const totalBookings = await Booking.countDocuments({ userId: user._id });
-    const activeBookings = await Booking.countDocuments({ 
-      userId: user._id, 
-      status: 'active' 
-    });
+  const userWithStats = {
+    ...user.toObject(),
+    totalBookings: bookingCount,
+    recentBookings,
+    status: user.status || 'active'
+  };
 
-    res.json({
-      user: {
-        ...user,
-        totalBookings,
-        activeBookings
+  res.status(200).json(userWithStats);
+});
+
+// @desc    Get dashboard statistics
+// @route   GET /api/admin/stats
+// @access  Private/Admin
+export const getDashboardStats = asyncHandler(async (req, res) => {
+  const totalUsers = await User.countDocuments();
+  const totalBookings = await Booking.countDocuments();
+  const activeBookings = await Booking.countDocuments({ status: 'active' });
+  const completedBookings = await Booking.countDocuments({ status: 'completed' });
+  const cancelledBookings = await Booking.countDocuments({ status: 'cancelled' });
+  const totalStations = await EvBunk.countDocuments();
+
+  // Recent users (last 30 days)
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const recentUsers = await User.countDocuments({ 
+    createdAt: { $gte: thirtyDaysAgo } 
+  });
+
+  // Recent bookings (last 30 days)
+  const recentBookings = await Booking.countDocuments({ 
+    createdAt: { $gte: thirtyDaysAgo } 
+  });
+
+  // Monthly growth
+  const lastMonth = new Date();
+  lastMonth.setMonth(lastMonth.getMonth() - 1);
+  const monthlyUsers = await User.countDocuments({ 
+    createdAt: { $gte: lastMonth } 
+  });
+  const monthlyBookings = await Booking.countDocuments({ 
+    createdAt: { $gte: lastMonth } 
+  });
+
+  res.status(200).json({
+    totalUsers,
+    totalBookings,
+    activeBookings,
+    completedBookings,
+    cancelledBookings,
+    totalStations,
+    recentUsers,
+    recentBookings,
+    monthlyUsers,
+    monthlyBookings,
+    timestamp: new Date()
+  });
+});
+
+// @desc    Get user search results
+// @route   GET /api/admin/users/search
+// @access  Private/Admin
+export const searchUsers = asyncHandler(async (req, res) => {
+  const { q } = req.query;
+  
+  if (!q) {
+    res.status(400);
+    throw new Error('Search query is required');
+  }
+
+  const users = await User.find({
+    $or: [
+      { name: { $regex: q, $options: 'i' } },
+      { email: { $regex: q, $options: 'i' } }
+    ]
+  }).select('-password').limit(20);
+
+  res.status(200).json(users);
+});
+
+// @desc    Get booking analytics
+// @route   GET /api/admin/bookings/analytics
+// @access  Private/Admin
+export const getBookingAnalytics = asyncHandler(async (req, res) => {
+  const { period = '30' } = req.query; // Default to 30 days
+  const daysAgo = new Date();
+  daysAgo.setDate(daysAgo.getDate() - parseInt(period));
+
+  // Booking trends
+  const bookingTrends = await Booking.aggregate([
+    {
+      $match: {
+        createdAt: { $gte: daysAgo }
       }
-    });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-};
-
-export const getUserBookings = async (req, res) => {
-  try {
-    const { userId } = req.params;
-    
-    // Verify user exists
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+    },
+    {
+      $group: {
+        _id: {
+          date: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }
+        },
+        count: { $sum: 1 }
+      }
+    },
+    {
+      $sort: { "_id.date": 1 }
     }
+  ]);
 
-    const bookings = await Booking.find({ userId })
-      .populate('bunkId', 'name address')
-      .sort({ createdAt: -1 })
-      .lean();
-
-    res.json({ bookings });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-};
-
-export const updateUserStatus = async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const { status } = req.body;
-
-    // Validate status
-    const validStatuses = ['active', 'inactive', 'banned', 'suspended'];
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({ 
-        message: 'Invalid status. Must be one of: ' + validStatuses.join(', ') 
-      });
+  // Popular stations
+  const popularStations = await Booking.aggregate([
+    {
+      $match: {
+        createdAt: { $gte: daysAgo }
+      }
+    },
+    {
+      $group: {
+        _id: "$bunkId",
+        bookingCount: { $sum: 1 }
+      }
+    },
+    {
+      $lookup: {
+        from: 'evbunks', // Ensure this matches your actual collection name for EvBunkSchema
+        localField: '_id',
+        foreignField: '_id',
+        as: 'station'
+      }
+    },
+    {
+      $unwind: '$station'
+    },
+    {
+      $project: {
+        stationName: '$station.name',
+        address: '$station.address',
+        bookingCount: 1
+      }
+    },
+    {
+      $sort: { bookingCount: -1 }
+    },
+    {
+      $limit: 10
     }
+  ]);
 
-    const user = await User.findByIdAndUpdate(
-      userId,
-      { status },
-      { new: true }
-    ).select('-password');
+  res.status(200).json({
+    period: parseInt(period),
+    bookingTrends,
+    popularStations
+  });
+});
 
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+// Updated getAllUsers function for admin controller
+export const getAllUsers = asyncHandler(async (req, res) => {
+  const users = await User.aggregate([
+    {
+      // Only get users that are not deleted (soft delete check)
+      $match: {
+        $or: [
+          { deletedAt: null },
+          { deletedAt: { $exists: false } }
+        ]
+      }
+    },
+    {
+      $lookup: {
+        from: 'bookings',
+        localField: '_id',
+        foreignField: 'userId',
+        as: 'bookings'
+      }
+    },
+    {
+      $project: {
+        _id: 1,
+        name: 1,
+        email: 1,
+        status: 1,
+        isActive: 1,
+        lastLogin: 1,
+        createdAt: 1,
+        updatedAt: 1,
+        totalBookings: { $size: '$bookings' }
+      }
+    },
+    {
+      $sort: { createdAt: -1 }
     }
+  ]);
 
-    res.json({ 
-      message: 'User status updated successfully', 
-      user 
-    });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-};
+  res.status(200).json(users);
+});
 
 export const deleteUser = async (req, res) => {
   try {
-    const { userId } = req.params;
+    // FIXED: Handle both :userId and :id parameters
+    const userId = req.params.userId || req.params.id;
 
+    console.log('🔄 deleteUser called with:', {
+      userId,
+      params: req.params
+    });
+
+    if (!userId) {
+      console.error('❌ No user ID provided');
+      return res.status(400).json({ 
+        message: 'User ID is required',
+        error: 'MISSING_USER_ID'
+      });
+    }
+
+    // Check if user exists
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      console.error('❌ User not found:', userId);
+      return res.status(404).json({ 
+        message: 'User not found',
+        error: 'USER_NOT_FOUND'
+      });
     }
 
     // Optional: Check for active bookings before deletion
@@ -308,8 +384,11 @@ export const deleteUser = async (req, res) => {
     });
 
     if (activeBookings > 0) {
+      console.log('⚠️ User has active bookings:', { userId, activeBookings });
       return res.status(400).json({ 
-        message: 'Cannot delete user with active bookings. Cancel bookings first.' 
+        message: 'Cannot delete user with active bookings. Cancel bookings first.',
+        error: 'ACTIVE_BOOKINGS_EXIST',
+        activeBookings
       });
     }
 
@@ -319,80 +398,98 @@ export const deleteUser = async (req, res) => {
       Booking.deleteMany({ userId })
     ]);
 
-    res.json({ message: 'User deleted successfully' });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-};
+    console.log('✅ User deleted successfully:', { userId });
 
-// Dashboard & Analytics
-export const getDashboardStats = async (req, res) => {
-  try {
-    const [
-      totalUsers,
-      activeUsers,
-      totalBookings,
-      activeBookings,
-      todayBookings
-    ] = await Promise.all([
-      User.countDocuments(),
-      User.countDocuments({ status: 'active' }),
-      Booking.countDocuments(),
-      Booking.countDocuments({ status: 'active' }),
-      Booking.countDocuments({
-        createdAt: {
-          $gte: new Date(new Date().setHours(0, 0, 0, 0)),
-          $lt: new Date(new Date().setHours(23, 59, 59, 999))
-        }
-      })
-    ]);
-
-    res.json({
-      users: {
-        total: totalUsers,
-        active: activeUsers,
-        inactive: totalUsers - activeUsers
-      },
-      bookings: {
-        total: totalBookings,
-        active: activeBookings,
-        today: todayBookings
-      }
+    res.json({ 
+      message: 'User and associated data deleted successfully',
+      deletedUserId: userId
     });
+
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error('❌ Error deleting user:', error);
+    res.status(500).json({ 
+      message: 'Server error while deleting user',
+      error: error.message 
+    });
   }
 };
 
-export const getBookingAnalytics = async (req, res) => {
+// Updated updateUserStatus function
+export const updateUserStatus = async (req, res) => {
   try {
-    const { period = '30' } = req.query;
-    const days = parseInt(period);
-    
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
+    // FIXED: Handle both :userId and :id parameters
+    const userId = req.params.userId || req.params.id;
+    const { status } = req.body;
 
-    const bookings = await Booking.aggregate([
-      {
-        $match: {
-          createdAt: { $gte: startDate }
-        }
-      },
-      {
-        $group: {
-          _id: {
-            $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
-          },
-          count: { $sum: 1 }
-        }
-      },
-      {
-        $sort: { _id: 1 }
-      }
-    ]);
+    console.log('🔄 updateUserStatus called with:', {
+      userId,
+      status,
+      params: req.params,
+      body: req.body
+    });
 
-    res.json({ analytics: bookings });
+    if (!userId) {
+      console.error('❌ No user ID provided');
+      return res.status(400).json({ 
+        message: 'User ID is required',
+        error: 'MISSING_USER_ID'
+      });
+    }
+
+    if (!status) {
+      console.error('❌ No status provided');
+      return res.status(400).json({ 
+        message: 'Status is required in request body',
+        error: 'MISSING_STATUS'
+      });
+    }
+
+    // Validate status
+    const validStatuses = ['active', 'inactive', 'banned', 'suspended'];
+    if (!validStatuses.includes(status.toLowerCase())) {
+      console.error('❌ Invalid status:', status);
+      return res.status(400).json({ 
+        message: `Invalid status. Must be one of: ${validStatuses.join(', ')}`,
+        error: 'INVALID_STATUS'
+      });
+    }
+
+    // Check if user exists
+    const user = await User.findById(userId);
+    if (!user) {
+      console.error('❌ User not found:', userId);
+      return res.status(404).json({ 
+        message: 'User not found',
+        error: 'USER_NOT_FOUND'
+      });
+    }
+
+    // Update user status
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { 
+        status: status.toLowerCase(),
+        isActive: status.toLowerCase() === 'active'
+      },
+      { new: true }
+    ).select('-password');
+
+    console.log('✅ User status updated successfully:', {
+      userId,
+      oldStatus: user.status,
+      newStatus: updatedUser.status
+    });
+
+    res.json({ 
+      message: `User status updated to ${status} successfully`,
+      user: updatedUser
+    });
+
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error('❌ Error updating user status:', error);
+    res.status(500).json({ 
+      message: 'Server error while updating user status',
+      error: error.message 
+    });
   }
 };
