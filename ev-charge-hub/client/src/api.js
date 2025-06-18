@@ -103,7 +103,7 @@ export const endpoints = {
     cancel: (id) => `/api/bookings/${id}/cancel`,
   },
 
-  // Admin endpoints - FIXED TO MATCH BACKEND
+  // Admin endpoints - CORRECTED TO MATCH BACKEND ROUTES
   admin: {
     // Admin Auth
     adminLogin: '/api/admin/login',
@@ -113,10 +113,10 @@ export const endpoints = {
     // User Management - CORRECTED ENDPOINTS
     getAllUsers: '/api/admin/users',
     searchUsers: '/api/admin/users/search',
-    getUserById: (id) => `/api/admin/users/${id}`, // This should match backend getUserById
+    getUserById: (id) => `/api/admin/users/${id}`,
     getUserBookings: (id) => `/api/admin/users/${id}/bookings`,
     updateUserStatus: (id) => `/api/admin/users/${id}/status`,
-    deleteUser: (id) => `/api/admin/users/${id}`, // This should match backend deleteUser
+    deleteUser: (id) => `/api/admin/users/${id}`,
     
     // Dashboard & Analytics
     getDashboardStats: '/api/admin/stats',
@@ -124,7 +124,7 @@ export const endpoints = {
   }
 };
 
-// FIXED: Convenience methods for common operations
+// Convenience methods for common operations
 export const apiMethods = {
   // Get all bunks
   getAllBunks: () => api.get(endpoints.bunks.getAll),
@@ -153,7 +153,7 @@ export const apiMethods = {
       params: { type: connectorType }
     }),
 
-  // FIXED: Admin API methods to match backend implementation
+  // CORRECTED: Admin API methods to match backend implementation
   // User Management
   adminGetAllUsers: (statusFilter = 'all', sortBy = 'createdAt', sortOrder = 'desc', searchTerm = '') => {
     const params = {};
@@ -171,10 +171,11 @@ export const apiMethods = {
   
   adminGetUserBookings: (userId) => api.get(endpoints.admin.getUserBookings(userId)),
   
-  // FIXED: This was the main issue - using correct parameter name
-  adminUpdateUserStatus: (userId, status) => api.put(endpoints.admin.updateUserStatus(userId), { status }),
+  // CORRECTED: Using correct parameter structure
+  adminUpdateUserStatus: (userId, status) => 
+    api.put(endpoints.admin.updateUserStatus(userId), { status }),
   
-  // FIXED: Using correct endpoint and parameter name
+  // CORRECTED: Using correct endpoint
   adminDeleteUser: (userId) => api.delete(endpoints.admin.deleteUser(userId)),
 
   // Admin Auth
@@ -185,7 +186,12 @@ export const apiMethods = {
 
   // Dashboard & Analytics
   adminGetDashboardStats: () => api.get(endpoints.admin.getDashboardStats),
-  adminGetBookingAnalytics: (period = '30') => api.get(endpoints.admin.getBookingAnalytics, { params: { period } }),
+  adminGetBookingAnalytics: (period = '30') => 
+    api.get(endpoints.admin.getBookingAnalytics, { params: { period } }),
+
+  // Additional convenience methods
+  adminGetUserStats: (userId) => api.get(`/api/admin/users/${userId}/stats`),
 };
 
+// Export default api instance
 export default api;
