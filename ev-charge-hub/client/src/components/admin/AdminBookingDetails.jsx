@@ -11,6 +11,7 @@ const AdminBookingDetail = () => {
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
     const fetchBookingDetail = async () => {
@@ -84,6 +85,7 @@ const AdminBookingDetail = () => {
 
   const updateStatus = async (newStatus) => {
     try {
+      setUpdating(true);
       const token = localStorage.getItem('authToken') ||
                       localStorage.getItem('token') ||
                       sessionStorage.getItem('authToken');
@@ -100,9 +102,8 @@ const AdminBookingDetail = () => {
 
       console.log(`Updating booking ${id} status to ${newStatus}`);
 
-      // FIXED: Ensure we're using the correct API endpoint with the actual ID
       const response = await api.patch(
-        `/api/bookings/admin/${id}/status`, // Corrected line
+        `/api/bookings/admin/${id}/status`,
         { status: newStatus },
         { headers }
       );
@@ -128,6 +129,8 @@ const AdminBookingDetail = () => {
       }
 
       alert(errorMessage);
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -146,18 +149,43 @@ const AdminBookingDetail = () => {
     }
   };
 
-  const getStatusBadgeClass = (status) => {
+  const getStatusConfig = (status) => {
     switch (status?.toLowerCase()) {
       case 'active':
-        return 'bg-green-100 text-green-800 border-green-200';
+        return {
+          bg: 'bg-emerald-500',
+          text: 'text-white',
+          icon: '⚡',
+          gradient: 'from-emerald-400 to-emerald-600'
+        };
       case 'cancelled':
-        return 'bg-red-100 text-red-800 border-red-200';
+        return {
+          bg: 'bg-red-500',
+          text: 'text-white',
+          icon: '✕',
+          gradient: 'from-red-400 to-red-600'
+        };
       case 'completed':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return {
+          bg: 'bg-blue-500',
+          text: 'text-white',
+          icon: '✓',
+          gradient: 'from-blue-400 to-blue-600'
+        };
       case 'pending':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        return {
+          bg: 'bg-amber-500',
+          text: 'text-white',
+          icon: '⏳',
+          gradient: 'from-amber-400 to-amber-600'
+        };
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return {
+          bg: 'bg-gray-500',
+          text: 'text-white',
+          icon: '?',
+          gradient: 'from-gray-400 to-gray-600'
+        };
     }
   };
 
@@ -193,258 +221,239 @@ const AdminBookingDetail = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-600"></div>
-          <p className="mt-5 text-gray-700 text-xl font-medium">Loading booking details...</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+        <AdminNavbar />
+        <div className="flex items-center justify-center min-h-[80vh]">
+          <div className="text-center space-y-4">
+            <div className="relative">
+              <div className="w-20 h-20 border-4 border-indigo-200 rounded-full animate-spin border-t-indigo-600 mx-auto"></div>
+              <div className="absolute inset-0 w-20 h-20 border-4 border-transparent rounded-full animate-ping border-t-indigo-400 mx-auto"></div>
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-xl font-semibold text-gray-800">Loading Booking Details</h3>
+              <p className="text-gray-600">Please wait while we fetch the information...</p>
+            </div>
+          </div>
         </div>
+        <Footer />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
-        <div className="bg-white shadow-xl rounded-lg p-8 max-w-md w-full text-center border border-red-200">
-          <div className="flex items-center justify-center text-red-500 mb-4">
-            <svg className="h-12 w-12" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-3">Error Loading Booking</h3>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
-            <button
-              onClick={() => window.location.reload()}
-              className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105"
-            >
-              Retry
-            </button>
-            <button
-              onClick={() => navigate('/admin/view-bookings')}
-              className="w-full sm:w-auto bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105"
-            >
-              Back to List
-            </button>
+      <div className="min-h-screen bg-gradient-to-br from-red-50 via-orange-50 to-yellow-50">
+        <AdminNavbar />
+        <div className="flex items-center justify-center min-h-[80vh] px-4">
+          <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full border border-red-100">
+            <div className="text-center space-y-6">
+              <div className="w-20 h-20 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center mx-auto">
+                <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">Something went wrong</h3>
+                <p className="text-gray-600">{error}</p>
+              </div>
+              <div className="flex flex-col space-y-3">
+                <button
+                  onClick={() => window.location.reload()}
+                  className="px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-300 transform hover:scale-105 shadow-lg"
+                >
+                  Try Again
+                </button>
+                <button
+                  onClick={() => navigate('/admin/view-bookings')}
+                  className="px-6 py-3 bg-gray-100 text-gray-800 font-semibold rounded-xl hover:bg-gray-200 transition-all duration-300"
+                >
+                  Back to Bookings
+                </button>
+              </div>
+            </div>
           </div>
         </div>
+        <Footer />
       </div>
     );
   }
 
   if (!booking) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
-        <div className="bg-white shadow-xl rounded-lg p-8 max-w-md w-full text-center">
-          <h3 className="text-xl font-semibold text-gray-900 mb-3">No Booking Data</h3>
-          <p className="text-gray-600 mb-6">It looks like the booking you are looking for does not exist or could not be loaded.</p>
-          <button
-            onClick={() => navigate('/admin/view-bookings')}
-            className="w-full bg-indigo-600 text-white py-3 px-6 rounded-lg hover:bg-indigo-700 transition duration-300 transform hover:scale-105"
-          >
-            Back to Booking List
-          </button>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+        <AdminNavbar />
+        <div className="flex items-center justify-center min-h-[80vh] px-4">
+          <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full">
+            <div className="text-center space-y-6">
+              <div className="w-20 h-20 bg-gradient-to-br from-gray-400 to-gray-600 rounded-full flex items-center justify-center mx-auto">
+                <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">No Booking Found</h3>
+                <p className="text-gray-600">The booking you're looking for doesn't exist or couldn't be loaded.</p>
+              </div>
+              <button
+                onClick={() => navigate('/admin/view-bookings')}
+                className="w-full px-6 py-3 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white font-semibold rounded-xl hover:from-indigo-600 hover:to-indigo-700 transition-all duration-300 transform hover:scale-105 shadow-lg"
+              >
+                Back to Bookings
+              </button>
+            </div>
+          </div>
         </div>
+        <Footer />
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <AdminNavbar />
-      <div className="container mx-auto px-4 py-10 max-w-7xl">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row items-center justify-between mb-8 md:mb-10">
-          <div>
-            <h1 className="text-4xl font-extrabold text-gray-900 leading-tight">Booking Details</h1>
-            <p className="text-gray-600 mt-2 text-lg">Comprehensive view of booking information and management options.</p>
-          </div>
-          <button
-            onClick={() => navigate('/admin/view-bookings')}
-            className="mt-6 sm:mt-0 flex items-center px-6 py-3 bg-white text-gray-800 rounded-xl shadow-md hover:bg-gray-100 transition duration-300 ease-in-out transform hover:-translate-y-0.5 border border-gray-200"
-          >
-            <svg className="w-5 h-5 mr-2 -ml-1 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 15l-3-3m0 0l3-3m-3 3h8M3 12a9 9 0 1118 0A9 9 0 013 12z" />
-            </svg>
-            Back to All Bookings
-          </button>
-        </div>
+  const statusConfig = getStatusConfig(booking.status);
 
-        <div className="bg-white shadow-2xl rounded-2xl overflow-hidden border border-gray-100">
-          {/* Header section with ID and status */}
-          <div className="border-b border-gray-200 bg-gradient-to-br from-indigo-50 to-purple-50 px-8 py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 flex items-center">
-                <svg className="w-7 h-7 mr-3 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Booking #<span className="ml-1">{booking._id || 'Unknown'}</span>
-              </h2>
-              <p className="text-sm text-gray-600 mt-2">
-                Booked on <span className="font-medium text-gray-700">{formatDate(booking.createdAt)}</span>
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      <AdminNavbar />
+      
+      {/* Hero Header */}
+      <div className="bg-gradient-to-r from-indigo-900 via-purple-600 to-indigo-900 text-white">
+        <div className="container mx-auto px-6 py-12">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between space-y-6 lg:space-y-0">
+            <div className="space-y-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <h1 className="text-4xl font-bold">Booking Details</h1>
+              </div>
+              <p className="text-blue-100 text-lg max-w-2xl">
+                Comprehensive booking information and management dashboard for ID: {booking._id || 'Unknown'}
               </p>
+              <div className="flex items-center space-x-4 text-sm">
+                <span className="bg-white bg-opacity-20 px-3 py-1 rounded-full backdrop-blur-sm">
+                  Created: {formatDate(booking.createdAt)}
+                </span>
+                <span className="bg-white bg-opacity-20 px-3 py-1 rounded-full backdrop-blur-sm">
+                  Updated: {formatDate(booking.updatedAt)}
+                </span>
+              </div>
             </div>
-            <div className="flex items-center space-x-4 mt-5 sm:mt-0">
-              <span
-                className={`inline-flex items-center px-5 py-2 text-base font-semibold rounded-full border-2 ${getStatusBadgeClass(booking.status)} shadow-sm`}
-              >
-                {booking.status || 'Unknown'}
-              </span>
+            
+            <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
+              <div className={`flex items-center space-x-2 px-4 py-2 rounded-full bg-gradient-to-r ${statusConfig.gradient} shadow-lg`}>
+                <span className="text-lg">{statusConfig.icon}</span>
+                <span className="font-semibold text-white">{booking.status || 'Unknown'}</span>
+              </div>
+              
               <div className="relative">
-                <label htmlFor="status-select" className="sr-only">Update booking status</label>
                 <select
-                  id="status-select"
                   value={booking.status || ''}
                   onChange={(e) => updateStatus(e.target.value)}
-                  className="block w-full pl-4 pr-10 py-2 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-200 appearance-none bg-white font-medium text-gray-700 cursor-pointer"
-                  style={{ backgroundImage: "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3e%3cpath d='M7 7l3-3 3 3m0 6l-3 3-3-3' stroke='%236B7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3e%3c/svg%3e\")", backgroundPosition: "right 0.75rem center", backgroundRepeat: "no-repeat", backgroundSize: "1.5em 1.5em" }}
+                  disabled={updating}
+                  className="appearance-none bg-white bg-opacity-20 backdrop-blur-sm border border-white border-opacity-30 rounded-xl px-4 py-2 text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 transition-all duration-300"
                 >
-                  <option value="active">Active</option>
-                  <option value="cancelled">Cancelled</option>
-                  <option value="completed">Completed</option>
-                  <option value="pending">Pending</option>
+                  <option value="active" className="text-gray-900">Active</option>
+                  <option value="cancelled" className="text-gray-900">Cancelled</option>
+                  <option value="completed" className="text-gray-900">Completed</option>
+                  <option value="pending" className="text-gray-900">Pending</option>
                 </select>
+                <svg className="w-5 h-5 absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
               </div>
+              
+              <button
+                onClick={() => navigate('/admin/view-bookings')}
+                className="flex items-center space-x-2 px-6 py-2 bg-white bg-opacity-20 backdrop-blur-sm rounded-xl hover:bg-opacity-30 transition-all duration-300 border border-white border-opacity-30"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 17l-5-5m0 0l5-5m-5 5h12" />
+                </svg>
+                <span>Back</span>
+              </button>
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* Main content */}
-          <div className="p-8 md:p-10">
-            {/* User information */}
-            <div className="mb-10">
-              <h3 className="text-xl font-bold mb-6 text-gray-900 pb-3 flex items-center border-b border-gray-200">
-                <svg className="w-6 h-6 mr-3 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-                User Information
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div className="bg-gray-50 p-5 rounded-lg shadow-sm border border-gray-100">
-                  <p className="text-sm text-gray-500 font-medium">Full Name</p>
-                  <p className="font-semibold text-gray-900 mt-1.5 text-lg">
-                    {booking.userId?.name || booking.user?.name || 'N/A'}
-                  </p>
+      {/* Main Content */}
+      <div className="container mx-auto px-6 py-12 max-w-7xl">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+          
+          {/* Left Column - User & Vehicle Info */}
+          <div className="xl:col-span-1 space-y-8">
+            
+            {/* User Information Card */}
+            <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+              <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-6 text-white">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-bold">User Information</h3>
                 </div>
-                <div className="bg-gray-50 p-5 rounded-lg shadow-sm border border-gray-100">
-                  <p className="text-sm text-gray-500 font-medium">Email Address</p>
-                  <p className="font-semibold text-gray-900 mt-1.5 text-lg">
-                    {booking.userId?.email || booking.user?.email || 'N/A'}
-                  </p>
-                </div>
-                <div className="bg-gray-50 p-5 rounded-lg shadow-sm border border-gray-100 col-span-1 sm:col-span-2 lg:col-span-1">
-                  <p className="text-sm text-gray-500 font-medium">User ID</p>
-                  <p className="font-mono text-sm text-gray-800 mt-1.5 break-all">
-                    {booking.userId?._id || booking.user?._id || booking.userId || 'N/A'}
-                  </p>
+              </div>
+              <div className="p-6 space-y-6">
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm text-gray-500 font-medium mb-1">Full Name</p>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {booking.userId?.name || booking.user?.name || 'N/A'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 font-medium mb-1">Email Address</p>
+                    <p className="text-lg font-semibold text-gray-900 break-all">
+                      {booking.userId?.email || booking.user?.email || 'N/A'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 font-medium mb-1">User ID</p>
+                    <p className="text-sm font-mono text-gray-700 bg-gray-50 p-2 rounded-lg break-all">
+                      {booking.userId?._id || booking.user?._id || booking.userId || 'N/A'}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Charging Station Information */}
-            <div className="mb-10">
-              <h3 className="text-xl font-bold mb-6 text-gray-900 pb-3 flex items-center border-b border-gray-200">
-                <svg className="w-6 h-6 mr-3 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                Charging Station Information
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div className="bg-blue-50 p-5 rounded-lg shadow-sm border border-blue-100">
-                  <p className="text-sm text-blue-600 font-medium">Station Name</p>
-                  <p className="font-semibold text-gray-900 mt-1.5 text-lg">
-                    {booking.bunkId?.name || booking.bunk?.name || 'N/A'}
-                  </p>
-                </div>
-                <div className="bg-blue-50 p-5 rounded-lg shadow-sm border border-blue-100">
-                  <p className="text-sm text-blue-600 font-medium">Location</p>
-                  <p className="font-semibold text-gray-900 mt-1.5 text-lg">
-                    {booking.bunkId?.address || booking.bunk?.address || booking.bunkId?.location || booking.bunk?.location || 'N/A'}
-                  </p>
-                </div>
-                <div className="bg-blue-50 p-5 rounded-lg shadow-sm border border-blue-100">
-                  <p className="text-sm text-blue-600 font-medium">Operating Hours</p>
-                  <p className="font-semibold text-gray-900 mt-1.5 text-lg">
-                    {booking.bunkId?.operatingHours || booking.bunk?.operatingHours || 'N/A'}
-                  </p>
-                </div>
-                <div className="bg-blue-50 p-5 rounded-lg shadow-sm border border-blue-100 col-span-1 sm:col-span-2 lg:col-span-1">
-                  <p className="text-sm text-blue-600 font-medium">Station ID</p>
-                  <p className="font-mono text-sm text-gray-800 mt-1.5 break-all">
-                    {booking.bunkId?._id || booking.bunk?._id || booking.bunkId || 'N/A'}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Booking & Slot Details */}
-            <div className="mb-10">
-              <h3 className="text-xl font-bold mb-6 text-gray-900 pb-3 flex items-center border-b border-gray-200">
-                <svg className="w-6 h-6 mr-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                Booking & Slot Details
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div className="bg-green-50 p-5 rounded-lg shadow-sm border border-green-100">
-                  <p className="text-sm text-green-600 font-medium">Start Time</p>
-                  <p className="font-semibold text-gray-900 mt-1.5 text-lg">
-                    {booking.startTime ? formatDate(booking.startTime) :
-                      (booking.slot?.startTime ? formatDate(booking.slot.startTime) : 'N/A')}
-                  </p>
-                </div>
-                <div className="bg-green-50 p-5 rounded-lg shadow-sm border border-green-100">
-                  <p className="text-sm text-green-600 font-medium">End Time</p>
-                  <p className="font-semibold text-gray-900 mt-1.5 text-lg">
-                    {booking.endTime ? formatDate(booking.endTime) :
-                      (booking.slot?.endTime ? formatDate(booking.slot.endTime) : 'N/A')}
-                  </p>
-                </div>
-                <div className="bg-green-50 p-5 rounded-lg shadow-sm border border-green-100">
-                  <p className="text-sm text-green-600 font-medium">Duration</p>
-                  <p className="font-semibold text-gray-900 mt-1.5 text-lg">
-                    {booking.duration || calculateDuration(booking.startTime, booking.endTime)}
-                  </p>
-                </div>
-                <div className="bg-green-50 p-5 rounded-lg shadow-sm border border-green-100 col-span-1 sm:col-span-2 lg:col-span-1">
-                  <p className="text-sm text-green-600 font-medium">Slot ID</p>
-                  <p className="font-mono text-sm text-gray-800 mt-1.5 break-all">
-                    {booking.slotId || booking.slot?._id || 'N/A'}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Vehicle Information */}
+            {/* Vehicle Information Card */}
             {(booking.vehicle || booking.vehicleId || booking.vehicleModel || booking.vehicleNumber) && (
-              <div className="mb-10">
-                <h3 className="text-xl font-bold mb-6 text-gray-900 pb-3 flex items-center border-b border-gray-200">
-                  <svg className="w-6 h-6 mr-3 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2v0a2 2 0 01-2 2H8a2 2 0 01-2-2v-8z" />
-                  </svg>
-                  Vehicle Information
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+                <div className="bg-gradient-to-br from-purple-500 to-purple-600 p-6 text-white">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </div>
+                    <h3 className="text-xl font-bold">Vehicle Information</h3>
+                  </div>
+                </div>
+                <div className="p-6 space-y-4">
                   {(booking.vehicleModel || booking.vehicle?.model) && (
-                    <div className="bg-purple-50 p-5 rounded-lg shadow-sm border border-purple-100">
-                      <p className="text-sm text-purple-600 font-medium">Vehicle Model</p>
-                      <p className="font-semibold text-gray-900 mt-1.5 text-lg">
+                    <div>
+                      <p className="text-sm text-gray-500 font-medium mb-1">Vehicle Model</p>
+                      <p className="text-lg font-semibold text-gray-900">
                         {booking.vehicleModel || booking.vehicle?.model}
                       </p>
                     </div>
                   )}
                   {(booking.vehicleNumber || booking.vehicle?.number) && (
-                    <div className="bg-purple-50 p-5 rounded-lg shadow-sm border border-purple-100">
-                      <p className="text-sm text-purple-600 font-medium">Vehicle Number</p>
-                      <p className="font-semibold text-gray-900 mt-1.5 text-lg">
+                    <div>
+                      <p className="text-sm text-gray-500 font-medium mb-1">Vehicle Number</p>
+                      <p className="text-lg font-semibold text-gray-900">
                         {booking.vehicleNumber || booking.vehicle?.number}
                       </p>
                     </div>
                   )}
                   {(booking.vehicleType || booking.vehicle?.type) && (
-                    <div className="bg-purple-50 p-5 rounded-lg shadow-sm border border-purple-100">
-                      <p className="text-sm text-purple-600 font-medium">Vehicle Type</p>
-                      <p className="font-semibold text-gray-900 mt-1.5 text-lg">
+                    <div>
+                      <p className="text-sm text-gray-500 font-medium mb-1">Vehicle Type</p>
+                      <p className="text-lg font-semibold text-gray-900">
                         {booking.vehicleType || booking.vehicle?.type}
                       </p>
                     </div>
@@ -452,56 +461,119 @@ const AdminBookingDetail = () => {
                 </div>
               </div>
             )}
+          </div>
 
-            {/* System Information */}
-            <div className="mb-10">
-              <h3 className="text-xl font-bold mb-6 text-gray-900 pb-3 flex items-center border-b border-gray-200">
-                <svg className="w-6 h-6 mr-3 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                System Information
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="bg-gray-50 p-5 rounded-lg shadow-sm border border-gray-100">
-                  <p className="text-sm text-gray-500 font-medium">Created At</p>
-                  <p className="font-semibold text-gray-900 mt-1.5 text-lg">
-                    {formatDate(booking.createdAt)}
-                  </p>
+          {/* Right Column - Station & Booking Info */}
+          <div className="xl:col-span-2 space-y-8">
+            
+            {/* Charging Station Information Card */}
+            <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+              <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-6 text-white">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-bold">Charging Station</h3>
                 </div>
-                <div className="bg-gray-50 p-5 rounded-lg shadow-sm border border-gray-100">
-                  <p className="text-sm text-gray-500 font-medium">Last Updated</p>
-                  <p className="font-semibold text-gray-900 mt-1.5 text-lg">
-                    {formatDate(booking.updatedAt)}
-                  </p>
+              </div>
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <p className="text-sm text-gray-500 font-medium mb-1">Station Name</p>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {booking.bunkId?.name || booking.bunk?.name || 'N/A'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 font-medium mb-1">Operating Hours</p>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {booking.bunkId?.operatingHours || booking.bunk?.operatingHours || 'N/A'}
+                    </p>
+                  </div>
+                  <div className="md:col-span-2">
+                    <p className="text-sm text-gray-500 font-medium mb-1">Location</p>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {booking.bunkId?.address || booking.bunk?.address || booking.bunkId?.location || booking.bunk?.location || 'N/A'}
+                    </p>
+                  </div>
+                  <div className="md:col-span-2">
+                    <p className="text-sm text-gray-500 font-medium mb-1">Station ID</p>
+                    <p className="text-sm font-mono text-gray-700 bg-gray-50 p-2 rounded-lg break-all">
+                      {booking.bunkId?._id || booking.bunk?._id || booking.bunkId || 'N/A'}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex flex-wrap justify-end gap-4 mt-12 pt-8 border-t border-gray-200">
-              <button
-                onClick={() => window.print()}
-                className="flex items-center px-6 py-3 bg-white text-gray-800 rounded-lg shadow-md hover:bg-gray-100 transition duration-300 ease-in-out transform hover:-translate-y-0.5 border border-gray-200"
-              >
-                <svg className="w-5 h-5 mr-2 -ml-1 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                </svg>
-                Print Details
-              </button>
-              <button
-                onClick={() => navigate('/admin/view-bookings')}
-                className="flex items-center px-6 py-3 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition duration-300 ease-in-out transform hover:-translate-y-0.5"
-              >
-                <svg className="w-5 h-5 mr-2 -ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-                Back to List
-              </button>
+            {/* Booking Details Card */}
+            <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+              <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-6 text-white">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-bold">Booking Timeline</h3>
+                </div>
+              </div>
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-2xl border border-green-100">
+                    <p className="text-sm text-green-600 font-medium mb-1">Start Time</p>
+                    <p className="text-lg font-bold text-gray-900">
+                      {booking.startTime ? formatDate(booking.startTime) :
+                        (booking.slot?.startTime ? formatDate(booking.slot.startTime) : 'N/A')}
+                    </p>
+                  </div>
+                  <div className="bg-gradient-to-br from-red-50 to-pink-50 p-4 rounded-2xl border border-red-100">
+                    <p className="text-sm text-red-600 font-medium mb-1">End Time</p>
+                    <p className="text-lg font-bold text-gray-900">
+                      {booking.endTime ? formatDate(booking.endTime) :
+                        (booking.slot?.endTime ? formatDate(booking.slot.endTime) : 'N/A')}
+                    </p>
+                  </div>
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-2xl border border-blue-100">
+                    <p className="text-sm text-blue-600 font-medium mb-1">Duration</p>
+                    <p className="text-lg font-bold text-gray-900">
+                      {booking.duration || calculateDuration(booking.startTime, booking.endTime)}
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div><Footer/>
+
+        {/* Action Buttons */}
+        <div className="flex flex-wrap justify-end gap-4 mt-12">
+          <button
+            onClick={() => window.print()}
+            className="flex items-center space-x-2 px-6 py-3 bg-white text-gray-800 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 border border-gray-200"
+          >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z" />
+            </svg>
+            <span>Print Details</span>
+          </button>
+          
+          <button
+            onClick={() => navigate('/admin/view-bookings')}
+            className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-xl shadow-lg hover:shadow-xl hover:from-indigo-600 hover:to-indigo-700 transition-all duration-300 transform hover:-translate-y-0.5"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+            </svg>
+            <span>All Bookings</span>
+          </button>
+        </div>
+      </div>
+
+      <Footer />
     </div>
   );
 };

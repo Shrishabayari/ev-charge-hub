@@ -202,7 +202,7 @@ const Homepage = () => {
                             <rect x="0" y="0" width="100%" height="100%" fill="url(#pattern-circles)"/>
                         </svg>
                     </div>
-                    <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-12 relative z-10">
+                    <div className="max-w-7xl mx-auto flex -mt-16 flex-col md:flex-row items-center justify-between gap-12 relative z-10">
                         <div className="flex-1 text-center md:text-left">
                             <h1 className="text-4xl lg:text-6xl font-extrabold leading-tight mb-6 text-blue-450 dark:text-blue-600">
                                 Power Your Journey with <span className="text-blue-600 dark:text-blue-800 drop-shadow-md">EV Charge Hub</span>
