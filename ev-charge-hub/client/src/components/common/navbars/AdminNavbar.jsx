@@ -32,6 +32,7 @@ const AdminNavbar = () => {
           <Link to="/admin/dashboard" className="hover:underline">Dashboard</Link>
           <Link to="/admin/add-bunk" className="hover:underline">Add Bunk</Link>
           <Link to="/admin/view-bunks" className="hover:underline">View Bunks</Link>
+          <Link to="/admin/view-bookings" className="hover:underline">View Bookings</Link>
           <Link to="/admin/view-bunk-locations" className="hover:underline">View Locations</Link>
           <Link to="/admin/registered-users" className="hover:underline">View Users</Link>
           <Link to="/admin/my-profile" className="hover:underline">My profile</Link>
