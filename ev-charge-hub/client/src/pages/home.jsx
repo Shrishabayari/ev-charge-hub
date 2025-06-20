@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/common/navbars/Navbar';
 
@@ -138,12 +138,68 @@ const faqData = [
   }
 ];
 
+// Animation observer hook
+const useIntersectionObserver = (options = {}) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const [element, setElement] = useState(null);
+
+  useEffect(() => {
+    if (!element) return;
+
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setIsVisible(true);
+        observer.disconnect();
+      }
+    }, { threshold: 0.1, ...options });
+
+    observer.observe(element);
+
+    return () => observer.disconnect();
+  }, [element, options]);
+
+  return [setElement, isVisible];
+};
+
+// Animated section component
+const AnimatedSection = ({ children, className = "", delay = 0 }) => {
+  const [setRef, isVisible] = useIntersectionObserver();
+  
+  return (
+    <div
+      ref={setRef}
+      className={`transition-all duration-1000 ease-out ${
+        isVisible 
+          ? 'opacity-100 translate-y-0' 
+          : 'opacity-0 translate-y-8'
+      } ${className}`}
+      style={{ transitionDelay: `${delay}ms` }}
+    >
+      {children}
+    </div>
+  );
+};
+
+// Floating animation component
+const FloatingElement = ({ children, className = "" }) => {
+  return (
+    <div className={`animate-float ${className}`}>
+      {children}
+    </div>
+  );
+};
 
 const Homepage = () => {
     const [activeIndex, setActiveIndex] = useState(null);
     const [formData, setFormData] = useState({ name: "", email: "", message: "" });
     const [status, setStatus] = useState(""); // State to manage submission status
-    
+    const [heroLoaded, setHeroLoaded] = useState(false);
+
+    useEffect(() => {
+        // Trigger hero animation on mount
+        const timer = setTimeout(() => setHeroLoaded(true), 100);
+        return () => clearTimeout(timer);
+    }, []);
 
     const toggleFAQ = (index) => {
         setActiveIndex(activeIndex === index ? null : index);
@@ -191,9 +247,324 @@ const Homepage = () => {
 
     return (
         <div>
+            <style jsx>{`
+                @keyframes fadeInUp {
+                    from {
+                        opacity: 0;
+                        transform: translateY(30px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+
+                @keyframes fadeInLeft {
+                    from {
+                        opacity: 0;
+                        transform: translateX(-30px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateX(0);
+                    }
+                }
+
+                @keyframes fadeInRight {
+                    from {
+                        opacity: 0;
+                        transform: translateX(30px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateX(0);
+                    }
+                }
+
+                @keyframes slideInFromBottom {
+                    from {
+                        opacity: 0;
+                        transform: translateY(50px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+
+                @keyframes float {
+                    0%, 100% {
+                        transform: translateY(0px);
+                    }
+                    50% {
+                        transform: translateY(-10px);
+                    }
+                }
+
+                @keyframes pulse {
+                    0%, 100% {
+                        transform: scale(1);
+                    }
+                    50% {
+                        transform: scale(1.05);
+                    }
+                }
+
+                @keyframes scaleIn {
+                    from {
+                        opacity: 0;
+                        transform: scale(0.8);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: scale(1);
+                    }
+                }
+
+                @keyframes slideUp {
+                    from {
+                        opacity: 0;
+                        transform: translateY(20px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+
+                @keyframes bounce {
+                    0%, 20%, 53%, 80%, 100% {
+                        transform: translate3d(0,0,0);
+                    }
+                    40%, 43% {
+                        transform: translate3d(0, -30px, 0);
+                    }
+                    70% {
+                        transform: translate3d(0, -15px, 0);
+                    }
+                    90% {
+                        transform: translate3d(0, -4px, 0);
+                    }
+                }
+
+                @keyframes rotateY {
+                    from {
+                        transform: rotateY(0deg);
+                    }
+                    to {
+                        transform: rotateY(360deg);
+                    }
+                }
+
+                @keyframes morphing {
+                    0%, 100% {
+                        border-radius: 25% 75% 70% 30% / 30% 30% 70% 70%;
+                    }
+                    50% {
+                        border-radius: 75% 25% 30% 70% / 70% 70% 30% 30%;
+                    }
+                }
+
+                .animate-fadeInUp {
+                    animation: fadeInUp 0.8s ease-out forwards;
+                }
+
+                .animate-fadeInLeft {
+                    animation: fadeInLeft 0.8s ease-out forwards;
+                }
+
+                .animate-fadeInRight {
+                    animation: fadeInRight 0.8s ease-out forwards;
+                }
+
+                .animate-slideInFromBottom {
+                    animation: slideInFromBottom 0.8s ease-out forwards;
+                }
+
+                .animate-float {
+                    animation: float 3s ease-in-out infinite;
+                }
+
+                .animate-pulse-slow {
+                    animation: pulse 4s ease-in-out infinite;
+                }
+
+                .animate-scaleIn {
+                    animation: scaleIn 0.6s ease-out forwards;
+                }
+
+                .animate-slideUp {
+                    animation: slideUp 0.6s ease-out forwards;
+                }
+
+                .animate-bounce-slow {
+                    animation: bounce 2s infinite;
+                }
+
+                .animate-rotate-y {
+                    animation: rotateY 2s ease-in-out infinite;
+                }
+
+                .animate-morphing {
+                    animation: morphing 8s ease-in-out infinite;
+                }
+
+                .hero-text-enter {
+                    opacity: 0;
+                    transform: translateY(30px);
+                }
+
+                .hero-text-enter-active {
+                    opacity: 1;
+                    transform: translateY(0);
+                    transition: all 0.8s ease-out;
+                }
+
+                .hero-image-enter {
+                    opacity: 0;
+                    transform: translateX(30px) scale(0.9);
+                }
+
+                .hero-image-enter-active {
+                    opacity: 1;
+                    transform: translateX(0) scale(1);
+                    transition: all 1s ease-out;
+                }
+
+                .stagger-animation {
+                    opacity: 0;
+                    transform: translateY(20px);
+                    animation: slideUp 0.6s ease-out forwards;
+                }
+
+                .stagger-1 { animation-delay: 0.1s; }
+                .stagger-2 { animation-delay: 0.2s; }
+                .stagger-3 { animation-delay: 0.3s; }
+                .stagger-4 { animation-delay: 0.4s; }
+                .stagger-5 { animation-delay: 0.5s; }
+                .stagger-6 { animation-delay: 0.6s; }
+                .stagger-7 { animation-delay: 0.7s; }
+                .stagger-8 { animation-delay: 0.8s; }
+
+                .card-hover {
+                    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                }
+
+                .card-hover:hover {
+                    transform: translateY(-12px) rotateX(5deg) scale(1.03);
+                    box-shadow: 0 35px 60px -12px rgba(0, 0, 0, 0.3);
+                }
+
+                .button-hover {
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    position: relative;
+                    overflow: hidden;
+                }
+
+                .button-hover::before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: -100%;
+                    width: 100%;
+                    height: 100%;
+                    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+                    transition: left 0.5s;
+                }
+
+                .button-hover:hover::before {
+                    left: 100%;
+                }
+
+                .button-hover:hover {
+                    transform: translateY(-3px) scale(1.05);
+                    box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.3);
+                }
+
+                .text-shimmer {
+                    background: linear-gradient(90deg, #3B82F6, #1D4ED8, #8B5CF6, #3B82F6);
+                    background-size: 300% 100%;
+                    animation: shimmer 3s ease-in-out infinite;
+                    -webkit-background-clip: text;
+                    background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                }
+
+                @keyframes shimmer {
+                    0%, 100% { background-position: 300% 0; }
+                    50% { background-position: -300% 0; }
+                }
+
+                .gradient-move {
+                    background-size: 400% 400%;
+                    animation: gradientMove 6s ease infinite;
+                }
+
+                @keyframes gradientMove {
+                    0%, 100% { background-position: 0% 50%; }
+                    50% { background-position: 100% 50%; }
+                }
+
+                .faq-enter {
+                    opacity: 0;
+                    max-height: 0;
+                    transform: translateY(-10px);
+                }
+
+                .faq-enter-active {
+                    opacity: 1;
+                    max-height: 200px;
+                    transform: translateY(0);
+                    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                }
+
+                .number-counter {
+                    animation: countUp 2s ease-out forwards;
+                }
+
+                @keyframes countUp {
+                    from { opacity: 0; transform: translateY(20px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+
+                .feature-icon-bounce:hover {
+                    animation: bounce 1s ease-in-out;
+                }
+
+                .parallax-bg {
+                    background-attachment: fixed;
+                    background-position: center;
+                    background-repeat: no-repeat;
+                    background-size: cover;
+                }
+
+                .glass-effect {
+                    backdrop-filter: blur(10px);
+                    background: rgba(255, 255, 255, 0.1);
+                    border: 1px solid rgba(255, 255, 255, 0.2);
+                }
+
+                .gradient-text {
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    -webkit-background-clip: text;
+                    background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                }
+
+                .typing-animation {
+                    border-right: 2px solid #3B82F6;
+                    animation: typing 3s steps(30) infinite;
+                }
+
+                @keyframes typing {
+                    0%, 50% { border-right-color: #3B82F6; }
+                    51%, 100% { border-right-color: transparent; }
+                }
+            `}</style>
+            
             <Navbar />
             <main className="dark:bg-gray-900 dark:text-white text-gray-800 font-inter overflow-hidden">
-                <section id="hero" className="relative bg-gradient-to-br from-blue-200 to-indigo- dark:from-gray-800 dark:to-gray-900 py-24 md:py-32 px-6">
+                <section id="hero" className="relative bg-gradient-to-br from-blue-200 to-indigo-600 dark:from-gray-800 dark:to-gray-900 py-24 md:py-32 px-6 gradient-move">
                     <div className="absolute inset-0 z-0 opacity-10">
                         <svg className="w-full h-full" fill="none" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
                             <pattern id="pattern-circles" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
@@ -203,29 +574,31 @@ const Homepage = () => {
                         </svg>
                     </div>
                     <div className="max-w-7xl mx-auto flex -mt-16 flex-col md:flex-row items-center justify-between gap-12 relative z-10">
-                        <div className="flex-1 text-center md:text-left">
+                        <div className={`flex-1 text-center md:text-left ${heroLoaded ? 'hero-text-enter-active' : 'hero-text-enter'}`}>
                             <h1 className="text-4xl lg:text-6xl font-extrabold leading-tight mb-6 text-blue-450 dark:text-blue-600">
-                                Power Your Journey with <span className="text-blue-600 dark:text-blue-800 drop-shadow-md">EV Charge Hub</span>
+                                Power Your Journey with <span className="text-shimmer drop-shadow-md">EV Charge Hub</span>
                             </h1>
-                            <p className="text-xl lg:text-2xl mb-8 text-blue-600 dark:text-gray-300 animate-fade-in-up delay-200">
+                            <p className="text-xl lg:text-2xl mb-8 text-blue-600 dark:text-gray-300 stagger-animation stagger-2">
                                 Locate, Book, and Recharge at your nearest EV Station. Easy. Fast. Smart.
                             </p>
-                            <div className="flex justify-center md:justify-start gap-5 animate-fade-in-up delay-400">
-                                <Link to="/user/login" className="bg-white text-blue-700 px-8 py-4 rounded-full font-bold text-lg shadow-lg hover:bg-gray-100 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl">
+                            <div className="flex justify-center md:justify-start gap-5 stagger-animation stagger-3">
+                                <Link to="/user/login" className="button-hover bg-white text-blue-700 px-8 py-4 rounded-full font-bold text-lg shadow-lg hover:bg-gray-100 transition-all duration-300">
                                     Get Started
                                 </Link>
-                                <Link to="/how-it-works" className="border-2 bg-white text-blue-700 px-8 py-4 rounded-full font-bold text-lg hover:bg-white hover:text-blue-700 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg">
+                                <Link to="/how-it-works" className="button-hover border-2 bg-white text-blue-700 px-8 py-4 rounded-full font-bold text-lg hover:bg-white hover:text-blue-700 transition-all duration-300">
                                     How It Works
                                 </Link>
                             </div>
                         </div>
-                        <div className="flex-1 flex justify-center md:justify-end mt-12 md:mt-0 animate-fade-in-right">
-                            <img
-                                src="https://img.freepik.com/free-vector/electric-car-charging-station-concept-illustration_114360-8227.jpg?w=740&t=st=1701345600~exp=1701346200~hmac=2e5a6f2b4c1d0e8f0a0c9b0e2d1f0e8f0a0c9b0e2d1f0e8f"
-                                alt="EV Charging Station"
-                                className="rounded-3xl shadow-2xl w-full max-w-md border-4 border-blue-300 dark:border-gray-700 transform hover:scale-105 transition-transform duration-500"
-                                onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/600x400/E0E7FF/3F51B5?text=EV+Charging" }}
-                            />
+                        <div className={`flex-1 flex justify-center md:justify-end mt-12 md:mt-0 ${heroLoaded ? 'hero-image-enter-active' : 'hero-image-enter'}`}>
+                            <FloatingElement>
+                                <img
+                                    src="https://img.freepik.com/free-vector/electric-car-charging-station-concept-illustration_114360-8227.jpg?w=740&t=st=1701345600~exp=1701346200~hmac=2e5a6f2b4c1d0e8f0a0c9b0e2d1f0e8f0a0c9b0e2d1f0e8f"
+                                    alt="EV Charging Station"
+                                    className="rounded-3xl shadow-2xl w-full max-w-md border-4 border-blue-300 dark:border-gray-700 transform hover:scale-105 transition-transform duration-500"
+                                    onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/600x400/E0E7FF/3F51B5?text=EV+Charging" }}
+                                />
+                            </FloatingElement>
                         </div>
                     </div>
                 </section>
@@ -233,65 +606,72 @@ const Homepage = () => {
                 <section id='about' className="min-h-screen bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 py-16 px-6 md:px-20">
                     <div className="max-w-6xl mx-auto">
                     {/* Enhanced Introduction */}
-                    <div className="text-center mb-12">
+                    <AnimatedSection className="text-center mb-12">
                         <h1 className="text-5xl font-extrabold mb-4 text-blue-700 dark:text-blue-400">
                         About EV Charge Hub
                         </h1>
                         <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
                         Connecting you to the future of sustainable electric vehicle charging in **Karnataka**.
                         </p>
-                        <div className="w-24 h-1 bg-blue-500 mx-auto mt-6 rounded-full"></div>
-                    </div>
+                        <div className="w-24 h-1 bg-blue-500 mx-auto mt-6 rounded-full animate-pulse-slow"></div>
+                    </AnimatedSection>
 
-                    <p className="mb-12 text-lg md:text-xl leading-relaxed text-center max-w-4xl mx-auto">
-                        <strong className="text-blue-600 dark:text-blue-300">EV Charge Hub</strong> is an innovative platform designed to streamline the electric vehicle (EV) charging experience for users and administrators alike in **Udupi, Karnataka**, and beyond. Our mission is to empower the future of mobility by connecting EV drivers with accessible, reliable, and smart charging stations, fostering a greener transportation ecosystem in India.
-                    </p>
+                    <AnimatedSection delay={200}>
+                        <p className="mb-12 text-lg md:text-xl leading-relaxed text-center max-w-4xl mx-auto">
+                            <strong className="text-blue-600 dark:text-blue-300">EV Charge Hub</strong> is an innovative platform designed to streamline the electric vehicle (EV) charging experience for users and administrators alike in **Udupi, Karnataka**, and beyond. Our mission is to empower the future of mobility by connecting EV drivers with accessible, reliable, and smart charging stations, fostering a greener transportation ecosystem in India.
+                        </p>
+                    </AnimatedSection>
 
                     {/* Card-Based Sections */}
                     <div className="grid md:grid-cols-2 gap-10 mt-10">
-                        <div className="bg-gray-50 dark:bg-gray-800 p-8 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 border border-gray-100 dark:border-gray-700">
-                        <h2 className="text-3xl font-bold mb-4 text-blue-600 dark:text-blue-400">Why EV Charge Hub?</h2>
-                        <ul className="list-disc ml-6 space-y-3 text-base text-gray-700 dark:text-gray-200">
-                            <li>Locate nearby EV charging stations in **Udupi** and across **Karnataka** with ease.</li>
-                            <li>Book and manage charging slots seamlessly in real-time within our network.</li>
-                            <li>Get detailed bunk info including address, map specific to **Karnataka** locations, and available slots.</li>
-                            <li>Dedicated admin tools to add, manage, and monitor EV recharge bunks efficiently, focusing on the **Karnataka** region.</li>
-                            <li>Modern interface with responsive and dark mode support for optimal user experience.</li>
-                        </ul>
-                        </div>
+                        <AnimatedSection delay={300}>
+                            <div className="card-hover bg-gray-50 dark:bg-gray-800 p-8 rounded-lg shadow-lg border border-gray-100 dark:border-gray-700">
+                            <h2 className="text-3xl font-bold mb-4 text-blue-600 dark:text-blue-400">Why EV Charge Hub?</h2>
+                            <ul className="list-disc ml-6 space-y-3 text-base text-gray-700 dark:text-gray-200">
+                                <li>Locate nearby EV charging stations in **Udupi** and across **Karnataka** with ease.</li>
+                                <li>Book and manage charging slots seamlessly in real-time within our network.</li>
+                                <li>Get detailed bunk info including address, map specific to **Karnataka** locations, and available slots.</li>
+                                <li>Dedicated admin tools to add, manage, and monitor EV recharge bunks efficiently, focusing on the **Karnataka** region.</li>
+                                <li>Modern interface with responsive and dark mode support for optimal user experience.</li>
+                            </ul>
+                            </div>
+                        </AnimatedSection>
 
-                        <div className="bg-gray-50 dark:bg-gray-800 p-8 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 border border-gray-100 dark:border-gray-700">
-                        <h2 className="text-3xl font-bold mb-4 text-blue-600 dark:text-blue-400">Our Vision</h2>
-                        <p className="text-base leading-relaxed text-gray-700 dark:text-gray-200">
-                            At EV Charge Hub, we believe the future of transportation in **Karnataka** and across India is electric and sustainable. We're committed to supporting this transition by building a platform that is simple, efficient, and accessible for everyone—from enthusiastic EV owners in **Udupi** to dedicated recharge station operators throughout the state. We envision a future where range anxiety is a thing of the past, and charging an EV is as simple as fueling a traditional vehicle.
-                        </p>
-                        </div>
+                        <AnimatedSection delay={400}>
+                            <div className="card-hover bg-gray-50 dark:bg-gray-800 p-8 rounded-lg shadow-lg border border-gray-100 dark:border-gray-700">
+                            <h2 className="text-3xl font-bold mb-4 text-blue-600 dark:text-blue-400">Our Vision</h2>
+                            <p className="text-base leading-relaxed text-gray-700 dark:text-gray-200">
+                                At EV Charge Hub, we believe the future of transportation in **Karnataka** and across India is electric and sustainable. We're committed to supporting this transition by building a platform that is simple, efficient, and accessible for everyone—from enthusiastic EV owners in **Udupi** to dedicated recharge station operators throughout the state. We envision a future where range anxiety is a thing of the past, and charging an EV is as simple as fueling a traditional vehicle.
+                            </p>
+                            </div>
+                        </AnimatedSection>
                     </div>
                     </div>
                 </section>
 
                 <section id="how-it-works" className="py-24 px-6 md:px-12 lg:px-24 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100">
                     <div className="max-w-7xl mx-auto">
-                        <h2 className="text-4xl lg:text-5xl font-extrabold text-center text-blue-700 dark:text-blue-400 mb-16 animate-fade-in-down">
-                            How EV Charge Hub Works
-                        </h2>
+                        <AnimatedSection>
+                            <h2 className="text-4xl lg:text-5xl font-extrabold text-center text-blue-700 dark:text-blue-400 mb-16">
+                                How EV Charge Hub Works
+                            </h2>
+                        </AnimatedSection>
                         <div className="space-y-12">
                             {steps.map((step, index) => (
-                                <div
-                                    key={index}
-                                    className={`flex flex-col md:flex-row items-center md:space-x-10 p-10 bg-white dark:bg-gray-800 rounded-3xl shadow-xl transition-all hover:shadow-2xl transform hover:-translate-y-2 border border-gray-100 dark:border-gray-700 ${index % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'} animate-fade-in-up delay-${index * 100}`}
-                                >
-                                    <div className={`text-6xl md:text-7xl flex-shrink-0 mb-6 md:mb-0 ${index % 2 === 0 ? 'text-blue-500' : 'text-emerald-500'} dark:text-blue-300`}>
-                                        {step.icon}
+                                <AnimatedSection key={index} delay={index * 100}>
+                                    <div className={`card-hover flex flex-col md:flex-row items-center md:space-x-10 p-10 bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700 ${index % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'}`}>
+                                        <FloatingElement className={`text-6xl md:text-7xl flex-shrink-0 mb-6 md:mb-0 ${index % 2 === 0 ? 'text-blue-500' : 'text-emerald-500'} dark:text-blue-300 feature-icon-bounce`}>
+                                            {step.icon}
+                                        </FloatingElement>
+                                        <div className={index % 2 === 0 ? 'text-center md:text-left' : 'text-center md:text-right'}>
+                                            <h3 className="text-3xl font-bold text-gray-900 dark:text-white mt-2 md:mt-0 mb-3">{`${index + 1}. ${step.title}`}</h3>
+                                            <p className="text-lg text-gray-700 dark:text-gray-300 leading-relaxed">{step.description}</p>
+                                        </div>
                                     </div>
-                                    <div className={index % 2 === 0 ? 'text-center md:text-left' : 'text-center md:text-right'}>
-                                        <h3 className="text-3xl font-bold text-gray-900 dark:text-white mt-2 md:mt-0 mb-3">{`${index + 1}. ${step.title}`}</h3>
-                                        <p className="text-lg text-gray-700 dark:text-gray-300 leading-relaxed">{step.description}</p>
-                                    </div>
-                                </div>
+                                </AnimatedSection>
                             ))}
                         </div>
-                        <div className="mt-20 text-center animate-fade-in-up delay-400">
+                        <AnimatedSection delay={800} className="mt-20 text-center">
                             <p className="text-xl font-medium text-gray-700 dark:text-gray-300">
                                 Ready to simplify your EV charging?{" "}
                                 <Link
@@ -302,9 +682,10 @@ const Homepage = () => {
                                 </Link>{" "}
                                 and book your slot!
                             </p>
-                        </div>
+                        </AnimatedSection>
                     </div>
                 </section>
+
                 <section id="features" className="py-24 px-6 md:px-12 lg:px-24 bg-white dark:bg-gray-900">
                     <div className="max-w-7xl mx-auto text-center mb-16">
                         <h2 className="text-4xl lg:text-5xl font-extrabold text-gray-900 dark:text-white mb-8 animate-fade-in-down">Unlock the Power of Seamless EV Charging</h2>
