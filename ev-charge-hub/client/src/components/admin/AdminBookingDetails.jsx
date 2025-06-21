@@ -11,7 +11,6 @@ const AdminBookingDetail = () => {
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
     const fetchBookingDetail = async () => {
@@ -82,57 +81,6 @@ const AdminBookingDetail = () => {
       setLoading(false);
     }
   }, [id]);
-
-  const updateStatus = async (newStatus) => {
-    try {
-      setUpdating(true);
-      const token = localStorage.getItem('authToken') ||
-                      localStorage.getItem('token') ||
-                      sessionStorage.getItem('authToken');
-
-      if (!token) {
-        alert('You are not authenticated. Please log in again.');
-        return;
-      }
-
-      const headers = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      };
-
-      console.log(`Updating booking ${id} status to ${newStatus}`);
-
-      const response = await api.patch(
-        `/api/bookings/admin/${id}/status`,
-        { status: newStatus },
-        { headers }
-      );
-
-      console.log('Status update response:', response.data);
-
-      if (response.data.success || response.status === 200) {
-        setBooking(prev => ({
-          ...prev,
-          status: newStatus
-        }));
-
-        alert(`Booking status updated to ${newStatus} successfully!`);
-      }
-    } catch (err) {
-      console.error('Error updating booking status:', err);
-
-      let errorMessage = 'Failed to update booking status';
-      if (err.response?.data?.message) {
-        errorMessage = err.response.data.message;
-      } else if (err.response?.status === 404) {
-        errorMessage = 'Booking not found or endpoint not available';
-      }
-
-      alert(errorMessage);
-    } finally {
-      setUpdating(false);
-    }
-  };
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
@@ -315,62 +263,51 @@ const AdminBookingDetail = () => {
       <AdminNavbar />
       
       {/* Hero Header */}
-      <div className="bg-gradient-to-r from-indigo-900 via-purple-600 to-indigo-900 text-white">
-        <div className="container mx-auto px-6 py-12">
+      <div className="bg-white border-b border-gray-200">
+        <div className="container mx-auto px-6 py-8">
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between space-y-6 lg:space-y-0">
             <div className="space-y-4">
               <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
+                  <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </div>
-                <h1 className="text-4xl font-bold">Booking Details</h1>
+                <div>
+                  <h1 className="text-3xl mt-5 mb-2 ml-0 font-bold text-gray-900">Booking Details</h1>
+                  <p className="text-sm text-gray-500">ID: {booking._id || 'Unknown'}</p>
+                </div>
               </div>
-              <p className="text-blue-100 text-lg max-w-2xl">
-                Comprehensive booking information and management dashboard for ID: {booking._id || 'Unknown'}
-              </p>
-              <div className="flex items-center space-x-4 text-sm">
-                <span className="bg-white bg-opacity-20 px-3 py-1 rounded-full backdrop-blur-sm">
-                  Created: {formatDate(booking.createdAt)}
-                </span>
-                <span className="bg-white bg-opacity-20 px-3 py-1 rounded-full backdrop-blur-sm">
-                  Updated: {formatDate(booking.updatedAt)}
-                </span>
+              <div className="flex items-center space-x-6 text-sm text-gray-600">
+                <div className="flex items-center space-x-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>Created: {formatDate(booking.createdAt)}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  <span>Updated: {formatDate(booking.updatedAt)}</span>
+                </div>
               </div>
             </div>
             
-            <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
-              <div className={`flex items-center space-x-2 px-4 py-2 rounded-full bg-gradient-to-r ${statusConfig.gradient} shadow-lg`}>
-                <span className="text-lg">{statusConfig.icon}</span>
-                <span className="font-semibold text-white">{booking.status || 'Unknown'}</span>
-              </div>
-              
-              <div className="relative">
-                <select
-                  value={booking.status || ''}
-                  onChange={(e) => updateStatus(e.target.value)}
-                  disabled={updating}
-                  className="appearance-none bg-white bg-opacity-20 backdrop-blur-sm border border-white border-opacity-30 rounded-xl px-4 py-2 text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 transition-all duration-300"
-                >
-                  <option value="active" className="text-gray-900">Active</option>
-                  <option value="cancelled" className="text-gray-900">Cancelled</option>
-                  <option value="completed" className="text-gray-900">Completed</option>
-                  <option value="pending" className="text-gray-900">Pending</option>
-                </select>
-                <svg className="w-5 h-5 absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-3">
+              <div className={`inline-flex items-center space-x-2 px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r ${statusConfig.gradient} text-white`}>
+                <span className="text-xs">{statusConfig.icon}</span>
+                <span>{booking.status || 'Unknown'}</span>
               </div>
               
               <button
                 onClick={() => navigate('/admin/view-bookings')}
-                className="flex items-center space-x-2 px-6 py-2 bg-white bg-opacity-20 backdrop-blur-sm rounded-xl hover:bg-opacity-30 transition-all duration-300 border border-white border-opacity-30"
+                className="inline-flex items-center space-x-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors duration-200 text-sm font-medium"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 17l-5-5m0 0l5-5m-5 5h12" />
                 </svg>
-                <span>Back</span>
+                <span>Back to Bookings</span>
               </button>
             </div>
           </div>
