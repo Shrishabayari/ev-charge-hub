@@ -45,6 +45,7 @@ const Navbar = () => {
           <Link to="/" onClick={toggleMenu} className="block hover:underline">Home</Link>
           <Link to="/about" onClick={toggleMenu} className="block hover:underline">About</Link>
           <Link to="/how-it-works" onClick={toggleMenu} className="block hover:underline">How It Works</Link>
+          <Link to="/features" onClick={toggleMenu} className="block hover:underline">Features</Link>
           <Link to="/faq" onClick={toggleMenu} className="block hover:underline">FAQ</Link>
           <Link to="/contact" onClick={toggleMenu} className="block hover:underline">Contact</Link>
           <div className="pt-2">

@@ -211,14 +211,7 @@ const StaggeredAnimation = ({ children, className = "", index = 0 }) => {
 const Homepage = () => {
     const [activeIndex, setActiveIndex] = useState(null);
     const [formData, setFormData] = useState({ name: "", email: "", message: "" });
-    const [status, setStatus] = useState(""); // State to manage submission status
-    const [heroLoaded, setHeroLoaded] = useState(false);
-
-    useEffect(() => {
-        // Trigger hero animation on mount
-        const timer = setTimeout(() => setHeroLoaded(true), 100);
-        return () => clearTimeout(timer);
-    }, []);
+    const [status, setStatus] = useState(""); 
 
     const toggleFAQ = (index) => {
         setActiveIndex(activeIndex === index ? null : index);
@@ -267,6 +260,164 @@ const Homepage = () => {
     return (
         <div>
             <style jsx>{`
+
+            .text-shimmer {
+            background: linear-gradient(135deg, #FFFFFF 0%, #F0F9FF 25%, #DBEAFE 50%, #BFDBFE 75%, #FFFFFF 100%);
+            background-size: 300% 100%;
+            animation: shimmer 4s ease-in-out infinite;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+        }
+
+        .dark .text-shimmer {
+            background: linear-gradient(135deg, #60A5FA 0%, #3B82F6 25%, #2563EB 50%, #1D4ED8 75%, #60A5FA 100%);
+            background-size: 300% 100%;
+            animation: shimmer 4s ease-in-out infinite;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(96, 165, 250, 0.4);
+        }
+
+        @keyframes shimmer {
+            0%, 100% { background-position: 300% 0; }
+            50% { background-position: -300% 0; }
+        }
+
+        .gradient-move {
+            background-size: 400% 400%;
+            animation: gradientMove 15s ease infinite;
+        }
+
+        @keyframes gradientMove {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .hero-text-enter {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s ease-out;
+        }
+
+        .hero-text-enter-active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .hero-image-enter {
+            opacity: 0;
+            transform: translateX(50px) scale(0.9);
+            transition: all 1s ease-out;
+        }
+
+        .hero-image-enter-active {
+            opacity: 1;
+            transform: translateX(0) scale(1);
+        }
+
+        .stagger-animation {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: staggerFadeIn 0.8s ease-out forwards;
+        }
+
+        .stagger-2 {
+            animation-delay: 0.3s;
+        }
+
+        .stagger-3 {
+            animation-delay: 0.6s;
+        }
+
+        @keyframes staggerFadeIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .button-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .button-hover::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .button-hover:hover::before {
+            left: 100%;
+        }
+
+        .button-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .floating-element {
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .pattern-dots {
+            background-image: radial-gradient(circle, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+            background-size: 20px 20px;
+            animation: patternMove 20s linear infinite;
+        }
+
+        .dark .pattern-dots {
+            background-image: radial-gradient(circle, rgba(96, 165, 250, 0.1) 1px, transparent 1px);
+        }
+
+        @keyframes patternMove {
+            0% { background-position: 0 0; }
+            100% { background-position: 20px 20px; }
+        }
+
+        .glass-effect {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .dark .glass-effect {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Enhanced text colors for better contrast */
+        .hero-title {
+            color: #1e3a8a; /* blue-900 for better contrast on light background */
+        }
+
+        .dark .hero-title {
+            color: #dbeafe; /* blue-100 for better contrast on dark background */
+        }
+
+        .hero-subtitle {
+            color: #1e40af; /* blue-800 */
+        }
+
+        .dark .hero-subtitle {
+            color: #93c5fd; /* blue-300 */
+        }
+
+        
                 @keyframes fadeInUp {
                     from {
                         opacity: 0;
@@ -745,46 +896,52 @@ const Homepage = () => {
             
             <Navbar />
             <main className="dark:bg-gray-900 dark:text-white text-gray-800 font-inter overflow-hidden">
-                <section id="hero" className="relative bg-gradient-to-br from-blue-200 to-indigo-600 dark:from-gray-800 dark:to-gray-900 py-24 md:py-32 px-6 gradient-move">
-                    <div className="absolute inset-0 z-0 opacity-10">
-                        <svg className="w-full h-full" fill="none" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                            <pattern id="pattern-circles" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
-                                <circle cx="5" cy="5" r="1" fill="rgba(255,255,255,0.2)"/>
-                            </pattern>
-                            <rect x="0" y="0" width="100%" height="100%" fill="url(#pattern-circles)"/>
-                        </svg>
-                    </div>
-                    <div className="max-w-7xl mx-auto flex -mt-16 flex-col md:flex-row items-center justify-between gap-12 relative z-10">
-                        <div className={`flex-1 text-center md:text-left ${heroLoaded ? 'hero-text-enter-active' : 'hero-text-enter'}`}>
-                            <h1 className="text-4xl lg:text-6xl font-extrabold leading-tight mb-6 text-blue-450 dark:text-blue-600">
-                                Power Your Journey with <span className="text-shimmer drop-shadow-md">EV Charge Hub</span>
+                <section id="hero" class="relative bg-gradient-to-br from-blue-50 via-indigo-100 to-blue-200 dark:from-gray-900 dark:via-gray-800 dark:to-indigo-900 py-24 md:py-32 px-6 gradient-move">
+                    <div class="absolute inset-0 z-0 pattern-dots opacity-30"></div>
+                    
+                    <div class="absolute inset-0 z-5 glass-effect opacity-20"></div>
+                    
+                    <div class="max-w-7xl mx-auto flex -mt-16 flex-col md:flex-row items-center justify-between gap-12 relative z-10">
+                        <div class="flex-1 text-center md:text-left hero-text-enter-active">
+                            <h1 class="text-4xl lg:text-6xl font-extrabold leading-tight mb-6 hero-title">
+                                Power Your Journey with 
+                                <span class="text-shimmer drop-shadow-lg block mt-4 pb-4">EV Charge Hub</span>
                             </h1>
-                            <p className="text-xl lg:text-2xl mb-8 text-blue-600 dark:text-gray-300 stagger-animation stagger-2">
+                            <p class="text-xl lg:text-2xl mb-8 hero-subtitle stagger-animation stagger-2 font-medium">
                                 Locate, Book, and Recharge at your nearest EV Station. Easy. Fast. Smart.
                             </p>
-                            <div className="flex justify-center md:justify-start gap-5 stagger-animation stagger-3">
-                                <Link to="/user/login" className="button-hover bg-white text-blue-700 px-8 py-4 rounded-full font-bold text-lg shadow-lg hover:bg-gray-100 transition-all duration-300">
+                            <div class="flex flex-col sm:flex-row justify-center md:justify-start gap-5 stagger-animation stagger-3">
+                                <button class="button-hover bg-white text-blue-700 px-8 py-4 rounded-full font-bold text-lg shadow-xl hover:shadow-2xl border-2 border-transparent hover:border-blue-200 transition-all duration-300">
+                                <Link to="/user/login">
                                     Get Started
-                                </Link>
-                                <Link to="/how-it-works" className="button-hover border-2 bg-white text-blue-700 px-8 py-4 rounded-full font-bold text-lg hover:bg-white hover:text-blue-700 transition-all duration-300">
+                                 </Link>
+                                </button>
+                                <button class="button-hover bg-white text-blue-700 px-8 py-4 rounded-full font-bold text-lg shadow-xl hover:shadow-2xl border-2 border-transparent hover:border-blue-200 transition-all duration-300">
+                                    <Link to="/how-it-works" >
                                     How It Works
-                                </Link>
+                                    </Link>
+                                </button>
                             </div>
                         </div>
-                        <div className={`flex-1 flex justify-center md:justify-end mt-12 md:mt-0 ${heroLoaded ? 'hero-image-enter-active' : 'hero-image-enter'}`}>
-                            <FloatingElement>
+                        
+                        <div class="flex-1 flex justify-center md:justify-end mt-12 md:mt-0 hero-image-enter-active">
+                            <div class="floating-element">
                                 <img
-                                    src="https://img.freepik.com/free-vector/electric-car-charging-station-concept-illustration_114360-8227.jpg?w=740&t=st=1701345600~exp=1701346200~hmac=2e5a6f2b4c1d0e8f0a0c9b0e2d1f0e8f0a0c9b0e2d1f0e8f"
+                                    src="https://img.freepik.com/free-vector/electric-car-charging-station-concept-illustration_114360-8227.jpg"
                                     alt="EV Charging Station"
-                                    className="rounded-3xl shadow-2xl w-full max-w-md border-4 border-blue-300 dark:border-gray-700 transform hover:scale-105 transition-transform duration-500"
-                                    onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/600x400/E0E7FF/3F51B5?text=EV+Charging" }}
+                                    class="rounded-3xl shadow-2xl w-full max-w-md border-4 border-white/30 dark:border-gray-700/50 transform hover:scale-105 transition-transform duration-500 backdrop-blur-sm"
+                                    onerror="this.onerror=null; this.src='https://placehold.co/600x400/E0E7FF/3F51B5?text=EV+Charging'"
                                 />
-                            </FloatingElement>
+                                
+                                <div class="absolute -top-6 -left-6 w-12 h-12 bg-blue-500 rounded-full opacity-70 animate-pulse"></div>
+                                <div class="absolute -bottom-4 -right-4 w-8 h-8 bg-indigo-400 rounded-full opacity-60 animate-bounce"></div>
+                                <div class="absolute top-1/2 -left-8 w-6 h-6 bg-blue-300 rounded-full opacity-50 animate-ping"></div>
+                            </div>
                         </div>
                     </div>
                 </section>
 
-                <section id='about' className="min-h-screen bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 py-16 px-6 md:px-20">
+                <section id='about-us' className="min-h-screen bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 py-16 px-6 md:px-20">
                     <div className="max-w-6xl mx-auto">
                         {/* Enhanced Introduction */}
                         <AnimatedSection className="text-center mb-12">
@@ -830,7 +987,7 @@ const Homepage = () => {
                     </div>
                 </section>
 
-                <section id="how-it-works" className="py-24 px-6 md:px-12 lg:px-24 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100">
+                <section id="how-it%20works" className="py-24 px-6 md:px-12 lg:px-24 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100">
                     <div className="max-w-7xl mx-auto">
                         <AnimatedSection>
                             <h2 className="text-4xl lg:text-5xl font-extrabold text-center text-blue-700 dark:text-blue-400 mb-16">
@@ -867,166 +1024,181 @@ const Homepage = () => {
                     </div>
                 </section>
 
-                <section id="features" className="py-24 px-6 md:px-12 bg-gray-700 dark:bg-gray-900">
-                    <div className="max-w-7xl mx-auto">
-                        <AnimatedSection>
-                            <h2 className="text-4xl lg:text-5xl font-extrabold text-white dark:text-white mb-8 animate-fade-in-down text-center">Unlock the Power of Seamless EV Charging</h2>
-                            <p className="text-lg md:text-xl text-gray-600 dark:text-gray-200 animate-fade-in-down delay-100 mb-20 text-center">Effortless EV Charging: Experience Tomorrow's Convenience Today with Intelligent Slot Reservations and an Expansive Network.</p>
-                        </AnimatedSection>
-                            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-10 lg:gap-12">
-                        {[
-                            {
-                                icon: (
-                                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                </svg>
-                                ),
-                                title: "Extensive Network in Karnataka",
-                                description: "Discover a growing network of EV charging stations across Mudbidri and all major locations in Karnataka, ensuring you're always connected.",
-                                color: "from-blue-600 to-indigo-700",
-                                delay: "delay-0" // Corresponds to no delay or delay-0
-                                },
-                                {
-                                icon: (
-                                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                                    </svg>
-                                ),
-                                title: "Real-Time Availability & Booking",
-                                description: "Check live availability of charging slots and book your preferred time in advance to avoid waiting, ensuring a smooth charging experience.",
-                                color: "from-green-600 to-emerald-700",
-                                delay: "delay-100"
-                                },
-                                {
-                                icon: (
-                                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                                    </svg>
-                                ),
-                                title: "Intuitive User & Admin Panels",
-                                description: "Dedicated, user-friendly dashboards for EV owners to manage bookings and for station administrators to oversee the network efficiently.",
-                                color: "from-purple-600 to-pink-700",
-                                delay: "delay-300"
-                                },
-                                {
-                                icon: (
-                                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                                    </svg>
-                                ),
-                                title: "Smart Charge Management",
-                                description: "Optimize your charging sessions with smart features, monitor energy usage in real-time, and track your complete charging history for insights.",
-                                color: "from-red-600 to-rose-700",
-                                delay: "delay-400"
-                                },
-                                {
-                                icon: (
-                                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                                    </svg>
-                                ),
-                                title: "Guaranteed Charging Slots",
-                                description: "Book your preferred charging slot in advance, eliminating waiting times and range anxiety across Karnataka, including **Mudbidri**.",
-                                color: "from-green-500 to-lime-600",
-                                delay: "delay-0" // This was the first card without a specific delay, so effectively delay-0
-                                },
-                                {
-                                icon: (
-                                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m-9 9a9 9 0 019-9m-9 9c-1.657 0-3-4.03-3-9s1.343-9 3-9m11.95 9.95l-1.414 1.414M10.05 10.05l-1.414-1.414M11.95 10.05l1.414 1.414M10.05 11.95l1.414 1.414"></path>
-                                    </svg>
-                                ),
-                                title: "Optimized Charging Experience",
-                                description: "Intelligent booking systems help distribute demand, preventing congestion at popular charging points and ensuring a smooth experience.",
-                                color: "from-purple-500 to-fuchsia-600",
-                                delay: "delay-200"
-                                },
-                                {
-                                icon: (
-                                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.001 12.001 0 002.92 12c0 3.072 1.22 5.852 3.14 7.954L12 22.95l5.94-5.046A12.004 12.004 0 0021.08 12c0-3.072-1.22-5.852-3.14-7.954z"></path>
-                                    </svg>
-                                ),
-                                title: "Efficient Route Planning",
-                                description: "Integrate charging stops seamlessly into your travel plans across Karnataka, ensuring smooth and uninterrupted long-distance journeys.",
-                                color: "from-orange-500 to-red-600",
-                                delay: "delay-300"
-                                },
-                                {
-                                icon: (
-                                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                                    </svg>
-                                ),
-                                title: "Diverse Charger Types & Speeds",
-                                description: "Find a variety of charging options, from rapid DC chargers for quick top-ups to AC chargers for overnight power, catering to all EV models.",
-                                color: "from-teal-500 to-green-700",
-                                delay: "delay-400"
-                                },
-                                {
-                                icon:(
-                                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5S19.832 5.477 21 6.253v13C19.832 18.477 18.246 18 16.5 18s-3.332.477-4.5 1.253"></path>
-                                    </svg>
-                                ),
-                                title: "Enhanced Charging Network",
-                                description: "Benefit from Karnataka's continuously expanding EV charging infrastructure, with thousands of stations across the state, making charging accessible everywhere.",
-                                color: "from-yellow-500 to-amber-600",
-                                delay: "delay-500"
-                                },
-                                {
-                                icon: (
-                                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                    </svg>
-                                ),
-                                title: "Time Tracking",
-                                description: "Monitor your charging sessions and energy consumption directly through the app, helping you manage your EV expenses effectively.",
-                                color: "from-pink-500 to-red-500",
-                                delay: "delay-600"
-                                },
-                                {
-                                icon: (
-                                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 21h7a2 2 0 002-2V9a2 2 0 00-2-2h-7a2 2 0 00-2 2v10a2 2 0 002 2zM9 19H7a2 2 0 01-2-2V7a2 2 0 012-2h2"></path>
-                                    </svg>
-                                ),
-                                title: "User-Friendly Mobile Apps",
-                                description: "Access intuitive and easy-to-use mobile applications for finding, booking, and managing your EV charging sessions.",
-                                color: "from-indigo-500 to-blue-600",
-                                delay: "delay-700"
-                                },
-                                {
-                                icon: (
-                                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l-2 5m2-5l-2-5m-2 5l4-9"></path>
-                                    </svg>
-                                ),
-                                title: "Eco-Friendly Initiative",
-                                description: "Join our community committed to sustainable transportation, reduce your carbon footprint, and contribute to a cleaner environment in Karnataka.",
-                                color: "from-teal-600 to-cyan-700",
-                                delay: "delay-500" // This one had delay-500 in your original code
-                                }
-                            ].map((feature, index) => (
-                                <StaggeredAnimation key={index} index={index}>
-                                    <div className="feature-card-hover bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 h-full">
-                                        <div className={`w-20 h-20 rounded-full bg-gradient-to-r ${feature.color} flex items-center justify-center mb-6 mx-auto animate-bounce-slow`}>
-                                            <span className="text-3xl animate-wiggle hover:animate-pulse">{feature.icon}</span>
-                                        </div>
-                                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 text-center">
-                                            {feature.title}
-                                        </h3>
-                                        <p className="text-gray-600 dark:text-gray-300 text-center leading-relaxed">
-                                            {feature.description}
-                                        </p>
-                                    </div>
-                                </StaggeredAnimation>
-                            ))}
-                            </div>
+                <section id="features" className="py-24 px-6 md:px-12 bg-gradient-to-br from-indigo-50 via-blue-50 to-cyan-50 dark:bg-gradient-to-br dark:from-slate-900 dark:via-indigo-950 dark:to-slate-800">
+    <div className="max-w-7xl mx-auto">
+        <AnimatedSection>
+            <h2 className="text-4xl lg:text-5xl font-extrabold text-slate-900 dark:text-slate-50 mb-8 animate-fade-in-down text-center">
+                Unlock the Power of Seamless EV Charging
+            </h2>
+            <p className="text-lg md:text-xl text-slate-600 dark:text-slate-300 animate-fade-in-down delay-100 mb-20 text-center max-w-4xl mx-auto">
+                Effortless EV Charging: Experience Tomorrow's Convenience Today with Intelligent Slot Reservations and an Expansive Network.
+            </p>
+        </AnimatedSection>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-10 lg:gap-12">
+            {[
+                {
+                    icon: (
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                    ),
+                    title: "Extensive Network in Karnataka",
+                    description: "Discover a growing network of EV charging stations across Mudbidri and all major locations in Karnataka, ensuring you're always connected.",
+                    color: "from-purple-600 to-indigo-700",
+                    shadowColor: "shadow-purple-500/25",
+                    delay: "delay-0"
+                },
+                {
+                    icon: (
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                    ),
+                    title: "Real-Time Availability & Booking",
+                    description: "Check live availability of charging slots and book your preferred time in advance to avoid waiting, ensuring a smooth charging experience.",
+                    color: "from-blue-600 to-cyan-700",
+                    shadowColor: "shadow-blue-500/25",
+                    delay: "delay-100"
+                },
+                {
+                    icon: (
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                        </svg>
+                    ),
+                    title: "Intuitive User & Admin Panels",
+                    description: "Dedicated, user-friendly dashboards for EV owners to manage bookings and for station administrators to oversee the network efficiently.",
+                    color: "from-emerald-600 to-teal-700",
+                    shadowColor: "shadow-emerald-500/25",
+                    delay: "delay-200"
+                },
+                {
+                    icon: (
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    ),
+                    title: "Smart Charge Management",
+                    description: "Optimize your charging sessions with smart features, monitor energy usage in real-time, and track your complete charging history for insights.",
+                    color: "from-orange-600 to-red-700",
+                    shadowColor: "shadow-orange-500/25",
+                    delay: "delay-300"
+                },
+                {
+                    icon: (
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    ),
+                    title: "Guaranteed Charging Slots",
+                    description: "Book your preferred charging slot in advance, eliminating waiting times and range anxiety across Karnataka, including Mudbidri.",
+                    color: "from-green-600 to-lime-700",
+                    shadowColor: "shadow-green-500/25",
+                    delay: "delay-400"
+                },
+                {
+                    icon: (
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m-9 9a9 9 0 019-9m-9 9c-1.657 0-3-4.03-3-9s1.343-9 3-9"></path>
+                        </svg>
+                    ),
+                    title: "Optimized Charging Experience",
+                    description: "Intelligent booking systems help distribute demand, preventing congestion at popular charging points and ensuring a smooth experience.",
+                    color: "from-pink-600 to-rose-700",
+                    shadowColor: "shadow-pink-500/25",
+                    delay: "delay-500"
+                },
+                {
+                    icon: (
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.001 12.001 0 002.92 12c0 3.072 1.22 5.852 3.14 7.954L12 22.95l5.94-5.046A12.004 12.004 0 0021.08 12c0-3.072-1.22-5.852-3.14-7.954z"></path>
+                        </svg>
+                    ),
+                    title: "Efficient Route Planning",
+                    description: "Integrate charging stops seamlessly into your travel plans across Karnataka, ensuring smooth and uninterrupted long-distance journeys.",
+                    color: "from-violet-600 to-purple-700",
+                    shadowColor: "shadow-violet-500/25",
+                    delay: "delay-600"
+                },
+                {
+                    icon: (
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    ),
+                    title: "Diverse Charger Types & Speeds",
+                    description: "Find a variety of charging options, from rapid DC chargers for quick top-ups to AC chargers for overnight power, catering to all EV models.",
+                    color: "from-teal-600 to-blue-700",
+                    shadowColor: "shadow-teal-500/25",
+                    delay: "delay-700"
+                },
+                {
+                    icon: (
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5S19.832 5.477 21 6.253v13C19.832 18.477 18.246 18 16.5 18s-3.332.477-4.5 1.253"></path>
+                        </svg>
+                    ),
+                    title: "Enhanced Charging Network",
+                    description: "Benefit from Karnataka's continuously expanding EV charging infrastructure, with thousands of stations across the state, making charging accessible everywhere.",
+                    color: "from-amber-600 to-orange-700",
+                    shadowColor: "shadow-amber-500/25",
+                    delay: "delay-800"
+                },
+                {
+                    icon: (
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    ),
+                    title: "Time Tracking",
+                    description: "Monitor your charging sessions and energy consumption directly through the app, helping you manage your EV expenses effectively.",
+                    color: "from-indigo-600 to-blue-700",
+                    shadowColor: "shadow-indigo-500/25",
+                    delay: "delay-900"
+                },
+                {
+                    icon: (
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 21h7a2 2 0 002-2V9a2 2 0 00-2-2h-7a2 2 0 00-2 2v10a2 2 0 002 2zM9 19H7a2 2 0 01-2-2V7a2 2 0 012-2h2"></path>
+                        </svg>
+                    ),
+                    title: "User-Friendly Mobile Apps",
+                    description: "Access intuitive and easy-to-use mobile applications for finding, booking, and managing your EV charging sessions.",
+                    color: "from-sky-600 to-cyan-700",
+                    shadowColor: "shadow-sky-500/25",
+                    delay: "delay-1000"
+                },
+                {
+                    icon: (
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l-2 5m2-5l-2-5m-2 5l4-9"></path>
+                        </svg>
+                    ),
+                    title: "Eco-Friendly Initiative",
+                    description: "Join our community committed to sustainable transportation, reduce your carbon footprint, and contribute to a cleaner environment in Karnataka.",
+                    color: "from-emerald-600 to-green-700",
+                    shadowColor: "shadow-emerald-500/25",
+                    delay: "delay-1100"
+                }
+            ].map((feature, index) => (
+                <StaggeredAnimation key={index} index={index}>
+                    <div className="feature-card-hover pt-12 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-8 rounded-2xl shadow-lg hover:shadow-xl border border-slate-200/60 dark:border-slate-700/60 h-full transition-all duration-300">
+                        <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${feature.color} flex items-center justify-center mb-6 mx-auto animate-bounce-slow shadow-lg ${feature.shadowColor}`}>
+                            <span className="text-white text-3xl animate-wiggle hover:animate-pulse">{feature.icon}</span>
                         </div>
-                </section>
-
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-4 text-center">
+                            {feature.title}
+                        </h3>
+                        <p className="text-slate-600 dark:text-slate-300 text-center leading-relaxed">
+                            {feature.description}
+                        </p>
+                    </div>
+                </StaggeredAnimation>
+            ))}
+        </div>
+    </div>
+</section>
                 {/* FAQ Section */}
                 <section id="faq" className="py-24 px-6 md:px-12 bg-gray-50 dark:bg-gray-900">
                     <div className="max-w-4xl mx-auto">
