@@ -166,7 +166,7 @@ const FAQ = () => {
             <div className="text-center md:text-left">
                 <h3 className="text-2xl font-bold mb-1 text-blue-400">Quick Links</h3>
                 <ul className="space-y">
-                      <li><a href="/home" className="text-gray-300 hover:text-white transition-colors duration-200">Home</a></li>
+                      <li><a href="/" className="text-gray-300 hover:text-white transition-colors duration-200">Home</a></li>
                       <li><a href="/about" className="text-gray-300 hover:text-white transition-colors duration-200">About Us</a></li>
                       <li><a href="/how-it-works" className="text-gray-300 hover:text-white transition-colors duration-200">How It Works</a></li>
                       <li><a href="/why-ev-charge-hub" className="text-gray-300 hover:text-white transition-colors duration-200">Features</a></li>
