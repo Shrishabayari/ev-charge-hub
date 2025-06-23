@@ -96,14 +96,21 @@ export const endpoints = {
     profile: '/api/auth/profile',
   },
 
-  // Booking endpoints (User)
+  // Booking endpoints (User & Admin)
   bookings: {
+    // User booking endpoints
     create: '/api/bookings/create',
     getByUser: '/api/bookings/user',
     cancel: (id) => `/api/bookings/cancel/${id}`,
     reschedule: (id) => `/api/bookings/reschedule/${id}`,
     checkAvailability: '/api/bookings/check-availability',
     getAvailableSlots: (bunkId, date) => `/api/bookings/available-slots/${bunkId}/${date}`,
+    
+    // Admin booking endpoints - CORRECTED
+    getAll: '/api/bookings', // Admin endpoint to get all bookings with filters
+    getById: (id) => `/api/bookings/${id}`, // Admin endpoint to get specific booking
+    updateStatus: (id) => `/api/bookings/${id}/status`, // Admin endpoint to update booking status
+    getStats: '/api/bookings/stats', // Booking statistics
   },
 
   // Admin endpoints
@@ -120,12 +127,6 @@ export const endpoints = {
     getUserBookings: (id) => `/api/admin/users/${id}/bookings`,
     updateUserStatus: (id) => `/api/admin/users/${id}/status`,
     deleteUser: (id) => `/api/admin/users/${id}`,
-    
-    // Admin Booking Management - ADDED THESE
-    getAllBookings: '/api/bookings', // Admin view of all bookings
-    getBookingById: (id) => `/api/bookings/${id}`, // Admin view of specific booking
-    updateBookingStatus: (id) => `/api/bookings/${id}/status`, // Admin update booking status
-    getBookingStats: '/api/bookings/stats', // Booking statistics
     
     // Dashboard & Analytics
     getDashboardStats: '/api/admin/stats',
@@ -187,7 +188,7 @@ export const apiMethods = {
   adminUpdateUserStatus: (userId, status) => api.put(endpoints.admin.updateUserStatus(userId), { status }),
   adminDeleteUser: (userId) => api.delete(endpoints.admin.deleteUser(userId)),
 
-  // Admin Booking Management - ADDED THESE METHODS
+  // Admin Booking Management - CORRECTED METHODS
   adminGetAllBookings: (filters = {}) => {
     const params = {};
     if (filters.status) params.status = filters.status;
@@ -197,12 +198,12 @@ export const apiMethods = {
     if (filters.page) params.page = filters.page;
     if (filters.limit) params.limit = filters.limit;
     
-    return api.get(endpoints.admin.getAllBookings, { params });
+    return api.get(endpoints.bookings.getAll, { params }); // CORRECTED: Use bookings.getAll
   },
   
-  adminGetBookingById: (id) => api.get(endpoints.admin.getBookingById(id)),
-  adminUpdateBookingStatus: (id, status) => api.patch(endpoints.admin.updateBookingStatus(id), { status }),
-  adminGetBookingStats: () => api.get(endpoints.admin.getBookingStats),
+  adminGetBookingById: (id) => api.get(endpoints.bookings.getById(id)), // CORRECTED: Use bookings.getById
+  adminUpdateBookingStatus: (id, status) => api.patch(endpoints.bookings.updateStatus(id), { status }), // CORRECTED: Use bookings.updateStatus
+  adminGetBookingStats: () => api.get(endpoints.bookings.getStats), // CORRECTED: Use bookings.getStats
 
   // Admin Auth
   adminLogin: (credentials) => api.post(endpoints.admin.adminLogin, credentials),
