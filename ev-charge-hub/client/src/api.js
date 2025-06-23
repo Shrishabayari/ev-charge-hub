@@ -45,7 +45,7 @@ api.interceptors.response.use(
       switch (status) {
         case 401:
           localStorage.removeItem('token');
-          window.location.href = '/login';
+          window.location.href = '/admin/login'; // Changed to admin login
           break;
         case 403:
           console.error('Access forbidden: You do not have permission to perform this action.');
@@ -96,27 +96,36 @@ export const endpoints = {
     profile: '/api/auth/profile',
   },
 
-  // Booking endpoints
+  // Booking endpoints (User)
   bookings: {
-    create: '/api/bookings',
+    create: '/api/bookings/create',
     getByUser: '/api/bookings/user',
-    cancel: (id) => `/api/bookings/${id}/cancel`,
+    cancel: (id) => `/api/bookings/cancel/${id}`,
+    reschedule: (id) => `/api/bookings/reschedule/${id}`,
+    checkAvailability: '/api/bookings/check-availability',
+    getAvailableSlots: (bunkId, date) => `/api/bookings/available-slots/${bunkId}/${date}`,
   },
 
-  // Admin endpoints - FIXED TO MATCH BACKEND
+  // Admin endpoints
   admin: {
     // Admin Auth
     adminLogin: '/api/admin/login',
     adminRegister: '/api/admin/register',
     adminProfile: '/api/admin/profile',
 
-    // User Management - CORRECTED ENDPOINTS
+    // User Management
     getAllUsers: '/api/admin/users',
     searchUsers: '/api/admin/users/search',
-    getUserById: (id) => `/api/admin/users/${id}`, // This should match backend getUserById
+    getUserById: (id) => `/api/admin/users/${id}`,
     getUserBookings: (id) => `/api/admin/users/${id}/bookings`,
     updateUserStatus: (id) => `/api/admin/users/${id}/status`,
-    deleteUser: (id) => `/api/admin/users/${id}`, // This should match backend deleteUser
+    deleteUser: (id) => `/api/admin/users/${id}`,
+    
+    // Admin Booking Management - ADDED THESE
+    getAllBookings: '/api/bookings', // Admin view of all bookings
+    getBookingById: (id) => `/api/bookings/${id}`, // Admin view of specific booking
+    updateBookingStatus: (id) => `/api/bookings/${id}/status`, // Admin update booking status
+    getBookingStats: '/api/bookings/stats', // Booking statistics
     
     // Dashboard & Analytics
     getDashboardStats: '/api/admin/stats',
@@ -124,7 +133,7 @@ export const endpoints = {
   }
 };
 
-// FIXED: Convenience methods for common operations
+// Convenience methods for common operations
 export const apiMethods = {
   // Get all bunks
   getAllBunks: () => api.get(endpoints.bunks.getAll),
@@ -153,8 +162,15 @@ export const apiMethods = {
       params: { type: connectorType }
     }),
 
-  // FIXED: Admin API methods to match backend implementation
-  // User Management
+  // User Booking Methods
+  createBooking: (bookingData) => api.post(endpoints.bookings.create, bookingData),
+  getUserBookings: () => api.get(endpoints.bookings.getByUser),
+  cancelBooking: (id) => api.put(endpoints.bookings.cancel(id)),
+  rescheduleBooking: (id, data) => api.put(endpoints.bookings.reschedule(id), data),
+  checkSlotAvailability: (data) => api.post(endpoints.bookings.checkAvailability, data),
+  getAvailableSlots: (bunkId, date) => api.get(endpoints.bookings.getAvailableSlots(bunkId, date)),
+
+  // Admin User Management
   adminGetAllUsers: (statusFilter = 'all', sortBy = 'createdAt', sortOrder = 'desc', searchTerm = '') => {
     const params = {};
     if (statusFilter !== 'all') params.status = statusFilter;
@@ -166,16 +182,27 @@ export const apiMethods = {
   },
   
   adminSearchUsers: (query) => api.get(endpoints.admin.searchUsers, { params: { q: query } }),
-  
   adminGetUserById: (id) => api.get(endpoints.admin.getUserById(id)),
-  
   adminGetUserBookings: (userId) => api.get(endpoints.admin.getUserBookings(userId)),
-  
-  // FIXED: This was the main issue - using correct parameter name
   adminUpdateUserStatus: (userId, status) => api.put(endpoints.admin.updateUserStatus(userId), { status }),
-  
-  // FIXED: Using correct endpoint and parameter name
   adminDeleteUser: (userId) => api.delete(endpoints.admin.deleteUser(userId)),
+
+  // Admin Booking Management - ADDED THESE METHODS
+  adminGetAllBookings: (filters = {}) => {
+    const params = {};
+    if (filters.status) params.status = filters.status;
+    if (filters.startDate) params.startDate = filters.startDate;
+    if (filters.endDate) params.endDate = filters.endDate;
+    if (filters.search) params.search = filters.search;
+    if (filters.page) params.page = filters.page;
+    if (filters.limit) params.limit = filters.limit;
+    
+    return api.get(endpoints.admin.getAllBookings, { params });
+  },
+  
+  adminGetBookingById: (id) => api.get(endpoints.admin.getBookingById(id)),
+  adminUpdateBookingStatus: (id, status) => api.patch(endpoints.admin.updateBookingStatus(id), { status }),
+  adminGetBookingStats: () => api.get(endpoints.admin.getBookingStats),
 
   // Admin Auth
   adminLogin: (credentials) => api.post(endpoints.admin.adminLogin, credentials),
