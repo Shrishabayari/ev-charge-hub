@@ -27,7 +27,9 @@ const AdminBookingsList = () => {
 
   // Function to get auth token
   const getAuthToken = () => {
-    return localStorage.getItem('token');
+    const token = localStorage.getItem('token');
+    console.log("Token from localStorage:", token ? `${token.substring(0, 20)}...` : "Not found");
+    return token;
   };
 
   // Function to fetch bookings using the configured API methods
@@ -56,13 +58,18 @@ const AdminBookingsList = () => {
 
       console.log("Fetching bookings with filters:", apiFilters);
 
+      // Debug: Check if the API method exists and log the call
+      console.log("API Methods available:", Object.keys(apiMethods));
+      console.log("Calling adminGetAllBookings method...");
+
       // Use the configured API method instead of direct API call
       const response = await apiMethods.adminGetAllBookings(apiFilters);
 
+      console.log("API response status:", response.status);
       console.log("API response:", response.data);
 
       // Handle response data
-      if (response.data.success) {
+      if (response.data && response.data.success) {
         const responseData = response.data.data;
 
         setBookings(responseData.bookings || []);
@@ -71,22 +78,32 @@ const AdminBookingsList = () => {
 
         console.log("Successfully loaded bookings:", responseData.bookings?.length || 0);
       } else {
-        setError(response.data.message || 'Failed to fetch bookings');
+        console.error("API returned unsuccessful response:", response.data);
+        setError(response.data?.message || 'Failed to fetch bookings');
       }
 
       setLoading(false);
     } catch (err) {
       console.error('Error fetching bookings:', err);
+      console.error('Error response:', err.response);
+      console.error('Error request config:', err.config);
 
       if (err.response?.status === 401) {
-        setError('Session expired. Please log in again.');
+        console.error("401 Error - Authentication failed");
+        setError('Session expired or invalid. Please log in again.');
         localStorage.removeItem('token');
         navigate('/admin/login');
       } else if (err.response?.status === 403) {
+        console.error("403 Error - Access denied");
         setError('Access denied. Admin privileges required.');
         navigate('/admin/login');
+      } else if (err.response?.status === 404) {
+        console.error("404 Error - Endpoint not found");
+        setError('API endpoint not found. Please check the server configuration.');
       } else {
-        setError(err.response?.data?.message || err.message || 'Failed to fetch bookings');
+        const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch bookings';
+        console.error("Other error:", errorMessage);
+        setError(errorMessage);
       }
 
       setLoading(false);
@@ -95,7 +112,12 @@ const AdminBookingsList = () => {
 
   // Fetch bookings when component mounts or dependencies change
   useEffect(() => {
-    fetchBookings();
+    // Add a small delay to ensure token is properly set after login
+    const timer = setTimeout(() => {
+      fetchBookings();
+    }, 100);
+
+    return () => clearTimeout(timer);
   }, [fetchBookings]);
 
   // Handle filter changes
@@ -161,7 +183,7 @@ const AdminBookingsList = () => {
       // Use the configured API method
       const response = await apiMethods.adminUpdateBookingStatus(bookingId, newStatus);
 
-      if (response.data.success) {
+      if (response.data && response.data.success) {
         // Update the booking in the state
         setBookings(prevBookings =>
           prevBookings.map(booking =>
@@ -175,7 +197,7 @@ const AdminBookingsList = () => {
         // Optionally show success message
         alert('Booking status updated successfully!');
       } else {
-        alert(response.data.message || 'Failed to update booking status');
+        alert(response.data?.message || 'Failed to update booking status');
       }
     } catch (err) {
       console.error('Error updating booking status:', err);
@@ -195,6 +217,7 @@ const AdminBookingsList = () => {
       current && current[key] !== undefined ? current[key] : defaultValue, obj
     );
   };
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
