@@ -14,9 +14,18 @@ const api = axios.create({
 // Request interceptor - Add auth token if available
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    // Check for admin token first, then regular token
+    const adminToken = localStorage.getItem('adminToken');
+    const userToken = localStorage.getItem('token') || localStorage.getItem('authToken');
+    
+    // Use admin token for admin routes, regular token for others
+    if (config.url.includes('/admin/') && adminToken) {
+      config.headers.Authorization = `Bearer ${adminToken}`;
+    } else if (adminToken && (config.url.includes('/bookings') || config.url.includes('/stats'))) {
+      // For booking routes that require admin access, use admin token
+      config.headers.Authorization = `Bearer ${adminToken}`;
+    } else if (userToken) {
+      config.headers.Authorization = `Bearer ${userToken}`;
     }
 
     console.log(`🔄 API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
@@ -45,13 +54,19 @@ api.interceptors.response.use(
 
       switch (status) {
         case 401:
-          // Check if it's an admin route
-          if (error.config.url.includes('/admin/') || error.config.url.includes('/bookings')) {
+          // Handle admin vs user authentication
+          if (error.config.url.includes('/admin/') || 
+              error.config.url.includes('/bookings') || 
+              error.config.url.includes('/stats')) {
+            console.error('Admin authentication failed');
             localStorage.removeItem('adminToken');
             localStorage.removeItem('token');
+            localStorage.removeItem('authToken');
             window.location.href = '/admin/login';
           } else {
+            console.error('User authentication failed');
             localStorage.removeItem('token');
+            localStorage.removeItem('authToken');
             window.location.href = '/login';
           }
           break;
@@ -114,11 +129,11 @@ export const endpoints = {
     checkAvailability: '/api/bookings/check-availability',
     getAvailableSlots: (bunkId, date) => `/api/bookings/available-slots/${bunkId}/${date}`,
     
-    // Admin booking endpoints - CORRECTED
-    getAll: '/api/bookings', // Admin endpoint to get all bookings with filters
-    getById: (id) => `/api/bookings/${id}`, // Admin endpoint to get specific booking
-    updateStatus: (id) => `/api/bookings/${id}/status`, // Admin endpoint to update booking status
-    getStats: '/api/bookings/stats', // Booking statistics
+    // Admin booking endpoints - CORRECTED TO MATCH BACKEND ROUTES
+    getAll: '/api/bookings', // Admin-only route (protectAdmin middleware)
+    getById: (id) => `/api/bookings/${id}`, // Admin-only route (protectAdmin middleware)
+    updateStatus: (id) => `/api/bookings/${id}/status`, // Admin-only route (protectAdmin middleware)
+    getStats: '/api/bookings/stats', // Admin-only route (protectAdmin middleware)
   },
 
   // Admin endpoints
@@ -210,7 +225,7 @@ export const apiMethods = {
   adminUpdateBunk: (id, bunkData) => api.put(endpoints.admin.updateBunk(id), bunkData),
   adminDeleteBunk: (id) => api.delete(endpoints.admin.deleteBunk(id)),
 
-  // Admin Booking Management - CORRECTED METHODS
+  // Admin Booking Management - CORRECTED TO MATCH BACKEND ROUTES
   adminGetAllBookings: (filters = {}) => {
     const params = {};
     if (filters.status) params.status = filters.status;
@@ -220,23 +235,27 @@ export const apiMethods = {
     if (filters.page) params.page = filters.page;
     if (filters.limit) params.limit = filters.limit;
     
+    // This uses the admin-protected /api/bookings route
     return api.get(endpoints.bookings.getAll, { params });
   },
   
+  // Get specific booking by ID (admin access)
   adminGetBookingById: (id) => api.get(endpoints.bookings.getById(id)),
   
-  // CORRECTED: Use PUT method to match the backend route
-  adminUpdateBookingStatus: (id, status) => api.put(endpoints.bookings.updateStatus(id), { status }),
+  // Update booking status (admin only) - CORRECTED TO USE PATCH
+  adminUpdateBookingStatus: (id, status) => api.patch(endpoints.bookings.updateStatus(id), { status }),
   
+  // Get booking statistics (admin only)
   adminGetBookingStats: () => api.get(endpoints.bookings.getStats),
 
-  // Admin Auth - CORRECTED METHODS
+  // Admin Auth Methods
   adminLogin: (credentials) => {
     return api.post(endpoints.admin.adminLogin, credentials).then(response => {
-      // Store admin token separately if needed
+      // Store admin token
       if (response.data.token) {
         localStorage.setItem('adminToken', response.data.token);
-        localStorage.setItem('token', response.data.token); // For backwards compatibility
+        // Also store as regular token for backward compatibility
+        localStorage.setItem('token', response.data.token);
       }
       return response;
     });

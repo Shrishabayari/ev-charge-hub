@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import api from '../../api';
+import api, { apiMethods } from '../../api';
 import { format } from 'date-fns';
 import AdminNavbar from "../common/navbars/AdminNavbar";
 import Footer from "../common/Footer";
@@ -18,24 +18,24 @@ const AdminBookingDetail = () => {
         setLoading(true);
         setError(null);
 
-        const token = localStorage.getItem('authToken') ||
-                      localStorage.getItem('token') ||
-                      sessionStorage.getItem('authToken');
+        // Check for admin authentication
+        const adminToken = localStorage.getItem('adminToken');
+        const fallbackToken = localStorage.getItem('token') || 
+                             localStorage.getItem('authToken') ||
+                             sessionStorage.getItem('authToken');
 
-        if (!token) {
-          setError('Authentication required. Please log in.');
+        if (!adminToken && !fallbackToken) {
+          setError('Admin authentication required. Please log in.');
           setLoading(false);
           return;
         }
 
-        const headers = {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        };
-
         console.log(`Fetching booking details for ID: ${id}`);
+        console.log('Admin token available:', !!adminToken);
+        console.log('Fallback token available:', !!fallbackToken);
 
-        const response = await api.get(`/api/bookings/${id}`, { headers });
+        // Use the API method which handles authentication automatically
+        const response = await apiMethods.adminGetBookingById(id);
         console.log("API Response:", response.data);
 
         let bookingData;
@@ -59,7 +59,15 @@ const AdminBookingDetail = () => {
 
         if (err.response) {
           if (err.response.status === 401) {
-            errorMessage = 'Authentication failed. Please log in again.';
+            errorMessage = 'Admin authentication failed. Please log in again.';
+            // Clear tokens and redirect to admin login
+            localStorage.removeItem('adminToken');
+            localStorage.removeItem('token');
+            localStorage.removeItem('authToken');
+            sessionStorage.removeItem('authToken');
+            setTimeout(() => navigate('/admin/login'), 2000);
+          } else if (err.response.status === 403) {
+            errorMessage = 'Access denied. Admin privileges required.';
           } else if (err.response.status === 404) {
             errorMessage = 'Booking not found. Please check the booking ID.';
           } else if (err.response.data?.message) {
@@ -80,7 +88,7 @@ const AdminBookingDetail = () => {
       setError('No booking ID provided');
       setLoading(false);
     }
-  }, [id]);
+  }, [id, navigate]);
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
@@ -164,6 +172,18 @@ const AdminBookingDetail = () => {
     } catch (err) {
       console.error('Duration calculation error:', err);
       return 'N/A';
+    }
+  };
+
+  // Update booking status function for admin actions
+  const updateBookingStatus = async (newStatus) => {
+    try {
+      await apiMethods.adminUpdateBookingStatus(id, newStatus);
+      setBooking(prev => ({ ...prev, status: newStatus }));
+      alert('Booking status updated successfully!');
+    } catch (err) {
+      console.error('Error updating booking status:', err);
+      alert('Failed to update booking status. Please try again.');
     }
   };
 
