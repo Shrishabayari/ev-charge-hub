@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import api, { endpoints } from '../../api'; // CORRECTED: Import api and endpoints directly
+import React, { useState, useEffect } from 'react';
+import api, { endpoints } from '../../api'; // Import api and endpoints directly
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import AdminNavbar from "../common/navbars/AdminNavbar";
@@ -25,98 +25,95 @@ const AdminBookingsList = () => {
     search: ''
   });
 
-  // Function to get auth token
-  const getAuthToken = () => {
-    return localStorage.getItem('token')
-  };
+  // useEffect hook to trigger fetching bookings when currentPage or filters change
+  useEffect(() => {
+    fetchBookings();
+  }, [currentPage, filters]); // Dependencies ensure re-fetch when page or filter changes
 
-  // Function to fetch bookings - CORRECTED to use direct api and endpoints
-  const fetchBookings = useCallback(async () => {
+  // Function to fetch bookings from the API
+  const fetchBookings = async () => {
+    setLoading(true);
+    setError(null); // Clear previous errors
+
     try {
-      setLoading(true);
-      setError(null);
-
-      const token = getAuthToken();
-
+      const token = localStorage.getItem('token');
       console.log("Authentication token:", token ? "Found" : "Not found");
 
       if (!token) {
         console.warn("No authentication token found in storage");
-        setError('You are not authenticated. Please log in again.');
+        setError('Authentication token not found. Please log in.');
         setLoading(false);
         return;
       }
 
-      // Prepare filters for API call
-      const apiFilters = {
+      // Prepare query parameters object for Axios
+      const queryParams = {
         page: currentPage,
         limit: limit,
-        ...filters // Spread all filters
+        ...(filters.status && { status: filters.status }),
+        ...(filters.startDate && { startDate: filters.startDate }),
+        ...(filters.endDate && { endDate: filters.endDate }),
+        ...(filters.search && { search: filters.search })
       };
 
-      console.log("Fetching bookings with filters:", apiFilters);
+      console.log("Fetching bookings with filters:", queryParams);
 
-      // CORRECTED: Use api.get with endpoints.bookings.getAll
-      const response = await api.get(endpoints.bookings.getAll, { params: apiFilters });
+      // Make API call using the 'api' instance and 'endpoints'
+      // Axios automatically handles serialization of the 'params' object to query string
+      const response = await api.get(endpoints.bookings.getAll, {
+        params: queryParams,
+        // The Authorization header is typically handled by api.js interceptor,
+        // but explicitly adding it here doesn't hurt and matches previous pattern.
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       console.log("API response:", response.data);
 
-      // Handle response data
-      if (response.data.success) {
+      // Handle response data based on the expected structure: { success: true, data: { bookings: [], pagination: {} } }
+      if (response.data.success && response.data.data) {
         const responseData = response.data.data;
-
         setBookings(responseData.bookings || []);
-        setTotalPages(responseData.pagination?.pages || 1);
         setTotalBookings(responseData.pagination?.total || 0);
-
+        setTotalPages(responseData.pagination?.pages || 1);
         console.log("Successfully loaded bookings:", responseData.bookings?.length || 0);
       } else {
         setError(response.data.message || 'Failed to fetch bookings');
       }
-
-      setLoading(false);
     } catch (err) {
       console.error('Error fetching bookings:', err);
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch EV bookings.';
+      setError(errorMessage);
 
-      // Access error response structure consistently
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch bookings';
-
+      // Optionally, redirect to login if 401 is specifically due to token issues
       if (err.response?.status === 401) {
-        setError('Session expired. Please log in again.');
-        // Optionally redirect to login if the error is specifically for authentication failure
+        // Redirection logic is also handled by the api.js interceptor,
+        // so no explicit navigate here is strictly needed, but showing awareness.
         // navigate('/admin/login');
-      } else if (err.response?.status === 403) {
-        setError('Access denied. Admin privileges required.');
-      } else {
-        setError(errorMessage);
       }
-
+    } finally {
       setLoading(false);
     }
-  }, [currentPage, limit, filters]);
+  };
 
-  // Fetch bookings when component mounts or dependencies change
-  useEffect(() => {
-    fetchBookings();
-  }, [fetchBookings]);
-
-  // Handle filter changes
+  // Handle filter changes and reset to first page
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters(prev => ({
       ...prev,
       [name]: value
     }));
-    setCurrentPage(1); // Reset to page 1 when filters change
+    setCurrentPage(1); // Always reset to page 1 when filters change
   };
 
-  // Handle search input submit
+  // Handle search form submission
   const handleSearch = (e) => {
     e.preventDefault();
-    fetchBookings();
+    fetchBookings(); // Re-fetch data with current filters
   };
 
-  // Format date for display
+  // Helper function to format date strings
   const formatDate = (dateString) => {
     try {
       if (!dateString) return 'N/A';
@@ -127,7 +124,7 @@ const AdminBookingsList = () => {
     }
   };
 
-  // Handle status badge styling
+  // Helper function to determine status badge styling
   const getStatusBadgeClass = (status) => {
     switch (status?.toLowerCase()) {
       case 'active':
@@ -141,30 +138,35 @@ const AdminBookingsList = () => {
     }
   };
 
-  // Navigate to booking details
+  // Navigate to specific booking details page
   const viewBookingDetails = (bookingId) => {
     navigate(`/admin/bookings/${bookingId}`);
     console.log(`Navigating to booking details for ID: ${bookingId}`);
   };
 
-  // Update booking status - CORRECTED to use direct api and endpoints
+  // Function to update a booking's status
   const updateStatus = async (bookingId, newStatus) => {
     try {
-      const token = getAuthToken();
+      const token = localStorage.getItem('token');
 
       if (!token) {
-        // Replaced alert with a more user-friendly error display or modal
         setError('You are not authenticated. Please log in again.');
         return;
       }
 
       console.log(`Updating booking ${bookingId} status to ${newStatus}`);
 
-      // CORRECTED: Use api.patch with endpoints.bookings.updateStatus
-      const response = await api.patch(endpoints.bookings.updateStatus(bookingId), { status: newStatus });
+      // Use the endpoint defined in api.js for updating status
+      const url = endpoints.bookings.updateStatus(bookingId);
 
-      if (response.data.success) {
-        // Update the booking in the state
+      const response = await api.patch(url, { status: newStatus }, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.data.success || response.status === 200) {
+        // Update the booking in the local state to reflect the change immediately
         setBookings(prevBookings =>
           prevBookings.map(booking =>
             booking._id === bookingId
@@ -173,18 +175,17 @@ const AdminBookingsList = () => {
           )
         );
         console.log('Booking status updated successfully');
+        setError(null); // Clear any previous errors
       } else {
-        // Replaced alert with a more user-friendly error display or modal
         setError(response.data.message || 'Failed to update booking status');
       }
     } catch (err) {
       console.error('Error updating booking status:', err);
-      // Replaced alert with a more user-friendly error display or modal
       setError(err.response?.data?.message || err.message || 'Failed to update booking status');
     }
   };
 
-  // Helper function to safely get nested properties
+  // Helper function to safely access nested object properties
   const safeGet = (obj, path, defaultValue = 'N/A') => {
     return path.split('.').reduce((current, key) =>
       current && current[key] !== undefined ? current[key] : defaultValue, obj
@@ -192,7 +193,7 @@ const AdminBookingsList = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 font-inter">
       <AdminNavbar/>
       
       {/* Main Content */}
@@ -333,12 +334,22 @@ const AdminBookingsList = () => {
               <div className="ml-4 text-center sm:text-left">
                 <h3 className="text-lg font-medium text-red-800 mb-2">Error Loading Bookings</h3>
                 <p className="text-red-600 mb-4">{error}</p>
-                {!getAuthToken() && (
+                {/* Conditionally show login button if error is due to missing token */}
+                {error.includes('Authentication token not found') && (
                   <button
                     onClick={() => navigate('/admin/login')}
                     className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
                   >
                     Go to Login
+                  </button>
+                )}
+                 {/* Try Again button for other errors */}
+                {!error.includes('Authentication token not found') && (
+                  <button
+                    onClick={fetchBookings}
+                    className="inline-flex items-center px-4 py-2 border border-red-300 text-sm font-medium rounded-lg text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200"
+                  >
+                    Try Again
                   </button>
                 )}
               </div>
@@ -372,7 +383,7 @@ const AdminBookingsList = () => {
                       <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center space-x-4">
                           <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-                            <span className="text-white font-bold text-lg">#{index + 1}</span>
+                            <span className="text-white font-bold text-lg">#{((currentPage - 1) * limit) + index + 1}</span>
                           </div>
                           <div>
                             <h3 className="text-lg font-semibold text-gray-900">
@@ -491,7 +502,7 @@ const AdminBookingsList = () => {
             )}
 
             {/* Enhanced Pagination */}
-            {totalBookings > 0 && (
+            {totalBookings > 0 && totalPages > 1 && (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mt-8">
                 <div className="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
                   <div className="flex items-center text-sm text-gray-600">
