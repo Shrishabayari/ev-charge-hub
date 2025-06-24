@@ -107,7 +107,7 @@ export const endpoints = {
     getAvailableSlots: (bunkId, date) => `/api/bookings/available-slots/${bunkId}/${date}`,
     
     // Admin booking endpoints - CORRECTED
-    getAll: '/api/bookings', // Admin endpoint to get all bookings with filters
+    getAll: '/api/admin/bookings', // Admin endpoint to get all bookings with filters
     getById: (id) => `/api/bookings/${id}`, // Admin endpoint to get specific booking
     updateStatus: (id) => `/api/bookings/${id}/status`, // Admin endpoint to update booking status
     getStats: '/api/bookings/stats', // Booking statistics
