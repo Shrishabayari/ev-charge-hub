@@ -220,7 +220,7 @@ export const apiMethods = {
     if (filters.page) params.page = filters.page;
     if (filters.limit) params.limit = filters.limit;
     
-    return api.get(endpoints.bookings.adminGetAllBookings, { params });
+    return api.get(endpoints.bookings.getAll, { params });
   },
   
   adminGetBookingById: (id) => api.get(endpoints.bookings.getById(id)),

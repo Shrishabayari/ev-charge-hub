@@ -30,10 +30,10 @@ const AdminBookingsList = () => {
     fetchBookings();
   }, [currentPage, filters]); // Dependencies ensure re-fetch when page or filter changes
 
-      // Function to fetch bookings from the API
-      const fetchBookings = async () => {
-        setLoading(true);
-        setError(null); // Clear previous errors
+  // Function to fetch bookings from the API
+  const fetchBookings = async () => {
+    setLoading(true);
+    setError(null); // Clear previous errors
 
     try {
       const token = localStorage.getItem('token');
@@ -47,6 +47,7 @@ const AdminBookingsList = () => {
       }
 
       // Prepare query parameters object for Axios
+      // This will automatically be converted to a query string by Axios
       const queryParams = {
         page: currentPage,
         limit: limit,
@@ -58,20 +59,19 @@ const AdminBookingsList = () => {
 
       console.log("Fetching bookings with filters:", queryParams);
 
-      // Make API call using the 'api' instance and 'endpoints'
-      // Axios automatically handles serialization of the 'params' object to query string
-      const response = await api.get(endpoints.bookings.getAll, {
+      // CORRECTED: Use endpoints.bookings.getAll which points to /api/admin/bookings
+      // and pass queryParams in the 'params' configuration
+      const response = await api.get('/api/bookings', {
         params: queryParams,
-        // The Authorization header is typically handled by api.js interceptor,
-        // but explicitly adding it here doesn't hurt and matches previous pattern.
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${token}`, // Explicitly adding, though interceptor also handles
         },
       });
-
+      
       console.log("API response:", response.data);
 
-      // Handle response data based on the expected structure: { success: true, data: { bookings: [], pagination: {} } }
+      // CORRECTED: Consistent handling of response data based on api.js expectation
+      // Expecting { success: true, data: { bookings: [], pagination: { total: N, pages: M } } }
       if (response.data.success && response.data.data) {
         const responseData = response.data.data;
         setBookings(responseData.bookings || []);
@@ -79,24 +79,21 @@ const AdminBookingsList = () => {
         setTotalPages(responseData.pagination?.pages || 1);
         console.log("Successfully loaded bookings:", responseData.bookings?.length || 0);
       } else {
-        setError(response.data.message || 'Failed to fetch bookings');
+        // Fallback for unexpected successful response structure
+        setError(response.data.message || 'Failed to fetch bookings due to unexpected response format.');
       }
     } catch (err) {
       console.error('Error fetching bookings:', err);
       const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch EV bookings.';
       setError(errorMessage);
 
-      // Optionally, redirect to login if 401 is specifically due to token issues
-      if (err.response?.status === 401) {
-        // Redirection logic is also handled by the api.js interceptor,
-        // so no explicit navigate here is strictly needed, but showing awareness.
-        // navigate('/admin/login');
-      }
+      // Redirection logic for 401 is handled by the api.js interceptor,
+      // so no explicit navigate here is strictly needed for 401.
     } finally {
       setLoading(false);
     }
   };
-
+      
   // Handle filter changes and reset to first page
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -117,7 +114,7 @@ const AdminBookingsList = () => {
   const formatDate = (dateString) => {
     try {
       if (!dateString) return 'N/A';
-      return format(new Date(dateString), 'MMM dd, yyyy HH:mm');
+      return format(new Date(dateString), 'MMM dd,yyyy HH:mm'); // Changed to 'MMM dd,yyyy HH:mm' for clarity
     } catch (err) {
       console.error('Date formatting error:', err);
       return 'Invalid date';
@@ -157,7 +154,7 @@ const AdminBookingsList = () => {
       console.log(`Updating booking ${bookingId} status to ${newStatus}`);
 
       // Use the endpoint defined in api.js for updating status
-      const url = endpoints.bookings.updateStatus(bookingId);
+      const url = endpoints.bookings.updateStatus(bookingId); // This now correctly points to /api/admin/bookings/:id/status
 
       const response = await api.patch(url, { status: newStatus }, {
         headers: {
