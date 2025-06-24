@@ -194,7 +194,7 @@ export const apiMethods = {
     if (sortOrder) params.sortOrder = sortOrder;
     if (searchTerm) params.q = searchTerm;
     
-    return api.get(endpoints.admin.adminGetAllBookings, { params });
+    return api.get(endpoints.admin.getAllUsers, { params });
   },
   
   adminSearchUsers: (query) => api.get(endpoints.admin.searchUsers, { params: { q: query } }),
@@ -220,7 +220,7 @@ export const apiMethods = {
     if (filters.page) params.page = filters.page;
     if (filters.limit) params.limit = filters.limit;
     
-    return api.get(endpoints.bookings.getAll, { params });
+    return api.get(endpoints.bookings.adminGetAllBookings, { params });
   },
   
   adminGetBookingById: (id) => api.get(endpoints.bookings.getById(id)),
