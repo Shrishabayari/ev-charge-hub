@@ -1,169 +1,104 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import api, { endpoints } from '../../api'; // CORRECTED: Import api and endpoints directly
 import { useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
+import AdminNavbar from "../common/navbars/AdminNavbar";
+import Footer from "../common/Footer";
 
-// Mock API methods - replace with your actual API
-const apiMethods = {
-  adminGetAllUsers: async (status, sortBy, sortOrder, search) => {
-    // Mock response - replace with actual API call
-    return {
-      data: {
-        success: true,
-        users: [
-          {
-            _id: '507f1f77bcf86cd799439011',
-            name: 'John Doe',
-            email: 'john.doe@example.com',
-            phone: '+1-555-0123',
-            status: 'active',
-            createdAt: '2024-01-15T10:30:00Z',
-            lastLogin: '2024-06-20T14:22:00Z',
-            totalBookings: 12,
-            activeBookings: 2
-          },
-          {
-            _id: '507f1f77bcf86cd799439012',
-            name: 'Jane Smith',
-            email: 'jane.smith@example.com',
-            phone: '+1-555-0124',
-            status: 'inactive',
-            createdAt: '2024-02-10T09:15:00Z',
-            lastLogin: '2024-06-18T11:45:00Z',
-            totalBookings: 8,
-            activeBookings: 0
-          },
-          {
-            _id: '507f1f77bcf86cd799439013',
-            name: 'Mike Johnson',
-            email: 'mike.johnson@example.com',
-            phone: '+1-555-0125',
-            status: 'suspended',
-            createdAt: '2024-03-05T16:20:00Z',
-            lastLogin: '2024-06-15T08:30:00Z',
-            totalBookings: 15,
-            activeBookings: 1
-          }
-        ],
-        totalUsers: 23
-      }
-    };
-  },
-  adminUpdateUserStatus: async (userId, status) => {
-    return { data: { success: true } };
-  },
-  adminDeleteUser: async (userId) => {
-    return { data: { success: true } };
-  }
-};
-
-// Mock components
-const AdminNavbar = () => (
-  <nav className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
-    <div className="flex items-center justify-between">
-      <h1 className="text-xl font-semibold text-gray-900">Admin Dashboard</h1>
-      <div className="flex items-center space-x-4">
-        <span className="text-sm text-gray-600">Admin Panel</span>
-      </div>
-    </div>
-  </nav>
-);
-
-const Footer = () => (
-  <footer className="bg-gray-50 border-t border-gray-200 py-8 mt-12">
-    <div className="max-w-7xl mx-auto px-4 text-center text-gray-600">
-      <p>&copy; 2025 EV Charge Hub. All rights reserved.</p>
-    </div>
-  </footer>
-);
-
-const AdminUsersList = () => {
+const AdminBookingsList = () => {
   const navigate = useNavigate();
-  
-  // State management
-  const [users, setUsers] = useState([]);
+  const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [totalUsers, setTotalUsers] = useState(0);
+
+  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [limit] = useState(10);
-  
+  const [totalBookings, setTotalBookings] = useState(0);
+  const [limit] = useState(10); // Items per page
+
   // Filter state
   const [filters, setFilters] = useState({
     status: '',
-    search: '',
-    sortBy: 'createdAt',
-    sortOrder: 'desc'
+    startDate: '',
+    endDate: '',
+    search: ''
   });
 
-  // Utility functions
+  // Function to get auth token
   const getAuthToken = () => {
-    // Mock token check - replace with actual localStorage check
-    return 'mock-token';
-  };
-  
-  const safeGet = (obj, path, defaultValue = 'N/A') => {
-    return path.split('.').reduce((current, key) => current?.[key], obj) || defaultValue;
+    return localStorage.getItem('token')
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    try {
-      return new Date(dateString).toLocaleString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    } catch (error) {
-      return 'Invalid Date';
-    }
-  };
-
-  const getStatusBadgeClass = (status) => {
-    const statusLower = status?.toLowerCase() || 'inactive';
-    switch (statusLower) {
-      case 'active':
-        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-      case 'inactive':
-        return 'bg-gray-50 text-gray-700 border-gray-200';
-      case 'suspended':
-        return 'bg-red-50 text-red-700 border-red-200';
-      case 'pending':
-        return 'bg-yellow-50 text-yellow-700 border-yellow-200';
-      default:
-        return 'bg-gray-50 text-gray-700 border-gray-200';
-    }
-  };
-
-  // Fetch users data
-  const fetchUsers = async () => {
+  // Function to fetch bookings - CORRECTED to use direct api and endpoints
+  const fetchBookings = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await apiMethods.adminGetAllUsers(
-        filters.status || 'all',
-        filters.sortBy,
-        filters.sortOrder,
-        filters.search
-      );
+      const token = getAuthToken();
 
-      if (response.data && response.data.success) {
-        setUsers(response.data.users || []);
-        setTotalUsers(response.data.totalUsers || 0);
-        setTotalPages(Math.ceil((response.data.totalUsers || 0) / limit));
-      } else {
-        throw new Error(response.data?.message || 'Failed to fetch users');
+      console.log("Authentication token:", token ? "Found" : "Not found");
+
+      if (!token) {
+        console.warn("No authentication token found in storage");
+        setError('You are not authenticated. Please log in again.');
+        setLoading(false);
+        return;
       }
+
+      // Prepare filters for API call
+      const apiFilters = {
+        page: currentPage,
+        limit: limit,
+        ...filters // Spread all filters
+      };
+
+      console.log("Fetching bookings with filters:", apiFilters);
+
+      // CORRECTED: Use api.get with endpoints.bookings.getAll
+      const response = await api.get(endpoints.bookings.getAll, { params: apiFilters });
+
+      console.log("API response:", response.data);
+
+      // Handle response data
+      if (response.data.success) {
+        const responseData = response.data.data;
+
+        setBookings(responseData.bookings || []);
+        setTotalPages(responseData.pagination?.pages || 1);
+        setTotalBookings(responseData.pagination?.total || 0);
+
+        console.log("Successfully loaded bookings:", responseData.bookings?.length || 0);
+      } else {
+        setError(response.data.message || 'Failed to fetch bookings');
+      }
+
+      setLoading(false);
     } catch (err) {
-      console.error('Error fetching users:', err);
-      setError(err.message || 'Failed to load users. Please try again.');
-      setUsers([]);
-    } finally {
+      console.error('Error fetching bookings:', err);
+
+      // Access error response structure consistently
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch bookings';
+
+      if (err.response?.status === 401) {
+        setError('Session expired. Please log in again.');
+        // Optionally redirect to login if the error is specifically for authentication failure
+        // navigate('/admin/login');
+      } else if (err.response?.status === 403) {
+        setError('Access denied. Admin privileges required.');
+      } else {
+        setError(errorMessage);
+      }
+
       setLoading(false);
     }
-  };
+  }, [currentPage, limit, filters]);
+
+  // Fetch bookings when component mounts or dependencies change
+  useEffect(() => {
+    fetchBookings();
+  }, [fetchBookings]);
 
   // Handle filter changes
   const handleFilterChange = (e) => {
@@ -172,77 +107,89 @@ const AdminUsersList = () => {
       ...prev,
       [name]: value
     }));
+    setCurrentPage(1); // Reset to page 1 when filters change
   };
 
-  // Handle search
+  // Handle search input submit
   const handleSearch = (e) => {
     e.preventDefault();
-    setCurrentPage(1);
-    fetchUsers();
+    fetchBookings();
   };
 
-  // Update user status
-  const updateUserStatus = async (userId, newStatus) => {
+  // Format date for display
+  const formatDate = (dateString) => {
     try {
-      const response = await apiMethods.adminUpdateUserStatus(userId, newStatus);
-      
-      if (response.data && response.data.success) {
-        // Update local state
-        setUsers(prev => prev.map(user => 
-          user._id === userId ? { ...user, status: newStatus } : user
-        ));
-        
-        // Show success message (you can implement toast notifications)
-        console.log('User status updated successfully');
-      } else {
-        throw new Error(response.data?.message || 'Failed to update user status');
-      }
-    } catch (error) {
-      console.error('Error updating user status:', error);
-      alert('Failed to update user status: ' + error.message);
+      if (!dateString) return 'N/A';
+      return format(new Date(dateString), 'MMM dd, yyyy HH:mm');
+    } catch (err) {
+      console.error('Date formatting error:', err);
+      return 'Invalid date';
     }
   };
 
-  // View user details
-  const viewUserDetails = (userId) => {
-    console.log('Viewing user details for:', userId);
-    // navigate(`/admin/users/${userId}`);
-  };
-
-  // View user bookings
-  const viewUserBookings = (userId) => {
-    console.log('Viewing user bookings for:', userId);
-    // navigate(`/admin/users/${userId}/bookings`);
-  };
-
-  // Delete user
-  const deleteUser = async (userId) => {
-    if (!window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-      return;
+  // Handle status badge styling
+  const getStatusBadgeClass = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'active':
+        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      case 'cancelled':
+        return 'bg-red-50 text-red-700 border-red-200';
+      case 'completed':
+        return 'bg-blue-50 text-blue-700 border-blue-200';
+      default:
+        return 'bg-gray-50 text-gray-700 border-gray-200';
     }
+  };
 
+  // Navigate to booking details
+  const viewBookingDetails = (bookingId) => {
+    navigate(`/admin/bookings/${bookingId}`);
+    console.log(`Navigating to booking details for ID: ${bookingId}`);
+  };
+
+  // Update booking status - CORRECTED to use direct api and endpoints
+  const updateStatus = async (bookingId, newStatus) => {
     try {
-      const response = await apiMethods.adminDeleteUser(userId);
-      
-      if (response.data && response.data.success) {
-        // Remove user from local state
-        setUsers(prev => prev.filter(user => user._id !== userId));
-        setTotalUsers(prev => prev - 1);
-        
-        console.log('User deleted successfully');
-      } else {
-        throw new Error(response.data?.message || 'Failed to delete user');
+      const token = getAuthToken();
+
+      if (!token) {
+        // Replaced alert with a more user-friendly error display or modal
+        setError('You are not authenticated. Please log in again.');
+        return;
       }
-    } catch (error) {
-      console.error('Error deleting user:', error);
-      alert('Failed to delete user: ' + error.message);
+
+      console.log(`Updating booking ${bookingId} status to ${newStatus}`);
+
+      // CORRECTED: Use api.patch with endpoints.bookings.updateStatus
+      const response = await api.patch(endpoints.bookings.updateStatus(bookingId), { status: newStatus });
+
+      if (response.data.success) {
+        // Update the booking in the state
+        setBookings(prevBookings =>
+          prevBookings.map(booking =>
+            booking._id === bookingId
+              ? { ...booking, status: newStatus }
+              : booking
+          )
+        );
+        console.log('Booking status updated successfully');
+      } else {
+        // Replaced alert with a more user-friendly error display or modal
+        setError(response.data.message || 'Failed to update booking status');
+      }
+    } catch (err) {
+      console.error('Error updating booking status:', err);
+      // Replaced alert with a more user-friendly error display or modal
+      setError(err.response?.data?.message || err.message || 'Failed to update booking status');
     }
   };
 
-  // Effects
-  useEffect(() => {
-    fetchUsers();
-  }, [currentPage]);
+  // Helper function to safely get nested properties
+  const safeGet = (obj, path, defaultValue = 'N/A') => {
+    return path.split('.').reduce((current, key) =>
+      current && current[key] !== undefined ? current[key] : defaultValue, obj
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -255,16 +202,16 @@ const AdminUsersList = () => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-4xl font-bold text-gray-900 tracking-tight">
-                User Management
+                Booking Management
               </h1>
               <p className="mt-2 text-lg text-gray-600">
-                Monitor and manage all registered users
+                Monitor and manage all EV charging bookings
               </p>
             </div>
             <div className="flex items-center space-x-4">
               <div className="bg-white rounded-lg px-4 py-2 shadow-sm border border-gray-200">
-                <span className="text-sm text-gray-500">Total Users</span>
-                <div className="text-2xl font-bold text-gray-900">{totalUsers}</div>
+                <span className="text-sm text-gray-500">Total Bookings</span>
+                <div className="text-2xl font-bold text-gray-900">{totalBookings}</div>
               </div>
             </div>
           </div>
@@ -297,46 +244,39 @@ const AdminUsersList = () => {
                 >
                   <option value="">All Statuses</option>
                   <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                  <option value="suspended">Suspended</option>
-                  <option value="pending">Pending</option>
+                  <option value="cancelled">Cancelled</option>
+                  <option value="completed">Completed</option>
                 </select>
               </div>
 
-              {/* Sort By */}
+              {/* Start Date */}
               <div className="space-y-2">
-                <label htmlFor="sortBy" className="block text-sm font-medium text-gray-700">
-                  Sort By
+                <label htmlFor="startDate" className="block text-sm font-medium text-gray-700">
+                  Start Date
                 </label>
-                <select
-                  id="sortBy"
-                  name="sortBy"
-                  value={filters.sortBy}
+                <input
+                  type="date"
+                  id="startDate"
+                  name="startDate"
+                  value={filters.startDate}
                   onChange={handleFilterChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white hover:border-gray-400"
-                >
-                  <option value="createdAt">Registration Date</option>
-                  <option value="name">Name</option>
-                  <option value="email">Email</option>
-                  <option value="lastLogin">Last Login</option>
-                </select>
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-400"
+                />
               </div>
 
-              {/* Sort Order */}
+              {/* End Date */}
               <div className="space-y-2">
-                <label htmlFor="sortOrder" className="block text-sm font-medium text-gray-700">
-                  Order
+                <label htmlFor="endDate" className="block text-sm font-medium text-gray-700">
+                  End Date
                 </label>
-                <select
-                  id="sortOrder"
-                  name="sortOrder"
-                  value={filters.sortOrder}
+                <input
+                  type="date"
+                  id="endDate"
+                  name="endDate"
+                  value={filters.endDate}
                   onChange={handleFilterChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white hover:border-gray-400"
-                >
-                  <option value="desc">Newest First</option>
-                  <option value="asc">Oldest First</option>
-                </select>
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-400"
+                />
               </div>
 
               {/* Search */}
@@ -349,7 +289,7 @@ const AdminUsersList = () => {
                     type="text"
                     id="search"
                     name="search"
-                    placeholder="Search by name, email, ID..."
+                    placeholder="Search by user, bunk, ID..."
                     value={filters.search}
                     onChange={handleFilterChange}
                     className="w-full pl-4 pr-12 py-3 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-400"
@@ -375,7 +315,7 @@ const AdminUsersList = () => {
               <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Loading Users</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Loading Bookings</h3>
               <p className="text-gray-600">Please wait while we fetch the latest data...</p>
             </div>
           </div>
@@ -391,11 +331,11 @@ const AdminUsersList = () => {
                 </svg>
               </div>
               <div className="ml-4 text-center sm:text-left">
-                <h3 className="text-lg font-medium text-red-800 mb-2">Error Loading Users</h3>
+                <h3 className="text-lg font-medium text-red-800 mb-2">Error Loading Bookings</h3>
                 <p className="text-red-600 mb-4">{error}</p>
                 {!getAuthToken() && (
                   <button
-                    onClick={() => console.log('Navigate to login')}
+                    onClick={() => navigate('/admin/login')}
                     className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
                   >
                     Go to Login
@@ -406,124 +346,110 @@ const AdminUsersList = () => {
           </div>
         )}
 
-        {/* Users Card Layout */}
+        {/* Bookings Card Layout */}
         {!loading && !error && (
           <>
-            {users.length === 0 ? (
+            {bookings.length === 0 ? (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-16">
                 <div className="text-center">
                   <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4 mx-auto">
                     <svg className="w-12 h-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                   </div>
-                  <h3 className="text-xl font-medium text-gray-900 mb-2">No users found</h3>
+                  <h3 className="text-xl font-medium text-gray-900 mb-2">No bookings found</h3>
                   <p className="text-gray-500 max-w-md mx-auto">
-                    There are no users matching your current filters. Try adjusting your search criteria or check back later.
+                    There are no bookings matching your current filters. Try adjusting your search criteria or check back later.
                   </p>
                 </div>
               </div>
             ) : (
               <div className="space-y-6">
-                {users.map((user, index) => (
-                  <div key={user._id} className="bg-white rounded-2xl shadow-sm border border-gray-200 hover:shadow-lg transition-all duration-300 overflow-hidden">
+                {bookings.map((booking, index) => (
+                  <div key={booking._id} className="bg-white rounded-2xl shadow-sm border border-gray-200 hover:shadow-lg transition-all duration-300 overflow-hidden">
                     <div className="p-6">
                       {/* Card Header */}
                       <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center space-x-4">
-                          <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center">
-                            <span className="text-white font-bold text-lg">
-                              {(user.name || 'U').charAt(0).toUpperCase()}
-                            </span>
+                          <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                            <span className="text-white font-bold text-lg">#{index + 1}</span>
                           </div>
                           <div>
                             <h3 className="text-lg font-semibold text-gray-900">
-                              {user.name || 'N/A'}
+                              Booking ID: {booking._id?.substring(0, 12) || 'N/A'}...
                             </h3>
                             <p className="text-sm text-gray-500">
-                              ID: {user._id?.substring(0, 12) || 'N/A'}...
+                              Created: {formatDate(booking.createdAt)}
                             </p>
                           </div>
                         </div>
                         <div className="flex items-center space-x-3">
-                          <span className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium border ${getStatusBadgeClass(user.status)}`}>
+                          <span className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium border ${getStatusBadgeClass(booking.status)}`}>
                             <div className={`w-2 h-2 rounded-full mr-2 ${
-                              user.status?.toLowerCase() === 'active' ? 'bg-emerald-400' :
-                              user.status?.toLowerCase() === 'inactive' ? 'bg-gray-400' :
-                              user.status?.toLowerCase() === 'suspended' ? 'bg-red-400' :
-                              user.status?.toLowerCase() === 'pending' ? 'bg-yellow-400' : 'bg-gray-400'
+                              booking.status?.toLowerCase() === 'active' ? 'bg-emerald-400' :
+                              booking.status?.toLowerCase() === 'cancelled' ? 'bg-red-400' :
+                              booking.status?.toLowerCase() === 'completed' ? 'bg-blue-400' :'bg-gray-400'
                             }`}></div>
-                            {user.status || 'Inactive'}
+                            {booking.status || 'Unknown'}
                           </span>
                         </div>
                       </div>
 
                       {/* Card Content Grid */}
                       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        {/* Contact Information */}
+                        {/* User Information */}
                         <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border border-blue-100">
-                          <div className="space-y-3">
-                            <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center">
-                              <svg className="w-4 h-4 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-                                <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
-                              </svg>
-                              Contact Details
-                            </h4>
-                            <div className="space-y-2">
-                              <p className="text-sm text-gray-600">
-                                <span className="font-medium">Email:</span><br />
-                                <span className="text-gray-800">{user.email || 'N/A'}</span>
+                          <div className="flex items-center space-x-4">
+                            <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center">
+                              <span className="text-white font-semibold text-lg">
+                                {(safeGet(booking, 'userId.name') || safeGet(booking, 'user.name') || 'U').charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-sm font-semibold text-gray-900 mb-1">Customer Details</h4>
+                              <p className="text-sm font-medium text-gray-800 truncate">
+                                {safeGet(booking, 'userId.name') || safeGet(booking, 'user.name')}
                               </p>
-                              <p className="text-sm text-gray-600">
-                                <span className="font-medium">Phone:</span><br />
-                                <span className="text-gray-800">{user.phone || 'N/A'}</span>
+                              <p className="text-sm text-gray-600 truncate">
+                                {safeGet(booking, 'userId.email') || safeGet(booking, 'user.email')}
                               </p>
                             </div>
                           </div>
                         </div>
 
-                        {/* Account Information */}
+                        {/* Station Information */}
                         <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-5 border border-green-100">
-                          <div className="space-y-3">
-                            <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center">
-                              <svg className="w-4 h-4 mr-2 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                          <div className="flex items-center space-x-4">
+                            <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center">
+                              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                               </svg>
-                              Account Info
-                            </h4>
-                            <div className="space-y-2">
-                              <p className="text-sm text-gray-600">
-                                <span className="font-medium">Registered:</span><br />
-                                <span className="text-gray-800">{formatDate(user.createdAt)}</span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-sm font-semibold text-gray-900 mb-1">EV Station</h4>
+                              <p className="text-sm font-medium text-gray-800 truncate">
+                                {safeGet(booking, 'bunkId.name') || safeGet(booking, 'bunk.name')}
                               </p>
-                              <p className="text-sm text-gray-600">
-                                <span className="font-medium">Last Login:</span><br />
-                                <span className="text-gray-800">{formatDate(user.lastLogin)}</span>
+                              <p className="text-sm text-gray-600 truncate">
+                                {safeGet(booking, 'bunkId.address') || safeGet(booking, 'bunk.address')}
                               </p>
                             </div>
                           </div>
                         </div>
 
-                        {/* Statistics */}
+                        {/* Schedule Information */}
                         <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-5 border border-amber-100">
                           <div className="space-y-3">
-                            <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center">
-                              <svg className="w-4 h-4 mr-2 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z" />
-                                <path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z" />
-                              </svg>
-                              Statistics
-                            </h4>
-                            <div className="space-y-2">
-                              <p className="text-sm text-gray-600">
-                                <span className="font-medium">Total Bookings:</span><br />
-                                <span className="text-gray-800 text-lg font-semibold">{user.totalBookings || 0}</span>
-                              </p>
-                              <p className="text-sm text-gray-600">
-                                <span className="font-medium">Active Bookings:</span><br />
-                                <span className="text-gray-800 text-lg font-semibold">{user.activeBookings || 0}</span>
-                              </p>
+                            <h4 className="text-sm font-semibold text-gray-900 mb-3">Schedule Details</h4>
+                            <div className="flex items-center space-x-2">
+                              <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                              <span className="text-xs font-medium text-gray-700">Start:</span>
+                              <span className="text-sm text-gray-600">{formatDate(booking.startTime)}</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <div className="w-2 h-2 bg-red-400 rounded-full"></div>
+                              <span className="text-xs font-medium text-gray-700">End:</span>
+                              <span className="text-sm text-gray-600">{formatDate(booking.endTime)}</span>
                             </div>
                           </div>
                         </div>
@@ -531,9 +457,9 @@ const AdminUsersList = () => {
 
                       {/* Card Actions */}
                       <div className="flex items-center justify-between mt-6 pt-6 border-t border-gray-100">
-                        <div className="flex items-center space-x-3">
+                        <div className="flex items-center space-x-4">
                           <button
-                            onClick={() => viewUserDetails(user._id)}
+                            onClick={() => viewBookingDetails(booking._id)}
                             className="inline-flex items-center px-4 py-2 border border-blue-300 text-sm font-medium rounded-lg text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
                           >
                             <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -542,43 +468,20 @@ const AdminUsersList = () => {
                             </svg>
                             View Details
                           </button>
-                          
-                          <button
-                            onClick={() => viewUserBookings(user._id)}
-                            className="inline-flex items-center px-4 py-2 border border-green-300 text-sm font-medium rounded-lg text-green-700 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200"
-                          >
-                            <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
-                            </svg>
-                            View Bookings
-                          </button>
                         </div>
                         
                         <div className="flex items-center space-x-3">
-                          <span className="text-sm text-gray-500">Status:</span>
+                          <span className="text-sm text-gray-500">Update Status:</span>
                           <select
-                            value={user.status || 'inactive'}
-                            onChange={(e) => updateUserStatus(user._id, e.target.value)}
+                            value={booking.status || 'active'}
+                            onChange={(e) => updateStatus(booking._id, e.target.value)}
                             className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-400"
-                            aria-label="Update user status"
+                            aria-label="Update booking status"
                           >
                             <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                            <option value="suspended">Suspended</option>
-                            <option value="pending">Pending</option>
+                            <option value="cancelled">Cancelled</option>
+                            <option value="completed">Completed</option>
                           </select>
-                          
-                          <button
-onClick={() => deleteUser(user._id)}
-                            className="inline-flex items-center px-4 py-2 border border-red-300 text-sm font-medium rounded-lg text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200"
-                            title="Delete user"
-                          >
-                            <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" clipRule="evenodd" />
-                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414L9.586 12l-2.293 2.293a1 1 0 101.414 1.414L10 13.414l2.293 2.293a1 1 0 001.414-1.414L11.414 12l2.293-2.293z" clipRule="evenodd" />
-                            </svg>
-                            Delete
-                          </button>
                         </div>
                       </div>
                     </div>
@@ -587,78 +490,53 @@ onClick={() => deleteUser(user._id)}
               </div>
             )}
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 mt-8 p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center text-sm text-gray-700">
-                    <span>
-                      Showing <span className="font-medium">{((currentPage - 1) * limit) + 1}</span> to{' '}
-                      <span className="font-medium">
-                        {Math.min(currentPage * limit, totalUsers)}
-                      </span>{' '}
-                      of <span className="font-medium">{totalUsers}</span> users
+            {/* Enhanced Pagination */}
+            {totalBookings > 0 && (
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mt-8">
+                <div className="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
+                  <div className="flex items-center text-sm text-gray-600">
+                    <span>Showing</span>
+                    <span className="mx-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-md font-medium">
+                      {(currentPage - 1) * limit + 1}
                     </span>
+                    <span>to</span>
+                    <span className="mx-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-md font-medium">
+                      {Math.min(currentPage * limit, totalBookings)}
+                    </span>
+                    <span>of</span>
+                    <span className="mx-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-md font-medium">
+                      {totalBookings}
+                    </span>
+                    <span>bookings</span>
                   </div>
                   
                   <div className="flex items-center space-x-2">
                     <button
                       onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                       disabled={currentPage === 1}
-                      className={`px-4 py-2 border rounded-lg text-sm font-medium transition-all duration-200 ${
-                        currentPage === 1
-                          ? 'border-gray-200 text-gray-400 cursor-not-allowed'
-                          : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500'
-                      }`}
+                      className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                     >
+                      <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
                       Previous
                     </button>
                     
-                    <div className="flex items-center space-x-1">
-                      {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                        const pageNum = i + 1;
-                        return (
-                          <button
-                            key={pageNum}
-                            onClick={() => setCurrentPage(pageNum)}
-                            className={`px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-                              currentPage === pageNum
-                                ? 'bg-blue-600 text-white border border-blue-600'
-                                : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500'
-                            }`}
-                          >
-                            {pageNum}
-                          </button>
-                        );
-                      })}
-                      
-                      {totalPages > 5 && (
-                        <>
-                          <span className="px-2 text-gray-500">...</span>
-                          <button
-                            onClick={() => setCurrentPage(totalPages)}
-                            className={`px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-                              currentPage === totalPages
-                                ? 'bg-blue-600 text-white border border-blue-600'
-                                : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500'
-                            }`}
-                          >
-                            {totalPages}
-                          </button>
-                        </>
-                      )}
+                    <div className="flex items-center space-x-2">
+                      <span className="px-4 py-2 text-sm font-medium text-gray-700 bg-blue-50 rounded-lg">
+                        Page {currentPage} of {totalPages}
+                      </span>
                     </div>
                     
                     <button
                       onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                       disabled={currentPage === totalPages}
-                      className={`px-4 py-2 border rounded-lg text-sm font-medium transition-all duration-200 ${
-                        currentPage === totalPages
-                          ? 'border-gray-200 text-gray-400 cursor-not-allowed'
-                          : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500'
-                      }`}
+                      className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                     >
                       Next
+                      <svg className="w-4 h-4 ml-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                      </svg>
                     </button>
                   </div>
                 </div>
@@ -667,10 +545,10 @@ onClick={() => deleteUser(user._id)}
           </>
         )}
       </div>
-
+      
       <Footer />
     </div>
   );
 };
 
-export default AdminUsersList;
+export default AdminBookingsList;
