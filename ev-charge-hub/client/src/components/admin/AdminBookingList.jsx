@@ -25,9 +25,9 @@ const AdminBookingsList = () => {
     search: ''
   });
 
-  // Function to get auth token - CORRECTED
+  // Function to get auth token
   const getAuthToken = () => {
-    return localStorage.getItem('adminToken') || localStorage.getItem('token');
+    return localStorage.getItem('token')
   };
 
   // Function to fetch bookings - CORRECTED
@@ -44,7 +44,6 @@ const AdminBookingsList = () => {
         console.warn("No authentication token found in storage");
         setError('You are not authenticated. Please log in again.');
         setLoading(false);
-        navigate('/admin/login');
         return;
       }
 
@@ -81,19 +80,17 @@ const AdminBookingsList = () => {
 
       if (err.response?.status === 401) {
         setError('Session expired. Please log in again.');
-        localStorage.removeItem('token');
-        localStorage.removeItem('adminToken');
-        navigate('/admin/login');
+        // Optionally redirect to login
+        // navigate('/admin/login');
       } else if (err.response?.status === 403) {
         setError('Access denied. Admin privileges required.');
-        navigate('/admin/login');
       } else {
         setError(err.response?.data?.message || err.message || 'Failed to fetch bookings');
       }
 
       setLoading(false);
     }
-  }, [currentPage, limit, filters, navigate]);
+  }, [currentPage, limit, filters]);
 
   // Fetch bookings when component mounts or dependencies change
   useEffect(() => {
@@ -154,7 +151,6 @@ const AdminBookingsList = () => {
 
       if (!token) {
         alert('You are not authenticated. Please log in again.');
-        navigate('/admin/login');
         return;
       }
 
@@ -174,20 +170,12 @@ const AdminBookingsList = () => {
         );
 
         console.log('Booking status updated successfully');
-        // Show success message
-        alert('Booking status updated successfully!');
       } else {
         alert(response.data.message || 'Failed to update booking status');
       }
     } catch (err) {
       console.error('Error updating booking status:', err);
-      
-      if (err.response?.status === 401) {
-        alert('Session expired. Please log in again.');
-        navigate('/admin/login');
-      } else {
-        alert(err.response?.data?.message || err.message || 'Failed to update booking status');
-      }
+      alert(err.response?.data?.message || err.message || 'Failed to update booking status');
     }
   };
 
@@ -197,6 +185,7 @@ const AdminBookingsList = () => {
       current && current[key] !== undefined ? current[key] : defaultValue, obj
     );
   };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <AdminNavbar/>
