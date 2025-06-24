@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { apiMethods } from '../../api';
+import api from '../../api';
 import { format } from 'date-fns';
 import AdminNavbar from "../common/navbars/AdminNavbar";
 import Footer from "../common/Footer";
@@ -11,7 +11,6 @@ const AdminBookingDetail = () => {
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
     const fetchBookingDetail = async () => {
@@ -19,24 +18,26 @@ const AdminBookingDetail = () => {
         setLoading(true);
         setError(null);
 
-        // Check authentication first
         const token = localStorage.getItem('authToken') ||
                       localStorage.getItem('token') ||
                       sessionStorage.getItem('authToken');
 
         if (!token) {
           setError('Authentication required. Please log in.');
-          navigate('/admin/login');
+          setLoading(false);
           return;
         }
 
+        const headers = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        };
+
         console.log(`Fetching booking details for ID: ${id}`);
 
-        // Use the proper API method from your api.js
-        const response = await apiMethods.adminGetBookingById(id);
+        const response = await api.get(`/api/bookings/${id}`, { headers });
         console.log("API Response:", response.data);
 
-        // Handle different response structures
         let bookingData;
         if (response.data.success && response.data.data) {
           bookingData = response.data.data;
@@ -50,41 +51,25 @@ const AdminBookingDetail = () => {
 
         console.log("Processed booking data:", bookingData);
         setBooking(bookingData);
-        
+        setLoading(false);
       } catch (err) {
         console.error('Error fetching booking details:', err);
 
         let errorMessage = 'Failed to fetch booking details';
 
         if (err.response) {
-          const { status, data } = err.response;
-          
-          switch (status) {
-            case 401:
-              errorMessage = 'Authentication failed. Please log in again.';
-              localStorage.removeItem('token');
-              localStorage.removeItem('authToken');
-              sessionStorage.removeItem('authToken');
-              navigate('/admin/login');
-              return;
-            case 403:
-              errorMessage = 'Access denied. You do not have permission to view this booking.';
-              break;
-            case 404:
-              errorMessage = 'Booking not found. Please check the booking ID.';
-              break;
-            case 500:
-              errorMessage = 'Server error. Please try again later.';
-              break;
-            default:
-              errorMessage = data?.message || `HTTP Error ${status}`;
+          if (err.response.status === 401) {
+            errorMessage = 'Authentication failed. Please log in again.';
+          } else if (err.response.status === 404) {
+            errorMessage = 'Booking not found. Please check the booking ID.';
+          } else if (err.response.data?.message) {
+            errorMessage = err.response.data.message;
           }
         } else if (err.message) {
           errorMessage = err.message;
         }
 
         setError(errorMessage);
-      } finally {
         setLoading(false);
       }
     };
@@ -95,33 +80,7 @@ const AdminBookingDetail = () => {
       setError('No booking ID provided');
       setLoading(false);
     }
-  }, [id, navigate]);
-
-  const handleStatusUpdate = async (newStatus) => {
-    if (!booking || updating) return;
-
-    try {
-      setUpdating(true);
-      
-      await apiMethods.adminUpdateBookingStatus(booking._id, newStatus);
-      
-      // Update local state
-      setBooking(prev => ({
-        ...prev,
-        status: newStatus,
-        updatedAt: new Date().toISOString()
-      }));
-
-      // Show success message (you might want to add a toast notification here)
-      console.log(`Booking status updated to: ${newStatus}`);
-      
-    } catch (err) {
-      console.error('Error updating booking status:', err);
-      setError(err.response?.data?.message || 'Failed to update booking status');
-    } finally {
-      setUpdating(false);
-    }
-  };
+  }, [id]);
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
@@ -141,7 +100,6 @@ const AdminBookingDetail = () => {
   const getStatusConfig = (status) => {
     switch (status?.toLowerCase()) {
       case 'active':
-      case 'confirmed':
         return {
           bg: 'bg-emerald-500',
           text: 'text-white',
@@ -168,13 +126,6 @@ const AdminBookingDetail = () => {
           text: 'text-white',
           icon: '⏳',
           gradient: 'from-amber-400 to-amber-600'
-        };
-      case 'ongoing':
-        return {
-          bg: 'bg-green-500',
-          text: 'text-white',
-          icon: '🔋',
-          gradient: 'from-green-400 to-green-600'
         };
       default:
         return {
@@ -214,11 +165,6 @@ const AdminBookingDetail = () => {
       console.error('Duration calculation error:', err);
       return 'N/A';
     }
-  };
-
-  const getAvailableStatusOptions = (currentStatus) => {
-    const allStatuses = ['pending', 'confirmed', 'ongoing', 'completed', 'cancelled'];
-    return allStatuses.filter(status => status !== currentStatus?.toLowerCase());
   };
 
   if (loading) {
@@ -311,7 +257,6 @@ const AdminBookingDetail = () => {
   }
 
   const statusConfig = getStatusConfig(booking.status);
-  const availableStatuses = getAvailableStatusOptions(booking.status);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
@@ -329,7 +274,7 @@ const AdminBookingDetail = () => {
                   </svg>
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900">Booking Details</h1>
+                  <h1 className="text-3xl mt-5 mb-2 ml-0 font-bold text-gray-900">Booking Details</h1>
                   <p className="text-sm text-gray-500">ID: {booking._id || 'Unknown'}</p>
                 </div>
               </div>
@@ -352,7 +297,7 @@ const AdminBookingDetail = () => {
             <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-3">
               <div className={`inline-flex items-center space-x-2 px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r ${statusConfig.gradient} text-white`}>
                 <span className="text-xs">{statusConfig.icon}</span>
-                <span className="capitalize">{booking.status || 'Unknown'}</span>
+                <span>{booking.status || 'Unknown'}</span>
               </div>
               
               <button
@@ -393,19 +338,13 @@ const AdminBookingDetail = () => {
                   <div>
                     <p className="text-sm text-gray-500 font-medium mb-1">Full Name</p>
                     <p className="text-lg font-semibold text-gray-900">
-                      {booking.userId?.name || booking.user?.name || booking.userName || 'N/A'}
+                      {booking.userId?.name || booking.user?.name || 'N/A'}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500 font-medium mb-1">Email Address</p>
                     <p className="text-lg font-semibold text-gray-900 break-all">
-                      {booking.userId?.email || booking.user?.email || booking.userEmail || 'N/A'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 font-medium mb-1">Phone Number</p>
-                    <p className="text-lg font-semibold text-gray-900">
-                      {booking.userId?.phone || booking.user?.phone || booking.userPhone || 'N/A'}
+                      {booking.userId?.email || booking.user?.email || 'N/A'}
                     </p>
                   </div>
                   <div>
@@ -425,7 +364,7 @@ const AdminBookingDetail = () => {
                   <div className="flex items-center space-x-3">
                     <div className="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
                       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                       </svg>
                     </div>
                     <h3 className="text-xl font-bold">Vehicle Information</h3>
@@ -459,54 +398,6 @@ const AdminBookingDetail = () => {
                 </div>
               </div>
             )}
-
-            {/* Status Management Card */}
-            <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
-              <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 p-6 text-white">
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-xl font-bold">Status Management</h3>
-                </div>
-              </div>
-              <div className="p-6 space-y-4">
-                <div>
-                  <p className="text-sm text-gray-500 font-medium mb-3">Current Status</p>
-                  <div className={`inline-flex items-center space-x-2 px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r ${statusConfig.gradient} text-white`}>
-                    <span className="text-xs">{statusConfig.icon}</span>
-                    <span className="capitalize">{booking.status || 'Unknown'}</span>
-                  </div>
-                </div>
-                
-                {availableStatuses.length > 0 && (
-                  <div>
-                    <p className="text-sm text-gray-500 font-medium mb-3">Update Status</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      {availableStatuses.map((status) => {
-                        const config = getStatusConfig(status);
-                        return (
-                          <button
-                            key={status}
-                            onClick={() => handleStatusUpdate(status)}
-                            disabled={updating}
-                            className={`px-3 py-2 text-xs font-medium rounded-lg transition-all duration-200 ${
-                              updating 
-                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                                : `bg-gradient-to-r ${config.gradient} text-white hover:shadow-md transform hover:scale-105`
-                            }`}
-                          >
-                            {updating ? '...' : status.charAt(0).toUpperCase() + status.slice(1)}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
 
           {/* Right Column - Station & Booking Info */}
@@ -514,7 +405,7 @@ const AdminBookingDetail = () => {
             
             {/* Charging Station Information Card */}
             <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
-              <div className="bg-gradient-to-br from-green-500 to-green-600 p-6 text-white">
+              <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-6 text-white">
                 <div className="flex items-center space-x-3">
                   <div className="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -530,46 +421,31 @@ const AdminBookingDetail = () => {
                   <div>
                     <p className="text-sm text-gray-500 font-medium mb-1">Station Name</p>
                     <p className="text-lg font-semibold text-gray-900">
-                      {booking.bunkId?.name || booking.bunk?.name || booking.stationName || 'N/A'}
+                      {booking.bunkId?.name || booking.bunk?.name || 'N/A'}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500 font-medium mb-1">Operating Hours</p>
                     <p className="text-lg font-semibold text-gray-900">
-                      {booking.bunkId?.operatingHours || booking.bunk?.operatingHours || booking.operatingHours || '24/7'}
+                      {booking.bunkId?.operatingHours || booking.bunk?.operatingHours || 'N/A'}
                     </p>
                   </div>
-                  <div className="md:col-span-2">
+                  <div>
                     <p className="text-sm text-gray-500 font-medium mb-1">Location</p>
                     <p className="text-lg font-semibold text-gray-900">
-                      {booking.bunkId?.address || booking.bunk?.address || booking.bunkId?.location || booking.bunk?.location || booking.stationAddress || 'N/A'}
+                      {booking.bunkId?.address || booking.bunk?.address || booking.bunkId?.location || booking.bunk?.location || 'N/A'}
                     </p>
                   </div>
-                  {(booking.connectorType || booking.connector?.type) && (
-                    <div>
-                      <p className="text-sm text-gray-500 font-medium mb-1">Connector Type</p>
-                      <p className="text-lg font-semibold text-gray-900">
-                        {booking.connectorType || booking.connector?.type}
-                      </p>
-                    </div>
-                  )}
-                  {(booking.chargingRate || booking.connector?.power) && (
-                    <div>
-                      <p className="text-sm text-gray-500 font-medium mb-1">Charging Rate</p>
-                      <p className="text-lg font-semibold text-gray-900">
-                        {booking.chargingRate || booking.connector?.power} kW
-                      </p>
-                    </div>
-                  )}
-                  <div className="md:col-span-2">
+                  <div>
                     <p className="text-sm text-gray-500 font-medium mb-1">Station ID</p>
-                    <p className="text-sm font-mono text-gray-700 bg-gray-50 p-2 rounded-lg break-all">
+                    <p className="text-sm font-mono text-gray-700 bg-gray-50 ">
                       {booking.bunkId?._id || booking.bunk?._id || booking.bunkId || 'N/A'}
                     </p>
                   </div>
                 </div>
               </div>
             </div>
+
             {/* Booking Details Card */}
             <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
               <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-6 text-white">

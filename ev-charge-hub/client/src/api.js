@@ -14,12 +14,13 @@ const api = axios.create({
 // Request interceptor - Add auth token if available
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
 
     console.log(`🔄 API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
+    console.log('Headers:', config.headers);
     return config;
   },
   (error) => {
@@ -44,8 +45,15 @@ api.interceptors.response.use(
 
       switch (status) {
         case 401:
-          localStorage.removeItem('token');
-          window.location.href = '/admin/login'; // Changed to admin login
+          // Check if it's an admin route
+          if (error.config.url.includes('/admin/') || error.config.url.includes('/bookings')) {
+            localStorage.removeItem('adminToken');
+            localStorage.removeItem('token');
+            window.location.href = '/admin/login';
+          } else {
+            localStorage.removeItem('token');
+            window.location.href = '/login';
+          }
           break;
         case 403:
           console.error('Access forbidden: You do not have permission to perform this action.');
@@ -128,6 +136,13 @@ export const endpoints = {
     updateUserStatus: (id) => `/api/admin/users/${id}/status`,
     deleteUser: (id) => `/api/admin/users/${id}`,
     
+    // EV Bunks Management
+    getAllBunks: '/api/admin/ev-bunks',
+    getBunkById: (id) => `/api/admin/ev-bunks/${id}`,
+    createBunk: '/api/admin/ev-bunks',
+    updateBunk: (id) => `/api/admin/ev-bunks/${id}`,
+    deleteBunk: (id) => `/api/admin/ev-bunks/${id}`,
+    
     // Dashboard & Analytics
     getDashboardStats: '/api/admin/stats',
     getBookingAnalytics: '/api/admin/bookings/analytics',
@@ -188,6 +203,13 @@ export const apiMethods = {
   adminUpdateUserStatus: (userId, status) => api.put(endpoints.admin.updateUserStatus(userId), { status }),
   adminDeleteUser: (userId) => api.delete(endpoints.admin.deleteUser(userId)),
 
+  // Admin EV Bunks Management
+  adminGetAllBunks: () => api.get(endpoints.admin.getAllBunks),
+  adminGetBunkById: (id) => api.get(endpoints.admin.getBunkById(id)),
+  adminCreateBunk: (bunkData) => api.post(endpoints.admin.createBunk, bunkData),
+  adminUpdateBunk: (id, bunkData) => api.put(endpoints.admin.updateBunk(id), bunkData),
+  adminDeleteBunk: (id) => api.delete(endpoints.admin.deleteBunk(id)),
+
   // Admin Booking Management - CORRECTED METHODS
   adminGetAllBookings: (filters = {}) => {
     const params = {};
@@ -198,15 +220,28 @@ export const apiMethods = {
     if (filters.page) params.page = filters.page;
     if (filters.limit) params.limit = filters.limit;
     
-    return api.get(endpoints.bookings.getAll, { params }); // CORRECTED: Use bookings.getAll
+    return api.get(endpoints.bookings.getAll, { params });
   },
   
-  adminGetBookingById: (id) => api.get(endpoints.bookings.getById(id)), // CORRECTED: Use bookings.getById
-  adminUpdateBookingStatus: (id, status) => api.patch(endpoints.bookings.updateStatus(id), { status }), // CORRECTED: Use bookings.updateStatus
-  adminGetBookingStats: () => api.get(endpoints.bookings.getStats), // CORRECTED: Use bookings.getStats
+  adminGetBookingById: (id) => api.get(endpoints.bookings.getById(id)),
+  
+  // CORRECTED: Use PUT method to match the backend route
+  adminUpdateBookingStatus: (id, status) => api.put(endpoints.bookings.updateStatus(id), { status }),
+  
+  adminGetBookingStats: () => api.get(endpoints.bookings.getStats),
 
-  // Admin Auth
-  adminLogin: (credentials) => api.post(endpoints.admin.adminLogin, credentials),
+  // Admin Auth - CORRECTED METHODS
+  adminLogin: (credentials) => {
+    return api.post(endpoints.admin.adminLogin, credentials).then(response => {
+      // Store admin token separately if needed
+      if (response.data.token) {
+        localStorage.setItem('adminToken', response.data.token);
+        localStorage.setItem('token', response.data.token); // For backwards compatibility
+      }
+      return response;
+    });
+  },
+  
   adminRegister: (data) => api.post(endpoints.admin.adminRegister, data),
   adminGetProfile: () => api.get(endpoints.admin.adminProfile),
   adminUpdateProfile: (data) => api.put(endpoints.admin.adminProfile, data),

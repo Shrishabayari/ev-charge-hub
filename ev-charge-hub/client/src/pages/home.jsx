@@ -901,7 +901,7 @@ const Homepage = () => {
                     
                     <div class="absolute inset-0 z-5 glass-effect opacity-20"></div>
                     
-                    <div class="max-w-7xl mx-auto flex -mt-16 flex-col md:flex-row items-center justify-between gap-12 relative z-10">
+                    <div class="max-w-7xl mx-auto flex mt-1 flex-col md:flex-row items-center justify-between gap-12 relative z-10">
                         <div class="flex-1 text-center md:text-left hero-text-enter-active">
                             <h1 class="text-4xl lg:text-6xl font-extrabold leading-tight mb-6 hero-title">
                                 Power Your Journey with 
