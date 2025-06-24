@@ -30,10 +30,10 @@ const AdminBookingsList = () => {
     fetchBookings();
   }, [currentPage, filters]); // Dependencies ensure re-fetch when page or filter changes
 
-  // Function to fetch bookings from the API
-  const fetchBookings = async () => {
-    setLoading(true);
-    setError(null); // Clear previous errors
+      // Function to fetch bookings from the API
+      const fetchBookings = async () => {
+        setLoading(true);
+        setError(null); // Clear previous errors
 
     try {
       const token = localStorage.getItem('token');
