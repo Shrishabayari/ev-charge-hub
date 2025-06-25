@@ -6,6 +6,8 @@ import adminRoutes from './routes/adminRoutes.js';
 import bunkRoutes from './routes/bunkRouts.js';
 import bookingRoutes from './routes/bookingRoutes.js';
 import userRoutes from './routes/userRoutes.js'
+import adminBookingRoutes from './routes/adminBookingRoutes.js'; // Import your new routes file
+import { protectAdmin } from './middleware/authMiddleware.js'; // Ensure protectAdmin is imported
 import { WebSocketServer } from 'ws';
 import http from 'http';
 
@@ -50,6 +52,7 @@ app.use('/api/admin/ev-bunks', bunkRoutes); // Admin routes for EV bunks
 app.use('/api/bunks', bunkRoutes); // General routes for EV bunks
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/admin/bookings', protectAdmin, adminBookingRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

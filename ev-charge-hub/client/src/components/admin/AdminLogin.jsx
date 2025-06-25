@@ -1,7 +1,5 @@
 import React, { useState } from "react";
-// CHANGE 1: Replace axios import with centralized API
-// OLD: import axios from "axios";
-import api from "../../api"; // NEW: Import centralized API instance
+import api from "../../api"; // Import centralized API instance
 
 import { useNavigate } from "react-router-dom";
 import Navbar from "../common/navbars/Navbar"; // Assuming Navbar exists
@@ -23,12 +21,17 @@ const AdminLogin = () => {
     setLoading(true); // Set loading to true
 
     try {
-      // CHANGE 2: Replace axios.post with api.post and remove full URL
-      // OLD: const response = await axios.post("http://localhost:5000/api/admin/login", {
       const response = await api.post("/api/admin/login", {
         email,
         password,
       });
+
+      // --- IMPORTANT DEBUGGING STEP ---
+      console.log("Admin Login Response Data:", response.data);
+      console.log("Token received from Admin Login:", response.data.token);
+      // Ensure 'response.data.token' is the actual JWT string.
+      // If it's the user object here, then your backend's admin login response is incorrect.
+      // --- END DEBUGGING STEP ---
 
       localStorage.setItem("token", response.data.token);
       setMessage("Login successful! Redirecting to dashboard..."); // Set success message

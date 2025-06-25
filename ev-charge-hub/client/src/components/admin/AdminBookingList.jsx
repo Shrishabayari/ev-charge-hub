@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import api, { endpoints } from '../../api'; // Import api and endpoints directly
+import React, { useState, useEffect, useCallback } from 'react';
+import api, { endpoints, apiMethods } from '../../api'; // Import api, endpoints, and apiMethods
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import AdminNavbar from "../common/navbars/AdminNavbar";
@@ -25,29 +25,14 @@ const AdminBookingsList = () => {
     search: ''
   });
 
-  // useEffect hook to trigger fetching bookings when currentPage or filters change
-  useEffect(() => {
-    fetchBookings();
-  }, [currentPage, filters]); // Dependencies ensure re-fetch when page or filter changes
-
-  // Function to fetch bookings from the API
-  const fetchBookings = async () => {
+  // Function to fetch bookings from the API, wrapped in useCallback
+  const fetchBookings = useCallback(async () => {
     setLoading(true);
     setError(null); // Clear previous errors
 
     try {
-      const token = localStorage.getItem('token');
-      console.log("Authentication token:", token ? "Found" : "Not found");
+      console.log("Attempting to fetch ALL bookings for admin. Token selection handled by interceptor.");
 
-      if (!token) {
-        console.warn("No authentication token found in storage");
-        setError('Authentication token not found. Please log in.');
-        setLoading(false);
-        return;
-      }
-
-      // Prepare query parameters object for Axios
-      // This will automatically be converted to a query string by Axios
       const queryParams = {
         page: currentPage,
         limit: limit,
@@ -59,40 +44,38 @@ const AdminBookingsList = () => {
 
       console.log("Fetching bookings with filters:", queryParams);
 
-      // CORRECTED: Use endpoints.bookings.getAll which points to /api/admin/bookings
-      // and pass queryParams in the 'params' configuration
-      const response = await api.get('/api/bookings', {
-        params: queryParams,
-        headers: {
-          Authorization: `Bearer ${token}`, // Explicitly adding, though interceptor also handles
-        },
-      });
+      // --- CRITICAL CHANGE HERE: Use apiMethods.adminGetAllBookings ---
+      // This will now call '/api/admin/bookings' and ensure the admin token is sent
+      const response = await apiMethods.adminGetAllBookings(queryParams);
+      // --- END CRITICAL CHANGE ---
       
-      console.log("API response:", response.data);
+      console.log("API response:", response); // apiMethods already unwraps data
 
-      // CORRECTED: Consistent handling of response data based on api.js expectation
-      // Expecting { success: true, data: { bookings: [], pagination: { total: N, pages: M } } }
-      if (response.data.success && response.data.data) {
-        const responseData = response.data.data;
+      // Consistent handling of response data (apiMethods return response.data directly)
+      if (response.success && response.data) {
+        const responseData = response.data;
         setBookings(responseData.bookings || []);
         setTotalBookings(responseData.pagination?.total || 0);
         setTotalPages(responseData.pagination?.pages || 1);
         console.log("Successfully loaded bookings:", responseData.bookings?.length || 0);
       } else {
         // Fallback for unexpected successful response structure
-        setError(response.data.message || 'Failed to fetch bookings due to unexpected response format.');
+        setError(response.message || 'Failed to fetch bookings due to unexpected response format.');
       }
     } catch (err) {
       console.error('Error fetching bookings:', err);
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch EV bookings.';
+      // The error message from the api.js interceptor will be available via err.message
+      const errorMessage = err.message || 'Failed to fetch EV bookings.';
       setError(errorMessage);
-
-      // Redirection logic for 401 is handled by the api.js interceptor,
-      // so no explicit navigate here is strictly needed for 401.
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, filters, limit]); // Added currentPage, filters, limit to useCallback dependencies
+
+  // useEffect hook to trigger fetching bookings when currentPage or filters change
+  useEffect(() => {
+    fetchBookings();
+  }, [currentPage, filters, fetchBookings]); // Added fetchBookings to useEffect dependencies
       
   // Handle filter changes and reset to first page
   const handleFilterChange = (e) => {
@@ -114,7 +97,7 @@ const AdminBookingsList = () => {
   const formatDate = (dateString) => {
     try {
       if (!dateString) return 'N/A';
-      return format(new Date(dateString), 'MMM dd,yyyy HH:mm'); // Changed to 'MMM dd,yyyy HH:mm' for clarity
+      return format(new Date(dateString), 'MMM dd,yyyy HH:mm');
     } catch (err) {
       console.error('Date formatting error:', err);
       return 'Invalid date';
@@ -144,26 +127,38 @@ const AdminBookingsList = () => {
   // Function to update a booking's status
   const updateStatus = async (bookingId, newStatus) => {
     try {
-      const token = localStorage.getItem('token');
+      // Since updateStatus is not called via apiMethods.adminUpdateBookingStatus (yet),
+      // keep the direct api.patch call for now, but ensure the token is handled by the interceptor.
+      // If your backend's updateStatus is under /api/bookings/:id/status (not /api/admin),
+      // the interceptor will still send the userToken.
+      // FOR FULL ADMIN AUTH, this should ideally also become an /api/admin/bookings/:id/status endpoint.
+
+      // IMPORTANT: If this endpoint is also admin-protected and NOT under /api/admin/*
+      // on the backend, then the current logic in api.js will send userToken, leading to 401.
+      // For now, let's ensure the token is retrieved to pass the initial component check
+      // if you decide to keep the client-side token check for `updateStatus` as you had it.
+      const token = localStorage.getItem('token'); // Get admin token for admin actions
 
       if (!token) {
-        setError('You are not authenticated. Please log in again.');
+        setError('You are not authenticated as an admin. Please log in again.');
         return;
       }
 
       console.log(`Updating booking ${bookingId} status to ${newStatus}`);
 
-      // Use the endpoint defined in api.js for updating status
-      const url = endpoints.bookings.updateStatus(bookingId); // This now correctly points to /api/admin/bookings/:id/status
+      // Assuming endpoints.bookings.updateStatus(id) points to /api/bookings/:id/status
+      // If this is an admin action, it should ideally be hitting a /api/admin/bookings/:id/status endpoint
+      // so the interceptor sends the admin token.
+      const url = endpoints.bookings.updateStatus(bookingId); 
 
+      // Send with admin token
       const response = await api.patch(url, { status: newStatus }, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${token}`, // Explicitly use admin token
         },
       });
 
       if (response.data.success || response.status === 200) {
-        // Update the booking in the local state to reflect the change immediately
         setBookings(prevBookings =>
           prevBookings.map(booking =>
             booking._id === bookingId
@@ -172,7 +167,7 @@ const AdminBookingsList = () => {
           )
         );
         console.log('Booking status updated successfully');
-        setError(null); // Clear any previous errors
+        setError(null);
       } else {
         setError(response.data.message || 'Failed to update booking status');
       }
@@ -332,7 +327,7 @@ const AdminBookingsList = () => {
                 <h3 className="text-lg font-medium text-red-800 mb-2">Error Loading Bookings</h3>
                 <p className="text-red-600 mb-4">{error}</p>
                 {/* Conditionally show login button if error is due to missing token */}
-                {error.includes('Authentication token not found') && (
+                {(error.includes('Authentication token not found') || error.includes('Unauthorized')) && (
                   <button
                     onClick={() => navigate('/admin/login')}
                     className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
@@ -341,7 +336,7 @@ const AdminBookingsList = () => {
                   </button>
                 )}
                  {/* Try Again button for other errors */}
-                {!error.includes('Authentication token not found') && (
+                {!error.includes('Authentication token not found') && !error.includes('Unauthorized') && (
                   <button
                     onClick={fetchBookings}
                     className="inline-flex items-center px-4 py-2 border border-red-300 text-sm font-medium rounded-lg text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200"
