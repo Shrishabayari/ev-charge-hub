@@ -24,8 +24,6 @@ import EvBunkAdminMaps from './components/user/EvBunkMapView';
 import MyProfile from './components/user/MyProfile';
 import AdminUserManagement from './components/admin/RegisteredUsers';
 import AdminProfile from './components/admin/AdminProfileView';
-import AdminBookingDetail from './components/admin/AdminBookingDetails';
-import AdminBookingsList from './components/admin/AdminBookingList';
 import Features from './pages/Features';
 const App = () => {
   return (
@@ -57,8 +55,6 @@ const App = () => {
         <Route path='/admin/registered-users' element={<AdminUserManagement/>} />
         <Route path='/admin/my-profile' element={<AdminProfile/>} />
         <Route path='/why-ev-charge-hub' element={<Features/>} />
-        <Route path='/admin/view-bookings' element={<AdminBookingsList/>} />
-        <Route path='/admin/bookings/:id' element={<AdminBookingDetail/>} />
         <Route element={<WebSocketComponent />} />
       </Routes>
     </Router>

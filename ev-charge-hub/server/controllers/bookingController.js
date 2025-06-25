@@ -1,8 +1,6 @@
 import Booking from '../models/Booking.js';
 import Bunk from '../models/EvBunkSchema.js';
 import { validationResult } from 'express-validator';
-import asyncHandler from 'express-async-handler'; // For error handling
-import User from '../models/User.js'; // Needed if you populate user info
 
 export const getBookingsByBunk = async (req, res) => {
   try {
@@ -448,7 +446,7 @@ export const getAvailableSlots = async (req, res) => {
   }
 };
 
-export const getAllBookingsForAdmin = async (req, res) => {
+export const getAllBookings = async (req, res) => {
   try {
     console.log('getAllBookings called by user:', req.user);
     

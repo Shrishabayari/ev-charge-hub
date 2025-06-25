@@ -32,7 +32,6 @@ const AdminNavbar = () => {
           <Link to="/admin/dashboard" className="hover:underline">Dashboard</Link>
           <Link to="/admin/add-bunk" className="hover:underline">Add Bunk</Link>
           <Link to="/admin/view-bunks" className="hover:underline">View Bunks</Link>
-          <Link to="/admin/view-bookings" className="hover:underline">View Bookings</Link>
           <Link to="/admin/view-bunk-locations" className="hover:underline">View Locations</Link>
           <Link to="/admin/registered-users" className="hover:underline">View Users</Link>
           <Link to="/admin/my-profile" className="hover:underline">My profile</Link>
@@ -43,11 +42,12 @@ const AdminNavbar = () => {
       {/* Mobile Menu */}
       {isOpen && (
         <div className="md:hidden px-4 pb-4 space-y-2 bg-blue-600 text-white">
-          <Link to="/admin/dashboard" onClick={toggleMenu} className="block hover:underline">Dashboard</Link>
-          <Link to="/admin/add-bunk" onClick={toggleMenu} className="block hover:underline">Add Bunk</Link>
-          <Link to="/admin/view-bunks" onClick={toggleMenu} className="block hover:underline">View Bunks</Link>
-          <Link to="/admin/view-bookings" onClick={toggleMenu} className="block hover:underline">View Bookings</Link>
-          <Link to="/admin/view-bunk-locations" onClick={toggleMenu} className="block hover:underline">View Locations</Link>
+          <Link to="/admin/dashboard" className="hover:underline">Dashboard</Link>
+          <Link to="/admin/add-bunk" className="hover:underline">Add Bunk</Link>
+          <Link to="/admin/view-bunks" className="hover:underline">View Bunks</Link>
+          <Link to="/admin/view-bunk-locations" className="hover:underline">View Locations</Link>
+          <Link to="/admin/registered-users" className="hover:underline">View Users</Link>
+          <Link to="/admin/my-profile" className="hover:underline">My profile</Link>
           <button onClick={() => { toggleMenu(); handleLogout(); }} className="block text-left hover:underline text-red-100">Logout</button>
         </div>
       )}

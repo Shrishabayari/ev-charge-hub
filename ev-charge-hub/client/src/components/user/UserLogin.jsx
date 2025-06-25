@@ -20,12 +20,8 @@ export default function Login() {
     setLoading(true);
     try {
       const res = await api.post('/api/users/login', formData);
-      
-      // --- CRITICAL CHANGE HERE: Use a separate localStorage key for user token ---
-      localStorage.setItem('userToken', res.data.token); // Store user token in 'userToken'
-      // --- END CRITICAL CHANGE ---
-
-      localStorage.setItem('user', JSON.stringify(res.data.user)); // This is correct for user object
+      localStorage.setItem('token', res.data.token);
+      localStorage.setItem('user', JSON.stringify(res.data.user));
       navigate('/user/dashboard');
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed');
@@ -77,8 +73,9 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading} // Disable button when loading
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed"          >
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed"            >
               {loading ? "Logging in..." : "Login"} {/* Change button text based on loading */}
+
             </button>
           </form>
           <p className="mt-6 text-sm text-center text-gray-600 dark:text-gray-400">
