@@ -4,9 +4,12 @@ import {
   CheckCircle, XCircle, AlertCircle, Loader2, RefreshCw, Trash2,
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
 } from 'lucide-react';
-import api from '../../api';
-import AdminNavbar from "../common/navbars/AdminNavbar";
-import Footer from "../common/Footer";
+// Adjusted import path for api - going two levels up
+import api from '../../api'; 
+// Adjusted import path for AdminNavbar - going two levels up to find 'components'
+import AdminNavbar from '../../components/common/navbars/AdminNavbar';
+// Adjusted import path for Footer - going two levels up to find 'components'
+import Footer from '../../components/common/Footer';
 
 // Reusable Dropdown for actions
 const Dropdown = ({ children, className, label }) => {
@@ -45,19 +48,22 @@ const AdminUserManagement = () => {
   const [users, setUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [userBookings, setUserBookings] = useState([]);
+  const [allUserBookings, setAllUserBookings] = useState([]); // Store all bookings for filtering
 
   // UI state
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState('desc');
+  const [bookingStatusFilter, setBookingStatusFilter] = useState('all'); // New state for booking status filter
 
   // Loading and error states
   const [loading, setLoading] = useState(true);
   const [bookingsLoading, setBookingsLoading] = useState(false);
-  const [error, setError] = useState(null); // Corrected: was setError(null)
+  const [error, setError] = useState(null);
   const [bookingError, setBookingError] = useState(null);
   const [updateLoading, setUpdateLoading] = useState(false);
+  const [bookingUpdateLoading, setBookingUpdateLoading] = useState(null); // New state for individual booking update loading
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -133,8 +139,8 @@ const AdminUserManagement = () => {
     }
   }, [makeApiCall]);
 
-  // Fetch user bookings with better error handling
-  const fetchUserBookings = useCallback(async (userId) => {
+  // Fetch user bookings with better error handling and filtering support
+  const fetchUserBookings = useCallback(async (userId, statusFilter = 'all') => {
     if (!userId) {
       setBookingError('Invalid user ID provided');
       return;
@@ -144,7 +150,15 @@ const AdminUserManagement = () => {
       setBookingsLoading(true);
       setBookingError(null);
 
-      const data = await makeApiCall(`/api/admin/users/${userId}/bookings`);
+      // Build API URL with status filter if provided
+      let apiUrl = `/api/admin/users/${userId}/bookings`;
+      const params = {};
+      
+      if (statusFilter && statusFilter !== 'all') {
+        params.status = statusFilter;
+      }
+
+      const data = await makeApiCall(apiUrl, { params });
 
       let bookingsArray = [];
       if (Array.isArray(data)) {
@@ -169,6 +183,11 @@ const AdminUserManagement = () => {
         }
       }));
 
+      // Store all bookings for client-side filtering if backend doesn't support filtering
+      if (statusFilter === 'all') {
+        setAllUserBookings(validatedBookings);
+      }
+      
       setUserBookings(validatedBookings);
     } catch (error) {
       setBookingError(error.message);
@@ -177,6 +196,40 @@ const AdminUserManagement = () => {
       setBookingsLoading(false);
     }
   }, [makeApiCall]);
+
+  // Filter bookings based on status (client-side filtering as fallback)
+  const filteredBookings = useMemo(() => {
+    if (bookingStatusFilter === 'all') {
+      return userBookings;
+    }
+    
+    return userBookings.filter(booking => 
+      booking.status.toLowerCase() === bookingStatusFilter.toLowerCase()
+    );
+  }, [userBookings, bookingStatusFilter]);
+
+  // Handle booking status filter change
+  const handleBookingStatusFilter = useCallback(async (status) => {
+    setBookingStatusFilter(status);
+    
+    if (selectedUser) {
+      // Try to fetch from backend with filter, fallback to client-side filtering
+      try {
+        await fetchUserBookings(selectedUser._id, status);
+      } catch (error) {
+        // If backend doesn't support filtering, use client-side filtering
+        console.warn('Backend filtering not supported, using client-side filtering');
+        if (status === 'all') {
+          setUserBookings(allUserBookings);
+        } else {
+          const filtered = allUserBookings.filter(booking => 
+            booking.status.toLowerCase() === status.toLowerCase()
+          );
+          setUserBookings(filtered);
+        }
+      }
+    }
+  }, [selectedUser, fetchUserBookings, allUserBookings]);
 
   // Update user status
   const updateUserStatus = useCallback(async (userId, status) => {
@@ -203,6 +256,37 @@ const AdminUserManagement = () => {
       setUpdateLoading(false);
     }
   }, [makeApiCall, selectedUser]);
+
+  // New function to update booking status
+  const updateBookingStatus = useCallback(async (bookingId, newStatus) => {
+    try {
+      setBookingUpdateLoading(bookingId); // Set loading for this specific booking
+      // Assuming api.endpoints.admin.bookings.updateStatus correctly constructs the URL
+      await makeApiCall(api.endpoints.admin.bookings.updateStatus(bookingId), {
+        method: 'PATCH',
+        data: { status: newStatus }
+      });
+
+      // Update the userBookings state to reflect the change
+      setUserBookings(prevBookings =>
+        prevBookings.map(booking =>
+          booking._id === bookingId ? { ...booking, status: newStatus } : booking
+        )
+      );
+      // Also update allUserBookings in case filtering is client-side
+      setAllUserBookings(prevAllBookings =>
+        prevAllBookings.map(booking =>
+          booking._id === bookingId ? { ...booking, status: newStatus } : booking
+        )
+      );
+
+    } catch (error) {
+      alert(`Failed to update booking status: ${error.message}`);
+      setBookingError(error.message); // Set booking-specific error
+    } finally {
+      setBookingUpdateLoading(null); // Clear loading
+    }
+  }, [makeApiCall]);
 
   // Delete user
   const deleteUser = useCallback(async (userId) => {
@@ -334,6 +418,13 @@ const AdminUserManagement = () => {
     return () => clearTimeout(delayedSearch);
   }, [searchTerm, searchUsers, fetchUsers]);
 
+  // Reset booking filter when user changes
+  useEffect(() => {
+    if (selectedUser) {
+      setBookingStatusFilter('all');
+    }
+  }, [selectedUser]);
+
   // Utility functions
   const formatDate = useCallback((dateString) => {
     if (!dateString) return 'N/A';
@@ -356,6 +447,9 @@ const AdminUserManagement = () => {
       case 'inactive': return 'text-gray-700 bg-gray-100';
       case 'banned': return 'text-red-700 bg-red-100';
       case 'suspended': return 'text-yellow-700 bg-yellow-100';
+      case 'completed': return 'text-blue-700 bg-blue-100';
+      case 'cancelled': return 'text-red-700 bg-red-100';
+      case 'pending': return 'text-orange-700 bg-orange-100'; // Added pending
       default: return 'text-gray-700 bg-gray-100';
     }
   }, []);
@@ -366,6 +460,9 @@ const AdminUserManagement = () => {
       case 'inactive': return <XCircle className="w-4 h-4" />;
       case 'banned': return <XCircle className="w-4 h-4" />;
       case 'suspended': return <AlertCircle className="w-4 h-4" />;
+      case 'completed': return <CheckCircle className="w-4 h-4" />;
+      case 'cancelled': return <XCircle className="w-4 h-4" />;
+      case 'pending': return <AlertCircle className="w-4 h-4" />; // Added pending
       default: return <AlertCircle className="w-4 h-4" />;
     }
   }, []);
@@ -373,8 +470,10 @@ const AdminUserManagement = () => {
   const handleUserSelect = useCallback((user) => {
     setSelectedUser(user);
     setUserBookings([]);
+    setAllUserBookings([]);
     setBookingError(null);
-    fetchUserBookings(user._id);
+    setBookingStatusFilter('all');
+    fetchUserBookings(user._id, 'all');
   }, [fetchUserBookings]);
 
   const handleStatusChange = useCallback((userId, newStatus) => {
@@ -478,10 +577,7 @@ const AdminUserManagement = () => {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">User</th>
-                      <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Bookings</th>
-                      <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">User</th><th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th><th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Bookings</th><th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-100">
@@ -507,16 +603,16 @@ const AdminUserManagement = () => {
                               </div>
                             </div>
                           </td>
-                          <td className="px-6 py-4 text-center whitespace-nowrap">
+                          <td className="px-6 py-4 text-left whitespace-nowrap">
                             <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(user.status)}`}>
                               {getStatusIcon(user.status)}
                               <span className="ml-1 capitalize">{user.status}</span>
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900 font-semibold">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-left text-gray-900 font-semibold">
                             {user.totalBookings}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-center font-medium">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-left font-medium">
                             <div className="flex items-center space-x-2">
                               {/* View Details Button with label */}
                               <button
@@ -599,12 +695,26 @@ const AdminUserManagement = () => {
                       disabled={currentPage === 1}
                       className="p-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 transition duration-150 focus:outline-none focus:ring-2 focus:ring-gray-300"
                     >
-                      <ChevronLeft className="w-4 h-4 text-gray-600" />
+                     <ChevronLeft className="w-4 h-4 text-gray-600" />
                     </button>
 
-                    <span className="px-4 py-2 text-sm text-gray-700 font-medium">
-                      Page {currentPage} of {totalPages}
-                    </span>
+                    {/* Page Numbers */}
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      const pageNumber = Math.max(1, Math.min(currentPage - 2 + i, totalPages - 4 + i));
+                      return (
+                        <button
+                          key={pageNumber}
+                          onClick={() => setCurrentPage(pageNumber)}
+                          className={`px-3 py-2 border rounded-lg transition duration-150 focus:outline-none focus:ring-2 ${
+                            currentPage === pageNumber
+                              ? 'bg-blue-500 text-white border-blue-500 focus:ring-blue-300'
+                              : 'border-gray-300 text-gray-700 hover:bg-gray-100 focus:ring-gray-300'
+                          }`}
+                        >
+                          {pageNumber}
+                        </button>
+                      );
+                    })}
 
                     <button
                       onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
@@ -630,136 +740,212 @@ const AdminUserManagement = () => {
 
         {/* User Details Modal */}
         {selectedUser && (
-          <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-4 animate-fade-in">
-            <div className="bg-white rounded-xl p-8 max-w-4xl w-full mx-auto max-h-[90vh] overflow-y-auto shadow-2xl transform transition-all duration-300 scale-100 animate-slide-up">
-              <div className="flex justify-between items-center mb-6 border-b border-gray-200 pb-4">
-                <h3 className="text-2xl font-bold text-gray-900 flex items-center">
-                  <User className="w-6 h-6 mr-2 text-blue-600" />
-                  User Details
-                </h3>
-                <button
-                  onClick={() => setSelectedUser(null)}
-                  className="text-gray-500 hover:text-gray-800 p-2 rounded-full hover:bg-gray-100 transition duration-200 focus:outline-none focus:ring-2 focus:ring-gray-300"
+          <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+                <User className="w-6 h-6 mr-2 text-blue-600" />
+                User Details: {selectedUser.name}
+              </h2>
+              <button
+                onClick={() => setSelectedUser(null)}
+                className="text-gray-400 hover:text-gray-600 transition duration-150"
+              >
+                <XCircle className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                  <div className="p-3 bg-gray-50 rounded-lg border">{selectedUser.name}</div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <div className="p-3 bg-gray-50 rounded-lg border">{selectedUser.email}</div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                  <div className="p-3 bg-gray-50 rounded-lg border">
+                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(selectedUser.status)}`}>
+                      {getStatusIcon(selectedUser.status)}
+                      <span className="ml-1 capitalize">{selectedUser.status}</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Total Bookings</label>
+                  <div className="p-3 bg-gray-50 rounded-lg border font-semibold">{selectedUser.totalBookings}</div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Member Since</label>
+                  <div className="p-3 bg-gray-50 rounded-lg border">{formatDate(selectedUser.createdAt)}</div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Last Login</label>
+                  <div className="p-3 bg-gray-50 rounded-lg border">{formatDate(selectedUser.lastLogin)}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* User Bookings Section */}
+            <div className="border-t pt-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-semibold text-gray-900">Booking History</h3>
+                
+                {/* Booking Status Filter */}
+                <select
+                  value={bookingStatusFilter}
+                  onChange={(e) => handleBookingStatusFilter(e.target.value)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 appearance-none bg-white text-gray-700"
                 >
-                  <XCircle className="w-7 h-7" />
-                </button>
+                  <option value="all">All Bookings</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                  <option value="pending">Pending</option>
+                  <option value="active">Active</option>
+                </select>
               </div>
 
-              {/* User Info */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8 pb-8 border-b border-gray-100">
-                <div>
-                  <h4 className="font-semibold text-lg text-gray-800 mb-3">Personal Information</h4>
-                  <div className="space-y-3 text-base text-gray-700">
-                    <p><span className="font-medium text-gray-900">Name:</span> {selectedUser.name}</p>
-                    <p><span className="font-medium text-gray-900">Email:</span> {selectedUser.email}</p>
-                    <p>
-                      <span className="font-medium text-gray-900">Account Status:</span>
-                      <span className={`ml-2 px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(selectedUser.status)}`}>
-                        {selectedUser.status}
-                      </span>
-                    </p>
-                  </div>
+              {bookingError && (
+                <div className="bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded-lg mb-4 flex items-center">
+                  <AlertCircle className="w-5 h-5 mr-2" />
+                  <span>{bookingError}</span>
                 </div>
+              )}
 
-                <div>
-                  <h4 className="font-semibold text-lg text-gray-800 mb-3">Activity Summary</h4>
-                  <div className="space-y-3 text-base text-gray-700">
-                    <p><span className="font-medium text-gray-900">Total Bookings:</span> <span className="font-bold text-blue-600">{selectedUser.totalBookings}</span></p>
-                    <p><span className="font-medium text-gray-900">Last Login:</span> {formatDate(selectedUser.lastLogin)}</p>
-                    <p><span className="font-medium text-gray-900">Account Created:</span> {formatDate(selectedUser.createdAt)}</p>
-                  </div>
+              {bookingsLoading ? (
+                <div className="flex justify-center items-center py-12 text-blue-600">
+                  <Loader2 className="w-8 h-8 animate-spin" />
+                  <span className="ml-3 text-lg font-medium text-gray-600">Loading bookings...</span>
                 </div>
-              </div>
-
-              {/* User Bookings */}
-              <div>
-                <h4 className="font-semibold text-lg text-gray-800 mb-4">Recent Bookings</h4>
-                {bookingsLoading ? (
-                  <div className="flex justify-center py-6 text-blue-600">
-                    <Loader2 className="w-8 h-8 animate-spin" />
-                    <span className="ml-2 text-gray-600">Loading bookings...</span>
-                  </div>
-                ) : bookingError ? (
-                  <div className="bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded-lg flex items-center text-sm shadow-sm">
-                    <AlertCircle className="w-5 h-5 mr-2" />
-                    <span>Failed to load bookings: {bookingError}</span>
-                  </div>
-                ) : userBookings.length > 0 ? (
-                  <div className="overflow-x-auto border border-gray-100 rounded-lg shadow-sm">
-                    <table className="min-w-full text-sm divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
+              ) : (
+                <div className="overflow-x-auto rounded-xl shadow-md border border-gray-100">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Station</th><th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Slot</th><th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Time</th><th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th><th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Created</th><th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th> {/* Added Actions column */}
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-100">
+                      {filteredBookings.length === 0 ? (
                         <tr>
-                          <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Station</th>
-                          <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date & Time</th>
-                          <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                          <td colSpan="6" className="px-6 py-8 text-center text-gray-500 text-lg"> {/* Updated colspan */}
+                            No bookings found{bookingStatusFilter !== 'all' ? ` with status "${bookingStatusFilter}"` : ''}.
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-100">
-                        {userBookings.map((booking) => (
-                          <tr key={booking._id} className="hover:bg-blue-50">
-                            <td className="px-6 py-4">
-                              <div>
-                                <div className="font-medium text-gray-900">{booking.bunkId.name}</div>
-                                <div className="text-gray-500 text-xs">{booking.bunkId.address}</div>
-                              </div>
+                      ) : (
+                        filteredBookings.map((booking) => (
+                          <tr key={booking._id} className="hover:bg-blue-50 transition duration-150">
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm font-medium text-gray-900">{booking.bunkId.name}</div>
+                              <div className="text-sm text-gray-500">{booking.bunkId.address}</div>
                             </td>
-                            <td className="px-6 py-4">
-                              <div>
-                                <div className="text-gray-800">{formatDate(booking.startTime)}</div>
-                                <div className="text-gray-500 text-xs">
-                                  to {formatDate(booking.endTime)}
-                                </div>
-                              </div>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              Slot {booking.slotNumber || 'N/A'}
                             </td>
-                            <td className="px-6 py-4">
-                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(booking.status)}`}>
-                                {booking.status}
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              <div>{formatDate(booking.startTime)}</div>
+                              <div className="text-gray-500">to {formatDate(booking.endTime)}</div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(booking.status)}`}>
+                                {getStatusIcon(booking.status)}
+                                <span className="ml-1 capitalize">{booking.status}</span>
                               </span>
                             </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {formatDate(booking.createdAt)}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                               <Dropdown
+                                  label={booking.status ? booking.status.charAt(0).toUpperCase() + booking.status.slice(1) : 'Update Status'}
+                                  className="z-20" // Ensure dropdown is above other content
+                               >
+                                  {(closeDropdown) => (
+                                      <>
+                                          <button
+                                              onClick={() => { updateBookingStatus(booking._id, 'active'); closeDropdown(); }}
+                                              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center transition-colors duration-150"
+                                              disabled={bookingUpdateLoading === booking._id}
+                                          >
+                                              {bookingUpdateLoading === booking._id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle className="w-4 h-4 mr-2 text-green-500" />} Set Active
+                                          </button>
+                                          <button
+                                              onClick={() => { updateBookingStatus(booking._id, 'completed'); closeDropdown(); }}
+                                              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center transition-colors duration-150"
+                                              disabled={bookingUpdateLoading === booking._id}
+                                          >
+                                              {bookingUpdateLoading === booking._id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle className="w-4 h-4 mr-2 text-blue-500" />} Set Completed
+                                          </button>
+                                          <button
+                                              onClick={() => { updateBookingStatus(booking._id, 'cancelled'); closeDropdown(); }}
+                                              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center transition-colors duration-150"
+                                              disabled={bookingUpdateLoading === booking._id}
+                                          >
+                                              {bookingUpdateLoading === booking._id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <XCircle className="w-4 h-4 mr-2 text-red-500" />} Set Cancelled
+                                          </button>
+                                          <button
+                                              onClick={() => { updateBookingStatus(booking._id, 'pending'); closeDropdown(); }}
+                                              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center transition-colors duration-150"
+                                              disabled={bookingUpdateLoading === booking._id}
+                                          >
+                                              {bookingUpdateLoading === booking._id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <AlertCircle className="w-4 h-4 mr-2 text-orange-500" />} Set Pending
+                                          </button>
+                                      </>
+                                  )}
+                              </Dropdown>
+                            </td>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <p className="text-gray-500 text-base text-center py-6 border border-dashed border-gray-200 rounded-lg bg-gray-50">
-                    No bookings found for this user.
-                  </p>
-                )}
-              </div>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         )}
 
         {/* Delete Confirmation Modal */}
         {showDeleteConfirm && (
-          <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-4 animate-fade-in">
-            <div className="bg-white rounded-xl p-8 max-w-md w-full mx-auto shadow-2xl transform transition-all duration-300 scale-100 animate-slide-up">
-              <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
-                <Trash2 className="w-6 h-6 mr-2 text-red-600" />
-                Confirm Deletion
-              </h3>
-              <p className="text-gray-700 mb-6 leading-relaxed">
-                Are you absolutely sure you want to delete this user? This action cannot be undone and all associated data, including bookings, will be permanently removed.
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl">
+              <div className="flex items-center mb-6">
+                <AlertCircle className="w-8 h-8 text-red-500 mr-3" />
+                <h3 className="text-xl font-bold text-gray-900">Confirm Delete</h3>
+              </div>
+              
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to delete this user? This action cannot be undone and will permanently remove all user data including their booking history.
               </p>
+              
               <div className="flex justify-end space-x-4">
                 <button
                   onClick={cancelDelete}
-                  className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100 transition duration-200 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                  disabled={updateLoading}
+                  className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition duration-150 focus:outline-none focus:ring-2 focus:ring-gray-300"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={confirmDelete}
                   disabled={updateLoading}
-                  className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 flex items-center justify-center"
+                  className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center transition duration-150 focus:outline-none focus:ring-2 focus:ring-red-300"
                 >
                   {updateLoading ? (
                     <>
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin" /> Deleting...
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      Deleting...
                     </>
                   ) : (
-                    'Delete User'
+                    <>
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete User
+                    </>
                   )}
                 </button>
               </div>
