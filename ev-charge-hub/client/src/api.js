@@ -61,13 +61,12 @@ api.interceptors.response.use(
     console.error('❌ API Error:', error);
 
     if (error.response) {
-      const { status, data, config } = error.response; // Destructure config to get original URL
+      const { status, data, config } = error.response;
       console.error(`HTTP Error ${status}:`, data);
 
       switch (status) {
         case 401: // Unauthorized: Token expired or invalid
           console.warn('Unauthorized: Token expired or invalid. Attempting redirection.');
-          // Redirect based on the original request's path
           if (config.url.startsWith('/api/admin')) {
             localStorage.removeItem('token'); // Clear admin token
             window.location.href = '/admin/login'; // Redirect to admin login
@@ -79,7 +78,6 @@ api.interceptors.response.use(
           break;
         case 403: // Forbidden: User lacks necessary permissions
           console.error('Access forbidden: You do not have permission to perform this action.');
-          // Optionally, redirect to a generic error page or show a specific message
           break;
         case 404: // Not Found: API endpoint does not exist
           console.error('API endpoint not found:', error.config.url);
@@ -113,11 +111,10 @@ export const endpoints = {
   bunks: {
     getAll: '/api/bunks',
     getById: (id) => `/api/bunks/${id}`,
-    // create, update, delete for bunks are handled under admin routes below
     getAvailable: '/api/bunks/available',
     getNearby: '/api/bunks/nearby',
     search: '/api/bunks/search',
-    getByConnector: (connectorType) => `/api/bunks/connector/${connectorType}`, // Changed to template literal for consistency
+    getByConnector: (connectorType) => `/api/bunks/connector/${connectorType}`,
   },
 
   // Auth endpoints (for regular users)
@@ -127,7 +124,7 @@ export const endpoints = {
     profile: '/api/users/profile',
   },
 
-  // Booking endpoints (User & Admin)
+  // Booking endpoints (User routes)
   bookings: {
     // User booking endpoints (under /api/bookings)
     create: '/api/bookings/create',
@@ -136,13 +133,6 @@ export const endpoints = {
     reschedule: (id) => `/api/bookings/reschedule/${id}`,
     checkAvailability: '/api/bookings/check-availability',
     getAvailableSlots: (bunkId, date) => `/api/bookings/available-slots/${bunkId}/${date}`,
-    
-    // Admin booking endpoints (these are under /api/bookings as mounted in server.js)
-    // Note: To use the admin token, it's best if these endpoints also start with /api/admin on the backend.
-    getAll: '/api/bookings', // Original general booking endpoint
-    getById: (id) => `/api/bookings/${id}`, // Original general booking endpoint
-    updateStatus: (id) => `/api/bookings/${id}/status`, // Original general booking endpoint
-    getStats: '/api/bookings/stats', // Original general booking endpoint
   },
 
   // Admin specific endpoints (routes starting with /api/admin)
@@ -160,18 +150,23 @@ export const endpoints = {
 
     // User Management (admin perspective)
     getAllUsers: '/api/admin/users',
-    searchUsers: (query) => `/api/admin/users/search?q=${query}`, // Changed to template literal
+    searchUsers: (query) => `/api/admin/users/search?q=${query}`,
     getUserById: (id) => `/api/admin/users/${id}`,
-    getUserBookings: (id) => `/api/admin/users/${id}/bookings`, // Changed to template literal
-    updateUserStatus: (id) => `/api/admin/users/${id}/status`, // Changed to template literal
-    deleteUser: (id) => `/api/admin/users/${id}`, // Changed to template literal
+    getUserBookings: (id) => `/api/admin/users/${id}/bookings`,
+    updateUserStatus: (id) => `/api/admin/users/${id}/status`,
+    deleteUser: (id) => `/api/admin/users/${id}`,
     
     // Dashboard & Analytics
     getDashboardStats: '/api/admin/stats',
-    getBookingAnalytics: (period) => `/api/admin/bookings/analytics?period=${period}`, // Changed to template literal
+    getBookingAnalytics: (period) => `/api/admin/bookings/analytics?period=${period}`,
 
-    // New: Admin-specific endpoint for fetching ALL bookings
-    getAllAdminBookings: '/api/admin/bookings', // This is the new endpoint for AdminBookingsList
+    // ✅ FIXED: Admin Booking Management
+    bookings: {
+      getAll: '/api/admin/bookings', // GET all bookings
+      getById: (id) => `/api/admin/bookings/${id}`, // GET specific booking
+      updateStatus: (id) => `/api/admin/bookings/${id}/status`, // PATCH booking status
+      getStats: '/api/admin/bookings/stats', // GET booking statistics
+    }
   }
 };
 
@@ -190,7 +185,7 @@ export const apiMethods = {
       params: { q: query }
     }),
   getBunksByConnector: (connectorType) =>
-    api.get(endpoints.bunks.getByConnector(connectorType)), // Corrected to call the function
+    api.get(endpoints.bunks.getByConnector(connectorType)),
 
   // User Auth Operations
   userLogin: (credentials) => api.post(endpoints.auth.login, credentials),
@@ -206,40 +201,6 @@ export const apiMethods = {
   checkSlotAvailability: (data) => api.post(endpoints.bookings.checkAvailability, data),
   getAvailableSlots: (bunkId, date) => api.get(endpoints.bookings.getAvailableSlots(bunkId, date)),
 
-  // Admin User Management Operations
-  adminGetAllUsers: (statusFilter = 'all', sortBy = 'createdAt', sortOrder = 'desc', searchTerm = '') => {
-    const params = {};
-    if (statusFilter !== 'all') params.status = statusFilter;
-    if (sortBy) params.sortBy = sortBy;
-    if (sortOrder) params.sortOrder = sortOrder;
-    if (searchTerm) params.q = searchTerm;
-    
-    return api.get(endpoints.admin.getAllUsers, { params });
-  },
-  adminSearchUsers: (query) => api.get(endpoints.admin.searchUsers(query)), // Corrected to call the function
-  adminGetUserById: (id) => api.get(endpoints.admin.getUserById(id)),
-  adminGetUserBookings: (userId) => api.get(endpoints.admin.getUserBookings(userId)),
-  adminUpdateUserStatus: (userId, status) => api.put(endpoints.admin.updateUserStatus(userId), { status }),
-  adminDeleteUser: (userId) => api.delete(endpoints.admin.deleteUser(userId)),
-
-  // Admin Booking Management Operations - NOW USING THE NEW ADMIN-SPECIFIC ENDPOINT
-  adminGetAllBookings: (filters = {}) => {
-    const params = {};
-    if (filters.status) params.status = filters.status;
-    if (filters.startDate) params.startDate = filters.startDate; // Corrected: assign to params, not filters
-    if (filters.endDate) params.endDate = filters.endDate;       // Corrected: assign to params, not filters
-    if (filters.search) params.search = filters.search;
-    if (filters.page) params.page = filters.page;
-    if (filters.limit) params.limit = filters.limit;
-    
-    // Use the newly defined admin-specific endpoint for fetching all bookings
-    return api.get(endpoints.admin.getAllAdminBookings, { params }); 
-  },
-  
-  adminGetBookingById: (id) => api.get(endpoints.bookings.getById(id)), // Could become admin-specific
-  adminUpdateBookingStatus: (id, status) => api.patch(endpoints.bookings.updateStatus(id), { status }), // Could become admin-specific
-  adminGetBookingStats: () => api.get(endpoints.bookings.getStats), // Could become admin-specific
-
   // Admin Authentication Operations
   adminLogin: (credentials) => api.post(endpoints.admin.adminLogin, credentials),
   adminRegister: (data) => api.post(endpoints.admin.adminRegister, data),
@@ -252,9 +213,42 @@ export const apiMethods = {
   adminUpdateBunk: (id, bunkData) => api.put(endpoints.admin.updateBunk(id), bunkData),
   adminDeleteBunk: (id) => api.delete(endpoints.admin.deleteBunk(id)),
 
+  // Admin User Management Operations
+  adminGetAllUsers: (statusFilter = 'all', sortBy = 'createdAt', sortOrder = 'desc', searchTerm = '') => {
+    const params = {};
+    if (statusFilter !== 'all') params.status = statusFilter;
+    if (sortBy) params.sortBy = sortBy;
+    if (sortOrder) params.sortOrder = sortOrder;
+    if (searchTerm) params.q = searchTerm;
+    
+    return api.get(endpoints.admin.getAllUsers, { params });
+  },
+  adminSearchUsers: (query) => api.get(endpoints.admin.searchUsers(query)),
+  adminGetUserById: (id) => api.get(endpoints.admin.getUserById(id)),
+  adminGetUserBookings: (userId) => api.get(endpoints.admin.getUserBookings(userId)),
+  adminUpdateUserStatus: (userId, status) => api.put(endpoints.admin.updateUserStatus(userId), { status }),
+  adminDeleteUser: (userId) => api.delete(endpoints.admin.deleteUser(userId)),
+
+  // ✅ FIXED: Admin Booking Management Operations
+  adminGetAllBookings: (filters = {}) => {
+    const params = {};
+    if (filters.status) params.status = filters.status;
+    if (filters.startDate) params.startDate = filters.startDate;
+    if (filters.endDate) params.endDate = filters.endDate;
+    if (filters.search) params.search = filters.search;
+    if (filters.page) params.page = filters.page;
+    if (filters.limit) params.limit = filters.limit;
+    
+    return api.get(endpoints.admin.bookings.getAll, { params });
+  },
+  
+  adminGetBookingById: (id) => api.get(endpoints.admin.bookings.getById(id)),
+  adminUpdateBookingStatus: (id, status) => api.patch(endpoints.admin.bookings.updateStatus(id), { status }),
+  adminGetBookingStats: (timeframe = 'daily') => api.get(endpoints.admin.bookings.getStats, { params: { timeframe } }),
+
   // Admin Dashboard & Analytics Operations
   adminGetDashboardStats: () => api.get(endpoints.admin.getDashboardStats),
-  adminGetBookingAnalytics: (period = '30') => api.get(endpoints.admin.getBookingAnalytics(period), { params: { period } }), // Corrected to call the function
+  adminGetBookingAnalytics: (period = '30') => api.get(endpoints.admin.getBookingAnalytics(period)),
 };
 
 export default api;

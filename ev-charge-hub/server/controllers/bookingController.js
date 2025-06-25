@@ -448,7 +448,7 @@ export const getAvailableSlots = async (req, res) => {
   }
 };
 
-export const getAllBookings = async (req, res) => {
+export const getAllBookingsForAdmin = async (req, res) => {
   try {
     console.log('getAllBookings called by user:', req.user);
     
@@ -855,54 +855,3 @@ export const getBookingDetails = async (req, res) => {
     });
   }
 };
-export const getAllBookingsForAdmin = asyncHandler(async (req, res) => {
-  // --- Pagination and Filtering Logic (from previous updates) ---
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 10;
-  const skip = (page - 1) * limit;
-
-  const filters = {};
-  if (req.query.status) {
-    filters.status = req.query.status;
-  }
-  if (req.query.search) {
-    filters.$or = [
-      { 'userId.name': { $regex: req.query.search, $options: 'i' } },
-      { 'userId.email': { $regex: req.query.search, $options: 'i' } },
-      { 'bunkId.name': { $regex: req.query.search, $options: 'i' } },
-      { 'bunkId.address': { $regex: req.query.search, $options: 'i' } },
-      { '_id': { $regex: req.query.search, $options: 'i' } },
-    ];
-  }
-  if (req.query.startDate) {
-    filters.startTime = { ...filters.startTime, $gte: new Date(req.query.startDate) };
-  }
-  if (req.query.endDate) {
-    filters.endTime = { ...filters.endTime, $lte: new Date(req.query.endDate) };
-  }
-  // --- End Pagination and Filtering Logic ---
-
-  // Fetch all bookings, populating necessary fields
-  const bookings = await Booking.find(filters)
-    .populate('userId', 'name email') // Ensure 'userId' field exists in your Booking model
-    .populate('bunkId', 'name address') // Ensure 'bunkId' field exists in your Booking model
-    .sort({ createdAt: -1 }) // Sort by newest first
-    .skip(skip)
-    .limit(limit);
-
-  const totalBookings = await Booking.countDocuments(filters);
-  const totalPages = Math.ceil(totalBookings / limit);
-
-  res.status(200).json({
-    success: true,
-    data: {
-      bookings,
-      pagination: {
-        total: totalBookings,
-        pages: totalPages,
-        currentPage: page,
-        limit: limit,
-      },
-    },
-  });
-});

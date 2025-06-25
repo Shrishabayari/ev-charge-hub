@@ -44,10 +44,10 @@ const AdminBookingsList = () => {
 
       console.log("Fetching bookings with filters:", queryParams);
 
-      // --- CRITICAL CHANGE HERE: Use apiMethods.adminGetAllBookings ---
-      // This will now call '/api/admin/bookings' and ensure the admin token is sent
+      // --- CRITICAL CORRECTION HERE: Directly call adminGetAllBookings from apiMethods ---
+      // Changed from apiMethods.admin.adminGetAllBookings to apiMethods.adminGetAllBookings
       const response = await apiMethods.adminGetAllBookings(queryParams);
-      // --- END CRITICAL CHANGE ---
+      // --- END CRITICAL CORRECTION ---
       
       console.log("API response:", response); // apiMethods already unwraps data
 
@@ -127,16 +127,6 @@ const AdminBookingsList = () => {
   // Function to update a booking's status
   const updateStatus = async (bookingId, newStatus) => {
     try {
-      // Since updateStatus is not called via apiMethods.adminUpdateBookingStatus (yet),
-      // keep the direct api.patch call for now, but ensure the token is handled by the interceptor.
-      // If your backend's updateStatus is under /api/bookings/:id/status (not /api/admin),
-      // the interceptor will still send the userToken.
-      // FOR FULL ADMIN AUTH, this should ideally also become an /api/admin/bookings/:id/status endpoint.
-
-      // IMPORTANT: If this endpoint is also admin-protected and NOT under /api/admin/*
-      // on the backend, then the current logic in api.js will send userToken, leading to 401.
-      // For now, let's ensure the token is retrieved to pass the initial component check
-      // if you decide to keep the client-side token check for `updateStatus` as you had it.
       const token = localStorage.getItem('token'); // Get admin token for admin actions
 
       if (!token) {
@@ -146,9 +136,6 @@ const AdminBookingsList = () => {
 
       console.log(`Updating booking ${bookingId} status to ${newStatus}`);
 
-      // Assuming endpoints.bookings.updateStatus(id) points to /api/bookings/:id/status
-      // If this is an admin action, it should ideally be hitting a /api/admin/bookings/:id/status endpoint
-      // so the interceptor sends the admin token.
       const url = endpoints.bookings.updateStatus(bookingId); 
 
       // Send with admin token
