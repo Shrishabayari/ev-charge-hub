@@ -221,7 +221,7 @@ const BookingForm = () => {
     return `${displayHour}:${displayMinute} ${ampm}`;
   };
 
-  // Helper function to format time from string
+  // Helper function to format time from strin
   const formatTimeFromString = (timeString) => {
     if (!timeString) return "";
    
