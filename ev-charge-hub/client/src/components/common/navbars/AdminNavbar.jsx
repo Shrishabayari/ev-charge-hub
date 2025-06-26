@@ -33,7 +33,7 @@ const AdminNavbar = () => {
           <Link to="/admin/add-bunk" className="hover:underline">Add Bunk</Link>
           <Link to="/admin/view-bunks" className="hover:underline">View Bunks</Link>
           <Link to="/admin/view-bunk-locations" className="hover:underline">View Locations</Link>
-          <Link to="/admin/registered-users" className="hover:underline">View Users</Link>
+          <Link to="/admin/registered-users" className="hover:underline">View Users & Bookings</Link>
           <Link to="/admin/my-profile" className="hover:underline">My profile</Link>
           <button onClick={handleLogout} className="hover:underline text-red-100">Logout</button>
         </div>
@@ -46,7 +46,7 @@ const AdminNavbar = () => {
           <Link to="/admin/add-bunk" className="hover:underline">Add Bunk</Link>
           <Link to="/admin/view-bunks" className="hover:underline">View Bunks</Link>
           <Link to="/admin/view-bunk-locations" className="hover:underline">View Locations</Link>
-          <Link to="/admin/registered-users" className="hover:underline">View Users</Link>
+          <Link to="/admin/registered-users" className="hover:underline">View Users & Bookings</Link>
           <Link to="/admin/my-profile" className="hover:underline">My profile</Link>
           <button onClick={() => { toggleMenu(); handleLogout(); }} className="block text-left hover:underline text-red-100">Logout</button>
         </div>

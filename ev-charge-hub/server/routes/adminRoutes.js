@@ -6,40 +6,55 @@ import {
   getAdminProfile,
   updateAdminProfile,
   getAllUsers,
-  searchUsers,
   getUserById,
   getUserBookings,
   updateUserStatus,
   deleteUser,
+  searchUsers,
   getDashboardStats,
-  getBookingAnalytics
+  getBookingAnalytics,
+  // ✅ Booking controller imports
+  getAllBookings,
+  getBookingById,
+  updateBookingStatus,
+  getBookingStats
 } from '../controllers/adminController.js';
-import { protectAdmin } from '../middleware/authMiddleware.js'; // Make sure you have admin auth middleware
+import { protectAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-// Admin Authentication Routes
+// Auth routes
 router.post('/register', registerAdmin);
 router.post('/login', loginAdmin);
+router.get('/profile', protectAdmin, getAdminProfile);
+router.put('/profile', protectAdmin, updateAdminProfile);
 
-// Protected Admin Routes - Require admin authentication
-router.use(protectAdmin); // Apply admin protection to all routes below
+// User management routes
+router.get('/users', protectAdmin, getAllUsers);
+router.get('/users/search', protectAdmin, searchUsers);
+router.get('/users/:userId', protectAdmin, getUserById);
+router.get('/users/:userId/bookings', protectAdmin, getUserBookings);
+router.put('/users/:userId/status', protectAdmin, updateUserStatus);
+router.delete('/users/:userId', protectAdmin, deleteUser);
 
-// Admin Profile Management
-router.route('/profile')
-  .get(getAdminProfile)
-  .put(updateAdminProfile);
+// Dashboard & Analytics
+router.get('/stats', protectAdmin, getDashboardStats);
+router.get('/bookings/analytics', protectAdmin, getBookingAnalytics);
 
-// User Management Routes - FIXED TO MATCH CONTROLLER FUNCTIONS
-router.get('/users', getAllUsers); // GET all users
-router.get('/users/search', searchUsers); // GET search users (must come before /:userId routes)
-router.get('/users/:userId', getUserById); // GET specific user details
-router.get('/users/:userId/bookings', getUserBookings); // GET user's bookings
-router.put('/users/:userId/status', updateUserStatus); // PUT update user status
-router.delete('/users/:userId', deleteUser); // DELETE user
+// ✅ FIXED: Admin Booking Management Routes
+// NOTE: Order matters! More specific routes should come before general ones
+router.get('/bookings/stats', protectAdmin, getBookingStats);
 
-// Dashboard & Analytics Routes
-router.get('/stats', getDashboardStats);
-router.get('/bookings/analytics', getBookingAnalytics);
+// ✅ FIXED: Booking status update routes (using consistent parameter name)
+router.patch('/bookings/:id/status', protectAdmin, updateBookingStatus);
+router.put('/bookings/:id/status', protectAdmin, updateBookingStatus);
+router.patch('/bookings/:id', protectAdmin, updateBookingStatus);
+router.put('/bookings/:id', protectAdmin, updateBookingStatus);
+
+// ✅ FIXED: Individual booking routes (must come after status routes)
+router.get('/bookings/:id', protectAdmin, getBookingById);
+
+// ✅ FIXED: General bookings route (must come last)
+router.get('/bookings', protectAdmin, getAllBookings);
 
 export default router;

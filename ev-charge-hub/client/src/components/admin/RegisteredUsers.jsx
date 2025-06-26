@@ -4,12 +4,11 @@ import {
   CheckCircle, XCircle, AlertCircle, Loader2, RefreshCw, Trash2,
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
 } from 'lucide-react';
-// Adjusted import path for api - going two levels up
-import api from '../../api'; 
-// Adjusted import path for AdminNavbar - going two levels up to find 'components'
-import AdminNavbar from '../../components/common/navbars/AdminNavbar';
-// Adjusted import path for Footer - going two levels up to find 'components'
-import Footer from '../../components/common/Footer';
+// Corrected import paths assuming RegisteredUsers.jsx, api, and components are direct children of 'src'
+// If your project structure is different, these paths may need further adjustment.
+import api, { apiMethods } from '../../api'; 
+import AdminNavbar from '../common/navbars/AdminNavbar';
+import Footer from '../common/Footer';
 
 // Reusable Dropdown for actions
 const Dropdown = ({ children, className, label }) => {
@@ -175,7 +174,6 @@ const AdminUserManagement = () => {
         startTime: booking.startTime || null,
         endTime: booking.endTime || null,
         createdAt: booking.createdAt || new Date().toISOString(),
-        slotNumber: booking.slotNumber || null,
         bunkId: {
           name: booking.bunkId?.name || 'Unknown Station',
           address: booking.bunkId?.address || 'Address not available',
@@ -256,16 +254,14 @@ const AdminUserManagement = () => {
       setUpdateLoading(false);
     }
   }, [makeApiCall, selectedUser]);
-
-  // New function to update booking status
+  
+  // Updated updateBookingStatus to use apiMethods.adminUpdateBookingStatus with PATCH
   const updateBookingStatus = useCallback(async (bookingId, newStatus) => {
     try {
       setBookingUpdateLoading(bookingId); // Set loading for this specific booking
-      // Assuming api.endpoints.admin.bookings.updateStatus correctly constructs the URL
-      await makeApiCall(api.endpoints.admin.bookings.updateStatus(bookingId), {
-        method: 'PATCH',
-        data: { status: newStatus }
-      });
+
+      // Using apiMethods.adminUpdateBookingStatus, which now explicitly uses 'PATCH'
+      await apiMethods.adminUpdateBookingStatus(bookingId, newStatus);
 
       // Update the userBookings state to reflect the change
       setUserBookings(prevBookings =>
@@ -273,6 +269,7 @@ const AdminUserManagement = () => {
           booking._id === bookingId ? { ...booking, status: newStatus } : booking
         )
       );
+
       // Also update allUserBookings in case filtering is client-side
       setAllUserBookings(prevAllBookings =>
         prevAllBookings.map(booking =>
@@ -280,13 +277,16 @@ const AdminUserManagement = () => {
         )
       );
 
+      console.log(`✅ Booking ${bookingId} status updated to ${newStatus}`);
     } catch (error) {
+      // Simplified error handling, matching updateUserStatus
       alert(`Failed to update booking status: ${error.message}`);
-      setBookingError(error.message); // Set booking-specific error
+      setBookingError(error.message); // Still keep this for booking-specific errors
     } finally {
       setBookingUpdateLoading(null); // Clear loading
     }
-  }, [makeApiCall]);
+  }, []); // apiMethods is implicitly from the imported api.
+
 
   // Delete user
   const deleteUser = useCallback(async (userId) => {
@@ -621,7 +621,7 @@ const AdminUserManagement = () => {
                                 title="View Details"
                               >
                                 <Eye className="w-5 h-5" />
-                                <span className="text-sm">View Details</span>
+                                <span className="text-sm">View Details & Bookings</span>
                               </button>
 
                               {/* Actions Dropdown: Label now shows current user status */}
@@ -662,7 +662,7 @@ const AdminUserManagement = () => {
                                 title="Delete User"
                                 disabled={updateLoading}
                               >
-                                <Trash2 className="w-5 h-5" />
+                                <Trash2 className="w-4 h-4" />
                                 <span className="text-sm">Delete</span>
                               </button>
                             </div>
@@ -676,60 +676,41 @@ const AdminUserManagement = () => {
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-8 p-4 bg-white rounded-xl shadow-md border border-gray-100">
-                  <div className="text-sm text-gray-700">
-                    Showing {((currentPage - 1) * usersPerPage) + 1} to {Math.min(currentPage * usersPerPage, processedUsers.length)} of {processedUsers.length} results
+                <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-xl">
+                  <div className="flex items-center text-sm text-gray-600">
+                    Showing {((currentPage - 1) * usersPerPage) + 1} to {Math.min(currentPage * usersPerPage, processedUsers.length)} of {processedUsers.length} users
                   </div>
-
                   <div className="flex items-center space-x-2">
                     <button
                       onClick={() => setCurrentPage(1)}
                       disabled={currentPage === 1}
-                      className="p-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 transition duration-150 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                      className="p-2 rounded-lg border border-gray-300 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition duration-150"
                     >
-                      <ChevronsLeft className="w-4 h-4 text-gray-600" />
+                      <ChevronsLeft className="w-4 h-4" />
                     </button>
-
                     <button
                       onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                       disabled={currentPage === 1}
-                      className="p-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 transition duration-150 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                      className="p-2 rounded-lg border border-gray-300 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition duration-150"
                     >
-                     <ChevronLeft className="w-4 h-4 text-gray-600" />
+                      <ChevronLeft className="w-4 h-4" />
                     </button>
-
-                    {/* Page Numbers */}
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      const pageNumber = Math.max(1, Math.min(currentPage - 2 + i, totalPages - 4 + i));
-                      return (
-                        <button
-                          key={pageNumber}
-                          onClick={() => setCurrentPage(pageNumber)}
-                          className={`px-3 py-2 border rounded-lg transition duration-150 focus:outline-none focus:ring-2 ${
-                            currentPage === pageNumber
-                              ? 'bg-blue-500 text-white border-blue-500 focus:ring-blue-300'
-                              : 'border-gray-300 text-gray-700 hover:bg-gray-100 focus:ring-gray-300'
-                          }`}
-                        >
-                          {pageNumber}
-                        </button>
-                      );
-                    })}
-
+                    <span className="px-4 py-2 text-sm font-medium text-gray-700">
+                      Page {currentPage} of {totalPages}
+                    </span>
                     <button
                       onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                       disabled={currentPage === totalPages}
-                      className="p-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 transition duration-150 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                      className="p-2 rounded-lg border border-gray-300 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition duration-150"
                     >
-                      <ChevronRight className="w-4 h-4 text-gray-600" />
+                      <ChevronRight className="w-4 h-4" />
                     </button>
-
                     <button
                       onClick={() => setCurrentPage(totalPages)}
                       disabled={currentPage === totalPages}
-                      className="p-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 transition duration-150 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                      className="p-2 rounded-lg border border-gray-300 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition duration-150"
                     >
-                      <ChevronsRight className="w-4 h-4 text-gray-600" />
+                      <ChevronsRight className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -738,10 +719,10 @@ const AdminUserManagement = () => {
           )}
         </div>
 
-        {/* User Details Modal */}
+        {/* User Details Modal/Panel */}
         {selectedUser && (
-          <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
-            <div className="flex justify-between items-center mb-6">
+          <div className="bg-white rounded-2xl shadow-xl p-8 mt-8">
+            <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-gray-900 flex items-center">
                 <User className="w-6 h-6 mr-2 text-blue-600" />
                 User Details: {selectedUser.name}
@@ -754,39 +735,37 @@ const AdminUserManagement = () => {
               </button>
             </div>
 
+            {/* User Info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                  <div className="p-3 bg-gray-50 rounded-lg border">{selectedUser.name}</div>
+                  <label className="text-sm font-medium text-gray-500">Name</label>
+                  <p className="text-lg font-semibold text-gray-900">{selectedUser.name}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                  <div className="p-3 bg-gray-50 rounded-lg border">{selectedUser.email}</div>
+                  <label className="text-sm font-medium text-gray-500">Email</label>
+                  <p className="text-lg text-gray-900">{selectedUser.email}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                  <div className="p-3 bg-gray-50 rounded-lg border">
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(selectedUser.status)}`}>
-                      {getStatusIcon(selectedUser.status)}
-                      <span className="ml-1 capitalize">{selectedUser.status}</span>
-                    </span>
-                  </div>
+                  <label className="text-sm font-medium text-gray-500">Status</label>
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(selectedUser.status)}`}>
+                    {getStatusIcon(selectedUser.status)}
+                    <span className="ml-1 capitalize">{selectedUser.status}</span>
+                  </span>
                 </div>
               </div>
-
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Total Bookings</label>
-                  <div className="p-3 bg-gray-50 rounded-lg border font-semibold">{selectedUser.totalBookings}</div>
+                  <label className="text-sm font-medium text-gray-500">Total Bookings</label>
+                  <p className="text-lg font-semibold text-gray-900">{selectedUser.totalBookings}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Member Since</label>
-                  <div className="p-3 bg-gray-50 rounded-lg border">{formatDate(selectedUser.createdAt)}</div>
+                  <label className="text-sm font-medium text-gray-500">Member Since</label>
+                  <p className="text-lg text-gray-900">{formatDate(selectedUser.createdAt)}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Last Login</label>
-                  <div className="p-3 bg-gray-50 rounded-lg border">{formatDate(selectedUser.lastLogin)}</div>
+                  <label className="text-sm font-medium text-gray-500">Last Login</label>
+                  <p className="text-lg text-gray-900">{formatDate(selectedUser.lastLogin)}</p>
                 </div>
               </div>
             </div>
@@ -827,13 +806,13 @@ const AdminUserManagement = () => {
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Station</th><th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Slot</th><th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Time</th><th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th><th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Created</th><th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th> {/* Added Actions column */}
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Station</th><th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Time</th><th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th><th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Created</th><th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-100">
                       {filteredBookings.length === 0 ? (
                         <tr>
-                          <td colSpan="6" className="px-6 py-8 text-center text-gray-500 text-lg"> {/* Updated colspan */}
+                          <td colSpan="6" className="px-6 py-8 text-center text-gray-500 text-lg">
                             No bookings found{bookingStatusFilter !== 'all' ? ` with status "${bookingStatusFilter}"` : ''}.
                           </td>
                         </tr>
@@ -843,9 +822,6 @@ const AdminUserManagement = () => {
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div className="text-sm font-medium text-gray-900">{booking.bunkId.name}</div>
                               <div className="text-sm text-gray-500">{booking.bunkId.address}</div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              Slot {booking.slotNumber || 'N/A'}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                               <div>{formatDate(booking.startTime)}</div>
@@ -863,7 +839,7 @@ const AdminUserManagement = () => {
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                <Dropdown
                                   label={booking.status ? booking.status.charAt(0).toUpperCase() + booking.status.slice(1) : 'Update Status'}
-                                  className="z-20" // Ensure dropdown is above other content
+                                  className="z-20"
                                >
                                   {(closeDropdown) => (
                                       <>

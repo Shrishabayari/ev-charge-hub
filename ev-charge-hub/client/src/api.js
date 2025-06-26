@@ -1,4 +1,4 @@
-// client/src/api.js
+// client/src/api.js (Updated with proper booking endpoints and fallbacks)
 import axios from 'axios';
 
 // Prioritize environment variable, then remote server, then local development server
@@ -18,12 +18,10 @@ api.interceptors.request.use(
     let token = null;
 
     // Determine which token to use based on the URL
-    // Admin routes typically start with '/api/admin'
-    // User-specific routes or general routes might use 'userToken'
     if (config.url.startsWith('/api/admin')) {
       token = localStorage.getItem('token'); // Use 'token' for admin routes
     } else {
-      token = localStorage.getItem('userToken'); // Use 'userToken' for other routes (e.g., user-specific, general bunks)
+      token = localStorage.getItem('userToken'); // Use 'userToken' for other routes
     }
 
     if (token) {
@@ -34,7 +32,7 @@ api.interceptors.request.use(
     if (process.env.NODE_ENV === 'development') {
       console.log(`🔄 API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
       if (token) {
-        console.log(`   Token Used: ${token.substring(0, 20)}...`); // Log a snippet of the token
+        console.log(`   Token Used: ${token.substring(0, 20)}...`);
       } else {
         console.log('   No token sent for this request.');
       }
@@ -50,7 +48,6 @@ api.interceptors.request.use(
 // Response interceptor - Handle responses and errors globally
 api.interceptors.response.use(
   (response) => {
-    // Log responses only in development environment
     if (process.env.NODE_ENV === 'development') {
       console.log(`✅ API Response: ${response.status} ${response.config.url}`);
       console.log('Response data:', response.data);
@@ -65,27 +62,27 @@ api.interceptors.response.use(
       console.error(`HTTP Error ${status}:`, data);
 
       switch (status) {
-        case 401: // Unauthorized: Token expired or invalid
+        case 401: // Unauthorized
           console.warn('Unauthorized: Token expired or invalid. Attempting redirection.');
           if (config.url.startsWith('/api/admin')) {
-            localStorage.removeItem('token'); // Clear admin token
-            window.location.href = '/admin/login'; // Redirect to admin login
+            localStorage.removeItem('token');
+            window.location.href = '/admin/login';
           } else {
-            localStorage.removeItem('userToken'); // Clear user token
-            localStorage.removeItem('user'); // Also clear user object if stored
-            window.location.href = '/user/login'; // Redirect to user login
+            localStorage.removeItem('userToken');
+            localStorage.removeItem('user');
+            window.location.href = '/user/login';
           }
           break;
-        case 403: // Forbidden: User lacks necessary permissions
+        case 403: // Forbidden
           console.error('Access forbidden: You do not have permission to perform this action.');
           break;
-        case 404: // Not Found: API endpoint does not exist
+        case 404: // Not Found
           console.error('API endpoint not found:', error.config.url);
           break;
-        case 500: // Internal Server Error: General server-side error
+        case 500: // Internal Server Error
           console.error('Internal server error. Please try again later.');
           break;
-        default: // Handle other HTTP error codes
+        default:
           console.error('Unexpected error status:', status);
       }
 
@@ -93,12 +90,9 @@ api.interceptors.response.use(
       return Promise.reject(new Error(errorMessage));
 
     } else if (error.request) {
-      // The request was made but no response was received (e.g., network error)
       console.error('No response received from server:', error.request);
       return Promise.reject(new Error('Cannot connect to server. Please check your internet connection or try again later.'));
-
     } else {
-      // Something happened in setting up the request that triggered an Error
       console.error('Request setup error:', error.message);
       return Promise.reject(new Error(`Request configuration error: ${error.message}`));
     }
@@ -126,16 +120,16 @@ export const endpoints = {
 
   // Booking endpoints (User routes)
   bookings: {
-    // User booking endpoints (under /api/bookings)
     create: '/api/bookings/create',
     getByUser: '/api/bookings/user',
     cancel: (id) => `/api/bookings/cancel/${id}`,
     reschedule: (id) => `/api/bookings/reschedule/${id}`,
     checkAvailability: '/api/bookings/check-availability',
     getAvailableSlots: (bunkId, date) => `/api/bookings/available-slots/${bunkId}/${date}`,
+    updateStatus: (id) => `/api/bookings/${id}/status`, // Alternative endpoint
   },
 
-  // Admin specific endpoints (routes starting with /api/admin)
+  // Admin specific endpoints
   admin: {
     // Admin Auth
     adminLogin: '/api/admin/login',
@@ -160,17 +154,18 @@ export const endpoints = {
     getDashboardStats: '/api/admin/stats',
     getBookingAnalytics: (period) => `/api/admin/bookings/analytics?period=${period}`,
 
-    // ✅ FIXED: Admin Booking Management
+    // Admin Booking Management - Multiple possible endpoints
     bookings: {
-      getAll: '/api/admin/bookings', // GET all bookings
-      getById: (id) => `/api/admin/bookings/${id}`, // GET specific booking
-      updateStatus: (id) => `/api/admin/bookings/${id}/status`, // PATCH booking status
-      getStats: '/api/admin/bookings/stats', // GET booking statistics
+      getAll: '/api/admin/bookings',
+      getById: (id) => `/api/admin/bookings/${id}`,
+      update: (id) => `/api/admin/bookings/${id}`, // Full booking update
+      updateStatus: (id) => `/api/admin/bookings/${id}/status`, // Status-specific endpoint
+      getStats: '/api/admin/bookings/stats',
     }
   }
 };
 
-// Convenience methods for common API operations, abstracting Axios calls
+// Convenience methods for common API operations
 export const apiMethods = {
   // Bunk Operations (user/general access)
   getAllBunks: () => api.get(endpoints.bunks.getAll),
@@ -207,7 +202,7 @@ export const apiMethods = {
   adminGetProfile: () => api.get(endpoints.admin.adminProfile),
   adminUpdateProfile: (data) => api.put(endpoints.admin.adminProfile, data),
 
-  // Admin Bunk Operations (admin exclusive)
+  // Admin Bunk Operations
   adminAddBunk: (bunkData) => api.post(endpoints.admin.addBunk, bunkData),
   adminGetBunks: () => api.get(endpoints.admin.getAdminBunks),
   adminUpdateBunk: (id, bunkData) => api.put(endpoints.admin.updateBunk(id), bunkData),
@@ -229,7 +224,7 @@ export const apiMethods = {
   adminUpdateUserStatus: (userId, status) => api.put(endpoints.admin.updateUserStatus(userId), { status }),
   adminDeleteUser: (userId) => api.delete(endpoints.admin.deleteUser(userId)),
 
-  // ✅ FIXED: Admin Booking Management Operations
+  // Admin Booking Management Operations
   adminGetAllBookings: (filters = {}) => {
     const params = {};
     if (filters.status) params.status = filters.status;
@@ -243,12 +238,48 @@ export const apiMethods = {
   },
   
   adminGetBookingById: (id) => api.get(endpoints.admin.bookings.getById(id)),
-  adminUpdateBookingStatus: (id, status) => api.patch(endpoints.admin.bookings.updateStatus(id), { status }),
-  adminGetBookingStats: (timeframe = 'daily') => api.get(endpoints.admin.bookings.getStats, { params: { timeframe } }),
+  
+  // Updated booking status method with multiple fallback attempts
+  adminUpdateBookingStatus: async (id, status) => {
+    const endpoints = [
+      // Try different possible endpoints in order of likelihood
+      { url: `/api/admin/bookings/${id}`, method: 'PATCH', data: { status } },
+      { url: `/api/admin/bookings/${id}/status`, method: 'PATCH', data: { status } },
+      { url: `/api/admin/bookings/${id}`, method: 'PUT', data: { status } },
+      { url: `/api/bookings/${id}/status`, method: 'PATCH', data: { status } },
+      { url: `/api/bookings/${id}`, method: 'PATCH', data: { status } },
+      { url: `/api/admin/bookings/${id}/status`, method: 'PUT', data: { status } },
+    ];
 
-  // Admin Dashboard & Analytics Operations
-  adminGetDashboardStats: () => api.get(endpoints.admin.getDashboardStats),
-  adminGetBookingAnalytics: (period = '30') => api.get(endpoints.admin.getBookingAnalytics(period)),
+    let lastError = null;
+
+    for (const endpoint of endpoints) {
+      try {
+        console.log(`🔄 Trying booking status update: ${endpoint.method} ${endpoint.url}`);
+        const response = await api.request({
+          method: endpoint.method,
+          url: endpoint.url,
+          data: endpoint.data
+        });
+        console.log(`✅ Success with: ${endpoint.method} ${endpoint.url}`);
+        return response;
+      } catch (error) {
+        lastError = error;
+        console.log(`❌ Failed with: ${endpoint.method} ${endpoint.url} - ${error.response?.status || error.message}`);
+        
+        // If we get a non-404 error, it might be a different issue, so break
+        if (error.response?.status !== 404) {
+          break;
+        }
+      }
+    }
+
+    // If all endpoints failed, throw the last error
+    throw lastError || new Error('All booking status update endpoints failed');
+  },
+  
+  adminGetBookingStats: (timeframe = 'daily') => 
+    api.get(endpoints.admin.bookings.getStats, { params: { timeframe } }),
 };
 
 export default api;

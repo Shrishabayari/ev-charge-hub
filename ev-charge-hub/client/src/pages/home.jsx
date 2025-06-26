@@ -892,55 +892,176 @@ const Homepage = () => {
                     transform: translateX(5px);
                     color: #60A5FA;
                 }
+                    .pattern-dots {
+            background-image: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        
+        .glass-effect {
+            background: linear-gradient(45deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+            backdrop-filter: blur(10px);
+        }
+        
+        .gradient-move {
+            background-size: 400% 400%;
+            animation: gradientMove 15s ease infinite;
+        }
+        
+        @keyframes gradientMove {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .text-shimmer {
+            background: linear-gradient(45deg, #3B82F6, #8B5CF6, #06B6D4, #3B82F6);
+            background-size: 400% 400%;
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shimmer 3s ease-in-out infinite;
+        }
+        
+        @keyframes shimmer {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        .hero-text-enter-active {
+            animation: slideInLeft 1s ease-out;
+        }
+        
+        .hero-image-enter-active {
+            animation: slideInRight 1s ease-out;
+        }
+        
+        @keyframes slideInLeft {
+            from { transform: translateX(-50px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes slideInRight {
+            from { transform: translateX(50px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .stagger-animation {
+            animation: fadeInUp 0.8s ease-out forwards;
+            opacity: 0;
+        }
+        
+        .stagger-2 {
+            animation-delay: 0.2s;
+        }
+        
+        .stagger-3 {
+            animation-delay: 0.4s;
+        }
+        
+        @keyframes fadeInUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .floating-element {
+            position: relative;
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+        
+        .button-hover {
+            transition: all 0.3s ease;
+        }
+        
+        .button-hover:hover {
+            transform: translateY(-2px);
+        }
+        
+        /* Mobile-first approach for image positioning */
+        .mobile-image-order {
+            order: 2;
+        }
+        
+        .mobile-content-order {
+            order: 3;
+        }
+        
+        /* Large screen layout */
+        @media (min-width: 768px) {
+            .mobile-image-order {
+                order: 0;
+            }
+            
+            .mobile-content-order {
+                order: 0;
+            }
+        }
             `}</style>
             
             <Navbar />
             <main className="dark:bg-gray-900 dark:text-white text-gray-800 font-inter overflow-hidden">
                 <section id="hero" class="relative bg-gradient-to-br from-blue-50 via-indigo-100 to-blue-200 dark:from-gray-900 dark:via-gray-800 dark:to-indigo-900 py-24 md:py-32 px-6 gradient-move">
-                    <div class="absolute inset-0 z-0 pattern-dots opacity-30"></div>
-                    
-                    <div class="absolute inset-0 z-5 glass-effect opacity-20"></div>
-                    
-                    <div class="max-w-7xl mx-auto flex mt-1 flex-col md:flex-row items-center justify-between gap-12 relative z-10">
-                        <div class="flex-1 text-center md:text-left hero-text-enter-active">
-                            <h1 class="text-4xl lg:text-6xl font-extrabold leading-tight mb-6 hero-title">
-                                Power Your Journey with 
-                                <span class="text-shimmer drop-shadow-lg block mt-4 pb-4">EV Charge Hub</span>
-                            </h1>
-                            <p class="text-xl lg:text-2xl mb-8 hero-subtitle stagger-animation stagger-2 font-medium">
-                                Locate, Book, and Recharge at your nearest EV Station. Easy. Fast. Smart.
-                            </p>
-                            <div class="flex flex-col sm:flex-row justify-center md:justify-start gap-5 stagger-animation stagger-3">
-                                <button class="button-hover bg-white text-blue-700 px-8 py-4 rounded-full font-bold text-lg shadow-xl hover:shadow-2xl border-2 border-transparent hover:border-blue-200 transition-all duration-300">
-                                <Link to="/user/login">
-                                    Get Started
-                                 </Link>
-                                </button>
-                                <button class="button-hover bg-white text-blue-700 px-8 py-4 rounded-full font-bold text-lg shadow-xl hover:shadow-2xl border-2 border-transparent hover:border-blue-200 transition-all duration-300">
-                                    <Link to="/how-it-works" >
-                                    How It Works
-                                    </Link>
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <div class="flex-1 flex justify-center md:justify-end mt-12 md:mt-0 hero-image-enter-active">
-                            <div class="floating-element">
-                                <img
-                                    src="https://img.freepik.com/free-vector/electric-car-charging-station-concept-illustration_114360-8227.jpg"
-                                    alt="EV Charging Station"
-                                    class="rounded-3xl shadow-2xl w-full max-w-md border-4 border-white/30 dark:border-gray-700/50 transform hover:scale-105 transition-transform duration-500 backdrop-blur-sm"
-                                    onerror="this.onerror=null; this.src='https://placehold.co/600x400/E0E7FF/3F51B5?text=EV+Charging'"
-                                />
-                                
-                                <div class="absolute -top-6 -left-6 w-12 h-12 bg-blue-500 rounded-full opacity-70 animate-pulse"></div>
-                                <div class="absolute -bottom-4 -right-4 w-8 h-8 bg-indigo-400 rounded-full opacity-60 animate-bounce"></div>
-                                <div class="absolute top-1/2 -left-8 w-6 h-6 bg-blue-300 rounded-full opacity-50 animate-ping"></div>
-                            </div>
-                        </div>
+        <div class="absolute inset-0 z-0 pattern-dots opacity-30"></div>
+        <div class="absolute inset-0 z-5 glass-effect opacity-20"></div>
+        
+        <div class="max-w-7xl mx-auto flex -mt-11 flex-col md:flex-row items-center justify-between gap-12 relative z-10">
+            <div class="flex-1 text-center md:text-left hero-text-enter-active">
+                <h1 class="text-4xl lg:text-6xl font-extrabold leading-tight mb-6 hero-title">
+                    Power Your Journey with 
+                    <span class="text-shimmer drop-shadow-lg block mt-4 pb-4">EV Charge Hub</span>
+                </h1>
+                
+                <div class="md:hidden flex justify-center mb-8 hero-image-enter-active">
+                    <div class="floating-element">
+                        <img
+                            src="https://img.freepik.com/free-vector/electric-car-charging-station-concept-illustration_114360-8227.jpg"
+                            alt="EV Charging Station"
+                            class="rounded-3xl shadow-2xl w-full max-w-sm border-4 border-white/30 dark:border-gray-700/50 transform hover:scale-105 transition-transform duration-500 backdrop-blur-sm"
+                            onerror="this.onerror=null; this.src='https://placehold.co/600x400/E0E7FF/3F51B5?text=EV+Charging'"
+                        />
+                        <div class="absolute -top-6 -left-6 w-12 h-12 bg-blue-500 rounded-full opacity-70 animate-pulse"></div>
+                        <div class="absolute -bottom-4 -right-4 w-8 h-8 bg-indigo-400 rounded-full opacity-60 animate-bounce"></div>
+                        <div class="absolute top-1/2 -left-8 w-6 h-6 bg-blue-300 rounded-full opacity-50 animate-ping"></div>
                     </div>
-                </section>
-
+                </div>
+                
+                <p class="text-xl lg:text-2xl mb-8 hero-subtitle stagger-animation stagger-2 font-medium">
+                    Locate, Book, and Recharge at your nearest EV Station. Easy. Fast. Smart.
+                </p>
+                
+                <div class="flex flex-col sm:flex-row justify-center md:justify-start gap-5 stagger-animation stagger-3">
+                    <button class="button-hover bg-white text-blue-700 px-8 py-4 rounded-full font-bold text-lg shadow-xl hover:shadow-2xl border-2 border-transparent hover:border-blue-200 transition-all duration-300">
+                        <a href="/user/login" onclick="alert('Navigate to /user/login')">
+                            Get Started
+                        </a>
+                    </button>
+                    <button class="button-hover bg-white text-blue-700 px-8 py-4 rounded-full font-bold text-lg shadow-xl hover:shadow-2xl border-2 border-transparent hover:border-blue-200 transition-all duration-300">
+                        <a href="/how-it-works" onclick="alert('Navigate to /how-it-works')">
+                            How It Works
+                        </a>
+                    </button>
+                </div>
+            </div>
+            
+\            <div class="hidden md:flex flex-1 justify-center md:justify-end mt-12 md:mt-0 hero-image-enter-active">
+                <div class="floating-element">
+                    <img
+                        src="https://img.freepik.com/free-vector/electric-car-charging-station-concept-illustration_114360-8227.jpg"
+                        alt="EV Charging Station"
+                        class="rounded-3xl shadow-2xl w-full max-w-md border-4 border-white/30 dark:border-gray-700/50 transform hover:scale-105 transition-transform duration-500 backdrop-blur-sm"
+                        onerror="this.onerror=null; this.src='https://placehold.co/600x400/E0E7FF/3F51B5?text=EV+Charging'"
+                    />
+                    <div class="absolute -top-6 -left-6 w-12 h-12 bg-blue-500 rounded-full opacity-70 animate-pulse"></div>
+                    <div class="absolute -bottom-4 -right-4 w-8 h-8 bg-indigo-400 rounded-full opacity-60 animate-bounce"></div>
+                    <div class="absolute top-1/2 -left-8 w-6 h-6 bg-blue-300 rounded-full opacity-50 animate-ping"></div>
+                </div>
+            </div>
+        </div>
+    </section>
                 <section id='about-us' className="min-h-screen bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 py-16 px-6 md:px-20">
                     <div className="max-w-6xl mx-auto">
                         {/* Enhanced Introduction */}

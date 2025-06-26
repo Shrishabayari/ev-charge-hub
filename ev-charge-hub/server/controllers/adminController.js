@@ -493,3 +493,402 @@ export const updateUserStatus = async (req, res) => {
     });
   }
 };
+
+export const getAllBookings = async (req, res) => {
+  try {
+    const { 
+      status, 
+      startDate, 
+      endDate, 
+      search, 
+      page = 1, 
+      limit = 10,
+      sortBy = 'createdAt',
+      sortOrder = 'desc'
+    } = req.query;
+    
+    console.log('🔄 getAllBookings called with filters:', req.query);
+    
+    // Build aggregation pipeline
+    const pipeline = [];
+    
+    // Match stage - initial filtering
+    const matchConditions = {};
+    
+    if (status && status !== 'all') {
+      matchConditions.status = status.toLowerCase();
+    }
+    
+    if (startDate && endDate) {
+      matchConditions.createdAt = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate)
+      };
+    }
+    
+    if (Object.keys(matchConditions).length > 0) {
+      pipeline.push({ $match: matchConditions });
+    }
+    
+    // Lookup stages for population
+    pipeline.push(
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'userId',
+          foreignField: '_id',
+          as: 'user',
+          pipeline: [
+            { $project: { name: 1, email: 1, phone: 1 } }
+          ]
+        }
+      },
+      {
+        $lookup: {
+          from: 'evbunks', // Make sure this matches your actual collection name
+          localField: 'bunkId',
+          foreignField: '_id',
+          as: 'bunk',
+          pipeline: [
+            { $project: { name: 1, address: 1, location: 1, latitude: 1, longitude: 1 } }
+          ]
+        }
+      }
+    );
+    
+    // Unwind the populated arrays
+    pipeline.push(
+      { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } },
+      { $unwind: { path: '$bunk', preserveNullAndEmptyArrays: true } }
+    );
+    
+    // Search stage
+    if (search && search.trim()) {
+      pipeline.push({
+        $match: {
+          $or: [
+            { 'user.name': { $regex: search, $options: 'i' } },
+            { 'user.email': { $regex: search, $options: 'i' } },
+            { 'bunk.name': { $regex: search, $options: 'i' } },
+            { 'bunk.address': { $regex: search, $options: 'i' } }
+          ]
+        }
+      });
+    }
+    
+    // Add computed fields
+    pipeline.push({
+      $addFields: {
+        userId: '$user',
+        bunkId: '$bunk'
+      }
+    });
+    
+    // Remove the separate user and bunk fields
+    pipeline.push({
+      $project: {
+        user: 0,
+        bunk: 0
+      }
+    });
+    
+    // Sort stage
+    const sortDirection = sortOrder === 'desc' ? -1 : 1;
+    pipeline.push({
+      $sort: { [sortBy]: sortDirection }
+    });
+    
+    // Pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    
+    // Get total count
+    const countPipeline = [...pipeline, { $count: "total" }];
+    const countResult = await Booking.aggregate(countPipeline);
+    const total = countResult[0]?.total || 0;
+    
+    // Add pagination to main pipeline
+    pipeline.push(
+      { $skip: skip },
+      { $limit: parseInt(limit) }
+    );
+    
+    // Execute main query
+    const bookings = await Booking.aggregate(pipeline);
+    
+    console.log('✅ Bookings fetched successfully:', {
+      total,
+      returned: bookings.length,
+      page: parseInt(page)
+    });
+    
+    res.json({
+      success: true,
+      bookings,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(total / parseInt(limit)),
+        totalItems: total,
+        itemsPerPage: parseInt(limit),
+        hasNext: parseInt(page) < Math.ceil(total / parseInt(limit)),
+        hasPrev: parseInt(page) > 1
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Get all bookings error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch bookings',
+      error: error.message
+    });
+  }
+};
+
+// Get booking by ID (admin)
+export const getBookingById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    console.log('🔄 getBookingById called with ID:', id);
+    
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Booking ID is required'
+      });
+    }
+    
+    const booking = await Booking.findById(id)
+      .populate('userId', 'name email phone createdAt')
+      .populate('bunkId', 'name address location pricing latitude longitude operatingHours connectorTypes');
+    
+    if (!booking) {
+      console.log('❌ Booking not found:', id);
+      return res.status(404).json({
+        success: false,
+        message: 'Booking not found'
+      });
+    }
+    
+    console.log('✅ Booking found successfully:', {
+      bookingId: id,
+      status: booking.status,
+      userId: booking.userId?._id
+    });
+    
+    res.json({
+      success: true,
+      booking
+    });
+    
+  } catch (error) {
+    console.error('❌ Get booking by ID error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch booking',
+      error: error.message
+    });
+  }
+};
+
+// ✅ CRITICAL: Update booking status (admin) - This is the missing function!
+export const updateBookingStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    
+    console.log('🔄 updateBookingStatus called:', { id, status });
+    
+    // Validate required fields
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Booking ID is required'
+      });
+    }
+    
+    if (!status) {
+      return res.status(400).json({
+        success: false,
+        message: 'Status is required'
+      });
+    }
+    
+    // Validate status
+    const validStatuses = ['pending', 'confirmed', 'cancelled', 'completed', 'active'];
+    if (!validStatuses.includes(status.toLowerCase())) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid status. Must be one of: ${validStatuses.join(', ')}`
+      });
+    }
+    
+    // Check if booking exists first
+    const existingBooking = await Booking.findById(id);
+    if (!existingBooking) {
+      return res.status(404).json({
+        success: false,
+        message: 'Booking not found'
+      });
+    }
+    
+    // Update booking status
+    const booking = await Booking.findByIdAndUpdate(
+      id,
+      { 
+        status: status.toLowerCase(),
+        updatedAt: new Date()
+      },
+      { 
+        new: true,
+        runValidators: true
+      }
+    ).populate('userId', 'name email phone')
+     .populate('bunkId', 'name address location');
+    
+    console.log('✅ Booking status updated successfully:', {
+      bookingId: id,
+      oldStatus: existingBooking.status,
+      newStatus: booking.status
+    });
+    
+    res.json({
+      success: true,
+      message: `Booking status updated to ${status} successfully`,
+      booking
+    });
+    
+  } catch (error) {
+    console.error('❌ Update booking status error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update booking status',
+      error: error.message
+    });
+  }
+};
+// Get booking statistics (admin)
+export const getBookingStats = async (req, res) => {
+  try {
+    const { timeframe = 'daily' } = req.query;
+    
+    // Get basic counts
+    const totalBookings = await Booking.countDocuments();
+    const pendingBookings = await Booking.countDocuments({ status: 'pending' });
+    const confirmedBookings = await Booking.countDocuments({ status: 'confirmed' });
+    const cancelledBookings = await Booking.countDocuments({ status: 'cancelled' });
+    const completedBookings = await Booking.countDocuments({ status: 'completed' });
+    
+    // Get bookings by timeframe
+    let dateFilter = {};
+    const now = new Date();
+    
+    switch (timeframe) {
+      case 'daily':
+        dateFilter = {
+          createdAt: {
+            $gte: new Date(now.setHours(0, 0, 0, 0)),
+            $lt: new Date(now.setHours(23, 59, 59, 999))
+          }
+        };
+        break;
+      case 'weekly':
+        const weekStart = new Date(now.setDate(now.getDate() - now.getDay()));
+        dateFilter = {
+          createdAt: {
+            $gte: weekStart,
+            $lt: new Date()
+          }
+        };
+        break;
+      case 'monthly':
+        dateFilter = {
+          createdAt: {
+            $gte: new Date(now.getFullYear(), now.getMonth(), 1),
+            $lt: new Date(now.getFullYear(), now.getMonth() + 1, 0)
+          }
+        };
+        break;
+    }
+    
+    const recentBookings = await Booking.countDocuments(dateFilter);
+    
+    res.json({
+      success: true,
+      stats: {
+        total: totalBookings,
+        pending: pendingBookings,
+        confirmed: confirmedBookings,
+        cancelled: cancelledBookings,
+        completed: completedBookings,
+        recent: recentBookings,
+        timeframe
+      }
+    });
+  } catch (error) {
+    console.error('Get booking stats error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch booking statistics',
+      error: error.message
+    });
+  }
+};
+
+
+// 2. ✅ FIXED: Enhanced getAllBookings with better aggregation
+
+
+// 3. ✅ FIXED: Enhanced getBookingById
+
+
+// 4. ✅ ADDED: Alternative booking update function for full booking updates
+export const updateBooking = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+    
+    console.log('🔄 updateBooking called:', { id, updateData });
+    
+    // Remove fields that shouldn't be updated directly
+    delete updateData._id;
+    delete updateData.__v;
+    delete updateData.createdAt;
+    
+    // Add updatedAt
+    updateData.updatedAt = new Date();
+    
+    const booking = await Booking.findByIdAndUpdate(
+      id,
+      updateData,
+      { 
+        new: true,
+        runValidators: true
+      }
+    ).populate('userId', 'name email phone')
+     .populate('bunkId', 'name address location');
+    
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: 'Booking not found'
+      });
+    }
+    
+    console.log('✅ Booking updated successfully:', id);
+    
+    res.json({
+      success: true,
+      message: 'Booking updated successfully',
+      booking
+    });
+    
+  } catch (error) {
+    console.error('❌ Update booking error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update booking',
+      error: error.message
+    });
+  }
+};
