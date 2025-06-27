@@ -262,7 +262,6 @@ const Homepage = () => {
             <style jsx>{`
 
             .text-shimmer {
-            background: linear-gradient(135deg, #FFFFFF 0%, #F0F9FF 25%, #DBEAFE 50%, #BFDBFE 75%, #FFFFFF 100%);
             background-size: 300% 100%;
             animation: shimmer 4s ease-in-out infinite;
             -webkit-background-clip: text;
@@ -741,7 +740,7 @@ const Homepage = () => {
                 }
 
                 .text-shimmer {
-                    background: linear-gradient(90deg, #3B82F6, #1D4ED8, #8B5CF6, #3B82F6);
+                    background: linear-gradient(90deg, #3B82F6, #1D4ED8, #8B5CF6, #EF4444);
                     background-size: 300% 100%;
                     animation: shimmer 3s ease-in-out infinite;
                     -webkit-background-clip: text;
@@ -886,7 +885,7 @@ const Homepage = () => {
         }
         
         .text-shimmer {
-            background: linear-gradient(45deg, #3B82F6, #8B5CF6, #06B6D4, #3B82F6);
+            background: linear-gradient(45deg, #EF4444, #DC2626, #F43F5E, #EF4444);
             background-size: 400% 400%;
             background-clip: text;
             -webkit-background-clip: text;

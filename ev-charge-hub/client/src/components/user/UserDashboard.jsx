@@ -50,7 +50,7 @@ export default function UserDashboard() {
       description: "Explore all available EV charging station locations.",
       icon: <MapPin className="w-10 h-10 text-purple-600 group-hover:text transition-colors duration-300" />,
       bgColor: "bg-purple-50",
-      hoverBg: "bg-purple-600",
+      hoverBg: "bg-purple-300",
       textColor: "text-purple-800",
       path: "/user/view-bunk-locations",
       action: () => navigate('/user/view-bunk-locations'),

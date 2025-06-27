@@ -116,17 +116,6 @@ const ViewBunks = () => {
                   </div>
                 </div>
               </div>
-              <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4 border border-white/20 shadow-sm">
-                <div className="flex items-center">
-                  <div className="p-2 bg-purple-100 rounded-lg">
-                    <Clock className="h-6 w-6 text-purple-600" />
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-500">24/7 Stations</p>
-                    <p className="text-2xl font-bold text-gray-900">{bunks.filter(bunk => bunk.operatingHours === '24/7').length}</p>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
 

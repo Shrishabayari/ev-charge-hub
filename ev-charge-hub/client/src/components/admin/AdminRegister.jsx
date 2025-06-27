@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-// OLD: import axios from "axios";
-import api from "../../api"; // NEW: Import centralized API instance
-import { useNavigate } from "react-router-dom";
+import api from "../../api"; // Import centralized API instance
+import { useNavigate, Link } from "react-router-dom"; // Import Link for navigation
+// Importing Lucide icons for consistency
+import { Mail, Lock, User, Eye, EyeOff, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import Navbar from "../common/navbars/Navbar";
 import Footer from "../common/Footer";
 
@@ -13,6 +14,10 @@ const AdminRegister = () => {
     confirmPassword: "",
   });
   const [registrationError, setRegistrationError] = useState("");
+  const [loading, setLoading] = useState(false); // For loading state
+  const [showPassword, setShowPassword] = useState(false); // State for password visibility
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false); // State for confirm password visibility
+
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -21,108 +26,222 @@ const AdminRegister = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setRegistrationError(""); // Clear previous errors
+    setLoading(true);
 
     if (adminData.password !== adminData.confirmPassword) {
-      setRegistrationError("Passwords do not match");
+      setRegistrationError("Passwords do not match.");
+      setLoading(false);
       return;
     }
 
-    setRegistrationError("");
-
     try {
-      // OLD: const response = await axios.post("http://localhost:5000/api/admin/register", adminData);
-      // NEW: Use the centralized API instance and relative path
       const response = await api.post("/api/admin/register", adminData);
       console.log("Registration successful:", response.data);
-      alert("Registration successful!");
-      navigate("/admin/login");
+      // alert("Registration successful!"); // Replaced with inline success message if needed
+      // No token is usually returned for registration, login happens separately
+      // You might want to automatically log them in or redirect to login page with a success message
+      navigate("/admin/login"); // Redirect to admin login after successful registration
     } catch (error) {
       console.error("Registration failed:", error.response ? error.response.data : error.message);
-      if (error.response && error.response.data && error.response.data.message) {
-        setRegistrationError(error.response.data.message);
-      } else {
-        setRegistrationError("Registration failed. Please try again.");
-      }
+      setRegistrationError(error.response?.data?.message || "Registration failed. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-100  transition-colors duration-300">
-      <Navbar />
-      <div className="flex items-center justify-center py-20 px-4">
-        <div className="w-full max-w-md bg-white  p-8 rounded-2xl shadow-lg">
-          <h2 className="text-3xl font-bold text-center text-gray-800  mb-6">
-            Admin Registration
-          </h2>
+    <div className="min-h-screen relative overflow-hidden">
+      {/* Background Image with Overlay */}
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{
+          // Reusing the Admin Login background for consistency
+          backgroundImage: `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80')`
+        }}
+      />
 
-          {registrationError && (
-            <div className="bg-red-500 text-white text-sm text-center py-2 px-4 rounded mb-4">
-              {registrationError}
-            </div>
-          )}
+      {/* Navbar - positioned above background */}
+      <div className="relative z-20">
+        <Navbar />
+      </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <input
-                type="text"
-                name="name"
-                placeholder="Full Name"
-                value={adminData.name}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2 border border-gray-300  rounded-lg bg-white  text-gray-800  focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <input
-                type="email"
-                name="email"
-                placeholder="Email"
-                value={adminData.email}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2 border border-gray-300  rounded-lg bg-white  text-gray-800  focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <input
-                type="password"
-                name="password"
-                placeholder="Password"
-                value={adminData.password}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2 border border-gray-300  rounded-lg bg-white  text-gray-800  focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <input
-                type="password"
-                name="confirmPassword"
-                placeholder="Confirm Password"
-                value={adminData.confirmPassword}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2 border border-gray-300  rounded-lg bg-white  text-gray-800  focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <button
-              type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition duration-300"
-            >
-              Register
-            </button>
-          </form>
+      {/* Content Container */}
+      <div className="relative z-10 min-h-screen flex pt-10 pb-10"> {/* Consistent pt-16 for spacing */}
+        {/* Left Side - Admin Register Welcome Text */}
+        <div className="flex-1 flex flex-col justify-center px-8 lg:px-16">
+          <div className="max-w-lg">
+            <h1 className="text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
+              Admin<br />Registration
+            </h1>
+            <p className="text-lg text-gray-200 mb-8 leading-relaxed">
+              Register to gain administrative access. Establish your credentials to manage bunks, bunk locations, users, and their bookings.
+            </p>
+          </div>
+        </div>
 
-          <p className="text-sm text-center text-gray-600  mt-6">
-            Already have an account?{" "}
-            <a href="/admin/login" className="text-blue-600 hover:underline font-medium">
-              Login here
-            </a>
-          </p>
+        {/* Right Side - Admin Registration Form */}
+        <div className="flex-1 flex items-center justify-center px-8 lg:px-16">
+          <div className="w-full max-w-md">
+            <div className="bg-white bg-opacity-10 backdrop-blur-lg rounded-2xl p-8 shadow-2xl border border-white border-opacity-20">
+              <div className="items-center mb-2 text-center">
+                <h2 className="text-4xl font-bold text-white"> {/* Consistent h2 size */}
+                  Admin Sign Up
+                </h2>
+              </div>
+              <div>
+                <p className="text-lg text-gray-100 mb-8 text-center"> {/* Consistent p size */}
+                  Already have an account?{" "}
+                  <Link to="/admin/login" className="text-blue-300 hover:text-blue-200 underline font-medium">
+                    Login here
+                  </Link>
+                </p>
+              </div>
+
+              {registrationError && (
+                <div className="bg-red-500 bg-opacity-20 border border-red-400 text-red-100 px-4 py-3 rounded-lg mb-6 text-sm flex items-center space-x-2">
+                  <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                  <span className="block sm:inline font-medium">{registrationError}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Name Input */}
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-200 mb-2">
+                    Full Name
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <User className="h-5 w-5 text-gray-300" />
+                    </div>
+                    <input
+                      type="text"
+                      id="name"
+                      name="name"
+                      placeholder="Your full name"
+                      value={adminData.name}
+                      onChange={handleChange}
+                      required
+                      className="w-full pl-10 pr-4 py-4 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent backdrop-blur-sm transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Email Input */}
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-200 mb-2">
+                    Email Address
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Mail className="h-5 w-5 text-gray-300" />
+                    </div>
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      placeholder="Enter your email"
+                      value={adminData.email}
+                      onChange={handleChange}
+                      required
+                      className="w-full pl-10 pr-4 py-4 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent backdrop-blur-sm transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Password Input */}
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-200 mb-2">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Lock className="h-5 w-5 text-gray-300" />
+                    </div>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      id="password"
+                      name="password"
+                      placeholder="Create your password"
+                      value={adminData.password}
+                      onChange={handleChange}
+                      required
+                      className="w-full pl-10 pr-12 py-4 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent backdrop-blur-sm transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-300 hover:text-white transition-colors focus:outline-none"
+                    >
+                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Confirm Password Input */}
+                <div>
+                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-200 mb-2">
+                    Confirm Password
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Lock className="h-5 w-5 text-gray-300" />
+                    </div>
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      placeholder="Confirm your password"
+                      value={adminData.confirmPassword}
+                      onChange={handleChange}
+                      required
+                      className="w-full pl-10 pr-12 py-4 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent backdrop-blur-sm transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-300 hover:text-white transition-colors focus:outline-none"
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Register Button */}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white font-semibold py-4 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 shadow-lg flex items-center justify-center space-x-2"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>Registering...</span>
+                    </>
+                  ) : (
+                    "Register Admin"
+                  )}
+                </button>
+              </form>
+              <div className="mt-2 text-center">
+                {/* Admin Login Link */}
+                <Link
+                  to="/user/login"
+                  className="hover:font-bold text-white font-semibold py-3"
+                >
+                  User Login
+                </Link>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-      <Footer />
+
+      {/* Footer - positioned at bottom */}
+      <div className="relative z-20">
+        <Footer />
+      </div>
     </div>
   );
 };

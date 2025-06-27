@@ -28,14 +28,8 @@ const Navbar = () => {
           <Link to="/how-it-works" className="hover:underline">How It Works</Link>
           <Link to="/faq" className="hover:underline">FAQ</Link>
           <Link to="/why-ev-charge-hub" className="hover:underline">Why Ev Charge Hub</Link>
-          <Link to="/contact" onClick={toggleMenu} className="block hover:underline">Contact</Link>
-          <div className="relative group cursor-pointer">
-            <span className="hover:underline">Login</span>
-            <div className="absolute left-0 mt-2 w-32 bg-white text-black rounded shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-50">
-              <Link to="/admin/login" className="block px-4 py-2 hover:bg-gray-100">Admin</Link>
-              <Link to="/user/login" className="block px-4 py-2 hover:bg-gray-100">User</Link>
-            </div>
-          </div>
+          <Link to="/contact"  className="block hover:underline">Contact</Link>
+          <Link to="/user/login" className="hover:underline">Sign In</Link>
         </div>
       </div>
 
@@ -48,13 +42,7 @@ const Navbar = () => {
           <Link to="/features" onClick={toggleMenu} className="block hover:underline">Features</Link>
           <Link to="/faq" onClick={toggleMenu} className="block hover:underline">FAQ</Link>
           <Link to="/contact" onClick={toggleMenu} className="block hover:underline">Contact</Link>
-          <div className="pt-2">
-            <span className="block text-sm text-gray-200">Login</span>
-            <div className="pl-4">
-              <Link to="/admin/login" onClick={toggleMenu} className="block hover:underline">Admin</Link>
-              <Link to="/user/login" onClick={toggleMenu} className="block hover:underline">User</Link>
-            </div>
-          </div>
+          <Link to="/user/login" onClick={toggleMenu} className="hover:underline">Sign In</Link>
         </div>
       )}
     </nav>
