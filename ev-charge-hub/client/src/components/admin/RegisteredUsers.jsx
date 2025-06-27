@@ -782,10 +782,9 @@ const AdminUserManagement = () => {
                   className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 appearance-none bg-white text-gray-700"
                 >
                   <option value="all">All Bookings</option>
+                  <option value="active">Active</option>
                   <option value="completed">Completed</option>
                   <option value="cancelled">Cancelled</option>
-                  <option value="pending">Pending</option>
-                  <option value="active">Active</option>
                 </select>
               </div>
 
