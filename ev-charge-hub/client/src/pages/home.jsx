@@ -271,16 +271,6 @@ const Homepage = () => {
             text-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
         }
 
-        .dark .text-shimmer {
-            background: linear-gradient(135deg, #60A5FA 0%, #3B82F6 25%, #2563EB 50%, #1D4ED8 75%, #60A5FA 100%);
-            background-size: 300% 100%;
-            animation: shimmer 4s ease-in-out infinite;
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: 0 0 30px rgba(96, 165, 250, 0.4);
-        }
-
         @keyframes shimmer {
             0%, 100% { background-position: 300% 0; }
             50% { background-position: -300% 0; }
@@ -380,10 +370,6 @@ const Homepage = () => {
             animation: patternMove 20s linear infinite;
         }
 
-        .dark .pattern-dots {
-            background-image: radial-gradient(circle, rgba(96, 165, 250, 0.1) 1px, transparent 1px);
-        }
-
         @keyframes patternMove {
             0% { background-position: 0 0; }
             100% { background-position: 20px 20px; }
@@ -395,29 +381,15 @@ const Homepage = () => {
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
-        .dark .glass-effect {
-            background: rgba(0, 0, 0, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
         /* Enhanced text colors for better contrast */
         .hero-title {
             color: #1e3a8a; /* blue-900 for better contrast on light background */
-        }
-
-        .dark .hero-title {
-            color: #dbeafe; /* blue-100 for better contrast on dark background */
         }
 
         .hero-subtitle {
             color: #1e40af; /* blue-800 */
         }
 
-        .dark .hero-subtitle {
-            color: #93c5fd; /* blue-300 */
-        }
-
-        
                 @keyframes fadeInUp {
                     from {
                         opacity: 0;
@@ -1047,7 +1019,7 @@ const Homepage = () => {
                 </div>
             </div>
             
-\            <div class="hidden md:flex flex-1 justify-center md:justify-end mt-12 md:mt-0 hero-image-enter-active">
+            <div class="hidden md:flex flex-1 justify-center md:justify-end mt-12 md:mt-0 hero-image-enter-active">
                 <div class="floating-element">
                     <img
                         src="https://img.freepik.com/free-vector/electric-car-charging-station-concept-illustration_114360-8227.jpg"
