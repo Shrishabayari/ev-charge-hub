@@ -58,7 +58,7 @@ export default function Register() {
       </div>
 
       {/* Content Container */}
-      <div className="relative z-10 min-h-screen flex pt-0">
+      <div className="relative z-10 min-h-screen flex flex-col lg:flex-row pt-10 pb-10">
         {/* Left Side - Welcome/Join Text */}
         <div className="flex-1 flex flex-col justify-center px-8 lg:px-16">
           <div className="max-w-lg">

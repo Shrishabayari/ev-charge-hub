@@ -39,7 +39,7 @@ const Navbar = () => {
           <Link to="/" onClick={toggleMenu} className="block hover:underline">Home</Link>
           <Link to="/about" onClick={toggleMenu} className="block hover:underline">About</Link>
           <Link to="/how-it-works" onClick={toggleMenu} className="block hover:underline">How It Works</Link>
-          <Link to="/features" onClick={toggleMenu} className="block hover:underline">Features</Link>
+          <Link to="/why-ev-charge-hub" onClick={toggleMenu} className="block hover:underline">Why Ev Charge Hub</Link>
           <Link to="/faq" onClick={toggleMenu} className="block hover:underline">FAQ</Link>
           <Link to="/contact" onClick={toggleMenu} className="block hover:underline">Contact</Link>
           <Link to="/user/login" onClick={toggleMenu} className="hover:underline">Sign In</Link>

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import api from "../../api"; // Import centralized API instance
 import { useNavigate, Link } from "react-router-dom"; // Import Link for navigation
 // Importing Lucide icons for consistency
-import { Mail, Lock, User, Eye, EyeOff, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { Mail, Lock, User, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
 import Navbar from "../common/navbars/Navbar";
 import Footer from "../common/Footer";
 
@@ -67,7 +67,7 @@ const AdminRegister = () => {
       </div>
 
       {/* Content Container */}
-      <div className="relative z-10 min-h-screen flex pt-10 pb-10"> {/* Consistent pt-16 for spacing */}
+      <div className="relative z-10 min-h-screen flex flex-col lg:flex-row pt-10 pb-10">
         {/* Left Side - Admin Register Welcome Text */}
         <div className="flex-1 flex flex-col justify-center px-8 lg:px-16">
           <div className="max-w-lg">
