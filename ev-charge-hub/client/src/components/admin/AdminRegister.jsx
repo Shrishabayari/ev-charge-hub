@@ -47,11 +47,11 @@ const AdminRegister = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
+    <div className="min-h-screen bg-gray-100  transition-colors duration-300">
       <Navbar />
       <div className="flex items-center justify-center py-20 px-4">
-        <div className="w-full max-w-md bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg">
-          <h2 className="text-3xl font-bold text-center text-gray-800 dark:text-white mb-6">
+        <div className="w-full max-w-md bg-white  p-8 rounded-2xl shadow-lg">
+          <h2 className="text-3xl font-bold text-center text-gray-800  mb-6">
             Admin Registration
           </h2>
 
@@ -70,7 +70,7 @@ const AdminRegister = () => {
                 value={adminData.name}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-gray-300  rounded-lg bg-white  text-gray-800  focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
@@ -81,7 +81,7 @@ const AdminRegister = () => {
                 value={adminData.email}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-gray-300  rounded-lg bg-white  text-gray-800  focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
@@ -92,7 +92,7 @@ const AdminRegister = () => {
                 value={adminData.password}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-gray-300  rounded-lg bg-white  text-gray-800  focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
@@ -103,7 +103,7 @@ const AdminRegister = () => {
                 value={adminData.confirmPassword}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-gray-300  rounded-lg bg-white  text-gray-800  focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <button
@@ -114,7 +114,7 @@ const AdminRegister = () => {
             </button>
           </form>
 
-          <p className="text-sm text-center text-gray-600 dark:text-gray-400 mt-6">
+          <p className="text-sm text-center text-gray-600  mt-6">
             Already have an account?{" "}
             <a href="/admin/login" className="text-blue-600 hover:underline font-medium">
               Login here

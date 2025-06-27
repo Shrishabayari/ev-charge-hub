@@ -95,22 +95,22 @@ const HowItWorks = () => {
   return (
     <div>
       <Navbar />
-      <section className="min-h-screen bg-gradient-to-br from-blue-50 to-white dark:from-gray-950 dark:to-gray-800 text-gray-800 dark:text-gray-100 py-20 px-6 md:px-20">
+      <section className="min-h-screen bg-gradient-to-br from-blue-50 to-white text-gray-800 py-20 px-6 md:px-20">
         <div className="max-w-6xl mx-auto">
           {/* Enhanced Title Section */}
           <div className="text-center mb-16">
-            <h1 className="text-5xl md:text-6xl font-extrabold text-blue-800 dark:text-blue-300 mb-4 tracking-tight">
+            <h1 className="text-5xl md:text-6xl font-extrabold text-blue-800  mb-4 tracking-tight">
               Our Simple Process
             </h1>
-            <p className="text-xl md:text-2xl text-gray-700 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-xl md:text-2xl text-gray-700  max-w-2xl mx-auto leading-relaxed">
               Discover how easy it is to find, book, and manage your EV charging.
             </p>
-            <div className="w-32 h-1.5 bg-blue-600 dark:bg-blue-400 mx-auto mt-8 rounded-full shadow-md"></div>
+            <div className="w-32 h-1.5 bg-blue-600  mx-auto mt-8 rounded-full shadow-md"></div>
           </div>
 
           <div className="relative">
             {/* Vertical Line for Timeline Effect (Desktop Only) */}
-            <div className="hidden md:block absolute left-1/2 transform -translate-x-1/2 w-1.5 bg-blue-300 dark:bg-blue-700 rounded-full h-full"></div>
+            <div className="hidden md:block absolute left-1/2 transform -translate-x-1/2 w-1.5 bg-blue-300  rounded-full h-full"></div>
 
             {steps.map((step, index) => {
               const isInView = inViewSteps.get(index) || false; // Check if this step is currently in view
@@ -122,26 +122,26 @@ const HowItWorks = () => {
                 >
                   {/* Step Card - Dynamic styling based on isInView */}
                   <div
-                    className={`w-full md:w-5/12 p-8 rounded-xl shadow-lg dark:shadow-2xl transition-all duration-1000 ease-out border 
+                    className={`w-full md:w-5/12 p-8 rounded-xl shadow-lg  transition-all duration-1000 ease-out border 
                       ${index % 2 === 0 ? "md:mr-auto" : "md:ml-auto"}
                       ${isInView // Dynamic styling based on isInView
-                        ? "opacity-100 transform translate-y-0 bg-white dark:bg-gray-850 shadow-xl dark:shadow-2xl border-blue-200 dark:border-blue-600"
-                        : "opacity-0 transform translate-y-10 bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700" // Hidden/off-screen state
+                        ? "opacity-100 transform translate-y-0 bg-white  shadow-xl  border-blue-200 "
+                        : "opacity-0 transform translate-y-10 bg-gray-100  border-gray-200" // Hidden/off-screen state
                       }`}
                   >
                     <div className="flex items-center mb-4">
                       {/* Emoji Icon */}
                       <div className={`text-4xl mr-4 p-3 rounded-full shadow-inner transition-colors duration-1000 
-                        ${isInView ? "bg-blue-200 dark:bg-blue-900" : "bg-blue-100 dark:bg-blue-800"}`}>
+                        ${isInView ? "bg-blue-200 " : "bg-blue-100 "}`}>
                         {step.icon}
                       </div>
                       <h3 className={`text-2xl font-bold transition-colors duration-1000 
-                        ${isInView ? "text-blue-700 dark:text-blue-300" : "text-gray-700 dark:text-gray-200"}`}>
+                        ${isInView ? "text-blue-700 " : "text-gray-700 "}`}>
                         {step.title}
                       </h3>
                     </div>
                     <p className={`mt-4 text-base md:text-lg leading-relaxed transition-colors duration-1000 
-                      ${isInView ? "text-gray-700 dark:text-gray-300" : "text-gray-600 dark:text-gray-400"}`}>
+                      ${isInView ? "text-gray-700 " : "text-gray-600 "}`}>
                       {step.description}
                     </p>
                   </div>
@@ -149,8 +149,8 @@ const HowItWorks = () => {
                   {/* Connector Dot (Desktop Only) - Dynamic styling based on isInView */}
                   <div className={`hidden md:block absolute left-1/2 transform -translate-x-1/2 z-10 w-8 h-8 rounded-full border-4 shadow-md transition-colors duration-1000 
                     ${isInView
-                      ? "bg-blue-600 dark:bg-blue-400 border-white dark:border-gray-950"
-                      : "bg-blue-300 dark:bg-blue-700 border-white dark:border-gray-950" // Inactive dot color
+                      ? "bg-blue-600  border-white "
+                      : "bg-blue-300 border-white " // Inactive dot color
                     }`}>
                   </div>
                 </div>
@@ -159,23 +159,23 @@ const HowItWorks = () => {
           </div>
 
           {/* Call to Action */}
-          <div className="mt-20 text-center bg-blue-50 dark:bg-gray-800 p-8 rounded-xl shadow-lg border border-blue-100 dark:border-gray-700">
-            <h2 className="text-3xl md:text-4xl font-bold text-blue-700 dark:text-blue-300 mb-6">
+          <div className="mt-20 text-center bg-blue-50  p-8 rounded-xl shadow-lg border border-blue-100 ">
+            <h2 className="text-3xl md:text-4xl font-bold text-blue-700  mb-6">
               Ready to Recharge Your EV?
             </h2>
-            <p className="text-lg md:text-xl text-gray-700 dark:text-gray-300 mb-8 max-w-xl mx-auto">
+            <p className="text-lg md:text-xl text-gray-700  mb-8 max-w-xl mx-auto">
               Join thousands of satisfied EV drivers and experience seamless charging.
             </p>
             <a
               href="/user/login"
-              className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-10 rounded-full transition duration-300 transform hover:scale-105 shadow-lg text-lg tracking-wide focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+              className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-10 rounded-full transition duration-300 transform hover:scale-105 shadow-lg text-lg tracking-wide focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-offset-2 "
             >
               Get Started Now
             </a>
           </div>
         </div>
       </section>
-      <footer className="bg-gray-800 dark:bg-gray-950 text-white py-12 px-6">
+      <footer className="bg-gray-800  text-white py-12 px-6">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-10">
             <div className="text-center md:text-left">
                 <h3 className="text-2xl font-bold mb-4 text-blue-400">EV Charge Hub</h3>

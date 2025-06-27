@@ -54,8 +54,8 @@ const AdminLogin = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100 flex flex-col">
       <Navbar />
       <div className="flex flex-1 items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <div className="w-full max-w-md bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 transform transition-all duration-300 hover:shadow-3xl">
-          <h2 className="text-4xl font-extrabold text-center text-gray-900 dark:text-white mb-8">
+        <div className="w-full max-w-md bg-white  p-8 rounded-2xl shadow-2xl border border-gray-100  transform transition-all duration-300 hover:shadow-3xl">
+          <h2 className="text-4xl font-extrabold text-center text-gray-900  mb-8">
             Admin Login
           </h2>
 
@@ -78,7 +78,7 @@ const AdminLogin = () => {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Email Input */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700  mb-2">
                 Email Address
               </label>
               <div className="relative">
@@ -89,7 +89,7 @@ const AdminLogin = () => {
                   type="email"
                   id="email"
                   name="email"
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-base"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300  rounded-xl bg-white  text-gray-900  placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-base"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="admin@example.com"
@@ -100,7 +100,7 @@ const AdminLogin = () => {
 
             {/* Password Input */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700  mb-2">
                 Password
               </label>
               <div className="relative">
@@ -111,7 +111,7 @@ const AdminLogin = () => {
                   type="password"
                   id="password"
                   name="password"
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-base"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300  rounded-xl bg-white  text-gray-900  placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-base"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
@@ -139,7 +139,7 @@ const AdminLogin = () => {
             </button>
 
             {/* Register Link */}
-            <p className="text-sm text-center text-gray-600 dark:text-gray-400 mt-4">
+            <p className="text-sm text-center text-gray-600  mt-4">
               Don't have an account?{" "}
               <a href="/admin/register" className="text-blue-600 hover:underline font-medium">
                 Register here

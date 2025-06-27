@@ -65,11 +65,11 @@ const AddEvBunk = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50 ">
       <AdminNavbar />
 
-      <div className="max-w-4xl mx-auto mt-12 px-6 py-10 bg-white dark:bg-gray-800 shadow-lg rounded-xl mb-6" >
-        <h1 className="text-3xl font-bold text-center text-gray-800 dark:text-white mb-6">
+      <div className="max-w-4xl mx-auto mt-12 px-6 py-10 bg-white  shadow-lg rounded-xl mb-6" >
+        <h1 className="text-3xl font-bold text-center text-gray-800 mb-6">
           Add New EV Bunk
         </h1>
 
@@ -96,7 +96,7 @@ const AddEvBunk = () => {
             { id: 'connectorTypes', label: 'Connector Types (comma separated)', type: 'text', required: false },
           ].map(({ id, label, type, required }) => (
             <div key={id}>
-              <label htmlFor={id} className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+              <label htmlFor={id} className="block text-sm font-medium text-gray-700  mb-1">
                 {label} {required && <span className="text-red-500">*</span>}
               </label>
               <input
@@ -106,7 +106,7 @@ const AddEvBunk = () => {
                 value={formData[id]}
                 onChange={handleChange}
                 required={required}
-                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                className="w-full px-4 py-3 border border-gray-300  rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 "
               />
             </div>
           ))}

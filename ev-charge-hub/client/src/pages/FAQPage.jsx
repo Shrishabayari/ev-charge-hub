@@ -105,36 +105,36 @@ const FAQ = () => {
   return (
     <div>
       <Navbar />
-      <section className="min-h-screen bg-gradient-to-br from-white to-blue-50 dark:from-gray-950 dark:to-gray-800 text-gray-800 dark:text-gray-100 py-20 px-6 md:px-20">
+      <section className="min-h-screen bg-gradient-to-br from-white to-blue-50  text-gray-800  py-20 px-6 md:px-20">
         <div className="max-w-4xl mx-auto">
           {/* Enhanced Title Section */}
           <div className="text-center mb-16">
-            <h1 className="text-6xl font-extrabold text-blue-800 dark:text-blue-300 mb-5 tracking-tight">
+            <h1 className="text-6xl font-extrabold text-blue-800  mb-5 tracking-tight">
               Questions & Answers
             </h1>
-            <p className="text-xl md:text-2xl text-gray-700 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-xl md:text-2xl text-gray-700  max-w-2xl mx-auto leading-relaxed">
               Find quick answers to the most common questions about EV Recharge Hub.
             </p>
-            <div className="w-28 h-1.5 bg-blue-600 dark:bg-blue-400 mx-auto mt-8 rounded-full shadow-md"></div>
+            <div className="w-28 h-1.5 bg-blue-600  mx-auto mt-8 rounded-full shadow-md"></div>
           </div>
 
           <div className="space-y-6">
             {faqData.map((faq, index) => (
               <div
                 key={index}
-                className="bg-white dark:bg-gray-850 rounded-xl shadow-lg dark:shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-700 transition-all duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-xl"
+                className="bg-white  rounded-xl shadow-lg  overflow-hidden border border-gray-100  transition-all duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-xl"
               >
                 <button
                   onClick={() => toggle(index)}
                   aria-expanded={activeIndex === index ? "true" : "false"}
-                  className={`w-full flex justify-between items-center p-6 text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-850 transition-all duration-300 ease-in-out
+                  className={`w-full flex justify-between items-center p-6 text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-300 ease-in-out
                     ${activeIndex === index
-                      ? 'bg-blue-50 dark:bg-blue-950 text-blue-800 dark:text-blue-100 font-semibold'
-                      : 'bg-white dark:bg-gray-850 hover:bg-gray-100 dark:hover:bg-gray-800'
+                      ? 'bg-blue-50  text-blue-800  font-semibold'
+                      : 'bg-white  hover:bg-gray-100 '
                     }`}
                 >
                   <span className="text-lg md:text-xl font-medium flex-1 pr-4">{faq.question}</span>
-                  <span className={`text-2xl font-bold transition-transform duration-300 ease-in-out ${activeIndex === index ? "rotate-45 text-blue-600 dark:text-blue-300" : "text-gray-500 dark:text-gray-400"}`}>
+                  <span className={`text-2xl font-bold transition-transform duration-300 ease-in-out ${activeIndex === index ? "rotate-45 text-blue-600 " : "text-gray-500 "}`}>
                     +
                   </span>
                 </button>
@@ -145,8 +145,8 @@ const FAQ = () => {
                   }`}
                 >
                   <div className="overflow-hidden"> {/* This div ensures content inside grid-rows is hidden */}
-                    <div className="p-6 pt-0 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-700">
-                      <p className="text-base text-gray-700 dark:text-gray-300 leading-relaxed">
+                    <div className="p-6 pt-0 bg-white  border-t border-gray-100 ">
+                      <p className="text-base text-gray-700  leading-relaxed">
                         {faq.answer}
                       </p>
                     </div>
@@ -157,7 +157,7 @@ const FAQ = () => {
           </div>
         </div>
       </section>
-      <footer className="bg-gray-800 dark:bg-gray-950 text-white py-12 px-6">
+      <footer className="bg-gray-800  text-white py-12 px-6">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-10">
             <div className="text-center md:text-left">
                 <h3 className="text-2xl font-bold mb-4 text-blue-400">EV Charge Hub</h3>
