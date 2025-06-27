@@ -16,13 +16,11 @@ const BookingForm = () => {
   const location = useLocation();
   const preSelectedBunk = location.state?.bunk;
 
-  // Fetch all bunks on component mount
   useEffect(() => {
     const fetchBunks = async () => {
       try {
         const res = await api.get("/api/bunks");
         setBunks(res.data);
-       
         if (preSelectedBunk && res.data) {
           setSelectedBunk(preSelectedBunk._id);
         }
@@ -31,11 +29,9 @@ const BookingForm = () => {
         setMessage({ text: "Failed to load EV bunks", type: "error" });
       }
     };
-   
     fetchBunks();
   }, [preSelectedBunk]);
 
-  // Update selected bunk details when bunk changes
   useEffect(() => {
     if (selectedBunk) {
       const bunkDetails = bunks.find(bunk => bunk._id === selectedBunk);
@@ -45,122 +41,108 @@ const BookingForm = () => {
     }
   }, [selectedBunk, bunks]);
 
-  // Fetch available slots when bunk or date changes
   useEffect(() => {
     const fetchAvailableSlots = async () => {
       if (!selectedBunk || !selectedDate) return;
-     
       setLoading(true);
       try {
         const res = await api.get(`/api/bookings/available-slots/${selectedBunk}/${selectedDate}`);
-        setAvailableSlots(res.data.data.availableSlots || []);
-                setSelectedSlot("");
+        const bookings = res.data.data.bookings || [];
+        const operatingHours = res.data.data.bunkInfo?.operatingHours || "9:00 AM - 8:00 PM";
+        const localSlots = generateLocalSlots(operatingHours, selectedDate, bookings);
+        setAvailableSlots(localSlots);
+        setSelectedSlot("");
       } catch (err) {
         console.error("Error fetching available slots:", err);
         setMessage({ text: "Failed to load available slots", type: "error" });
-        // Generate default slots as fallback
-        setAvailableSlots(generateBusinessHourSlots());
       } finally {
         setLoading(false);
       }
     };
-   
     fetchAvailableSlots();
   }, [selectedBunk, selectedDate]);
 
-  // Generate proper business hour slots (9 AM - 8 PM)
-  const generateBusinessHourSlots = () => {
-    const slots = [];
-    // Generate 12 slots from 9 AM to 8 PM (hours 9-20)
-    for (let hour = 9; hour <= 20; hour++) {
-      slots.push({
-        hour: hour,
-        id: `slot-${hour}`,
-        value: hour
+  const generateLocalSlots = (operatingHours, date, bookings) => {
+    const availableSlots = [];
+    if (!operatingHours || !date) return [];
+    let [openTime, closeTime] = operatingHours.split(/[-–]/).map(t => t.trim());
+    const parseTime = (timeStr) => {
+      const date = new Date();
+      const [time, modifier] = timeStr.split(' ');
+      let [hours, minutes] = time.split(':').map(Number);
+      if (modifier?.toUpperCase() === 'PM' && hours < 12) hours += 12;
+      if (modifier?.toUpperCase() === 'AM' && hours === 12) hours = 0;
+      return { hours, minutes };
+    };
+    const open = parseTime(openTime);
+    const close = parseTime(closeTime);
+    const dateObj = new Date(date);
+    dateObj.setHours(0, 0, 0, 0);
+    const slotStart = new Date(dateObj);
+    slotStart.setHours(open.hours, open.minutes, 0, 0);
+    const slotEnd = new Date(dateObj);
+    slotEnd.setHours(close.hours, close.minutes, 0, 0);
+    while (slotStart < slotEnd) {
+      const currentStart = new Date(slotStart);
+      const currentEnd = new Date(currentStart);
+      currentEnd.setHours(currentStart.getHours() + 1);
+      const hasConflict = bookings.some(booking => {
+        const bookingStart = new Date(booking.startTime);
+        const bookingEnd = new Date(booking.endTime);
+        return (
+          (currentStart >= bookingStart && currentStart < bookingEnd) ||
+          (currentEnd > bookingStart && currentEnd <= bookingEnd) ||
+          (currentStart <= bookingStart && currentEnd >= bookingEnd)
+        );
       });
+      if (!hasConflict) {
+        availableSlots.push(currentStart.toISOString());
+      }
+      slotStart.setHours(slotStart.getHours() + 1);
     }
-    return slots;
+    return availableSlots;
   };
 
-  // Helper function to extract hour from slot for sorting
-  const extractTimeFromSlot = (slotData) => {
-    if (!slotData) return 9; // Default to 9 AM
+  const formatTimeSlot = (isoString) => {
+    const start = new Date(isoString);
+    const end = new Date(start);
+    end.setHours(start.getHours() + 1);
+    return `${start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} - ${end.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+  };
 
-    if (typeof slotData === 'string' && slotData.includes('T')) {
-      const hour = new Date(slotData).getHours();
-      return hour >= 9 && hour <= 20 ? hour : 9;
-    }
-    
-    if (typeof slotData === 'object' && slotData.startTime) {
-      if (slotData.startTime.includes('T')) {
-        const hour = new Date(slotData.startTime).getHours();
-        return hour >= 9 && hour <= 20 ? hour : 9;
-      }
-      const [hours] = slotData.startTime.split(':');
-      const hour = parseInt(hours, 10);
-      return hour >= 9 && hour <= 20 ? hour : 9;
-    }
-    
-    if (typeof slotData === 'string' && slotData.includes(':')) {
-      const [hours] = slotData.split(':');
-      const hour = parseInt(hours, 10);
-      return hour >= 9 && hour <= 20 ? hour : 9;
-    }
-    
-    if (typeof slotData === 'number') {
-      return slotData >= 9 && slotData <= 20 ? slotData : 9;
-    }
-    
-    // Try to parse as number and validate
-    const parsed = parseInt(slotData, 10);
-    if (!isNaN(parsed) && parsed >= 9 && parsed <= 20) {
-      return parsed;
-    }
-    
-    return 9; // Default fallback
+  const getTodayDate = () => new Date().toISOString().split('T')[0];
+  const getMaxDate = () => {
+    const maxDate = new Date();
+    maxDate.setDate(maxDate.getDate() + 30);
+    return maxDate.toISOString().split('T')[0];
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-   
     if (!selectedBunk || !selectedSlot) {
       setMessage({ text: "Please select a bunk and time slot", type: "error" });
       return;
     }
-   
     setLoading(true);
     try {
-      // First check if slot is still available
       const checkRes = await api.post("/api/bookings/check-availability", {
         bunkId: selectedBunk,
         slotTime: selectedSlot
       });
-     
       if (!checkRes.data.data.available) {
         setMessage({ text: "Sorry, this slot was just booked. Please select another.", type: "error" });
         return;
       }
-     
-      // If available, create the booking
       await api.post("/api/bookings/create", {
         bunkId: selectedBunk,
         slotTime: selectedSlot
       }, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
       });
-     
       setMessage({ text: "Slot booked successfully!", type: "success" });
-     
-      // Reset form
       setSelectedSlot("");
-     
-      // Refresh available slots
-      const res = await api.get(`/api/bookings/available-slots/${selectedBunk}/${selectedDate}`);
-      setAvailableSlots(res.data.data.availableSlots || []);
-     
     } catch (err) {
       console.error("Booking error:", err);
-     
       if (err.response?.status === 401) {
         setMessage({ text: "Please log in to book a slot", type: "error" });
       } else {
@@ -171,82 +153,6 @@ const BookingForm = () => {
     }
   };
 
-  // Enhanced time formatting function that generates proper 9 AM - 8 PM slots
-  const formatTimeSlot = (slotData) => {
-    if (!slotData) return "";
-
-    let startHour;
-    
-    // Handle our generated slot objects
-    if (typeof slotData === 'object' && slotData.hour) {
-      startHour = slotData.hour;
-    }
-    // Handle numeric values
-    else if (typeof slotData === 'number') {
-      startHour = slotData;
-    }
-    // Handle other formats (legacy support)
-    else if (typeof slotData === 'string' && slotData.includes('T')) {
-      const date = new Date(slotData);
-      startHour = date.getHours();
-    } else if (typeof slotData === 'object' && slotData.startTime) {
-      if (slotData.startTime.includes('T')) {
-        startHour = new Date(slotData.startTime).getHours();
-      } else if (slotData.startTime.includes(':')) {
-        const [hours] = slotData.startTime.split(':');
-        startHour = parseInt(hours, 10);
-      }
-    } else if (typeof slotData === 'string' && slotData.includes(':')) {
-      const [hours] = slotData.split(':');
-      startHour = parseInt(hours, 10);
-    } else {
-      startHour = parseInt(slotData, 10);
-    }
-    
-    // Ensure startHour is within business hours (9-20)
-    if (isNaN(startHour) || startHour < 9 || startHour > 20) {
-      startHour = 9; // Default to 9 AM
-    }
-    
-    const endHour = startHour + 1;
-    
-    return `${formatTime(startHour, 0)} - ${formatTime(endHour, 0)}`;
-  };
-
-  // Helper function to format time
-  const formatTime = (hours, minutes = 0) => {
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    const displayHour = hours % 12 || 12;
-    const displayMinute = minutes.toString().padStart(2, '0');
-    return `${displayHour}:${displayMinute} ${ampm}`;
-  };
-
-  // Helper function to format time from strin
-  const formatTimeFromString = (timeString) => {
-    if (!timeString) return "";
-   
-    // Handle full ISO string
-    if (timeString.includes('T')) {
-      const date = new Date(timeString);
-      return formatTime(date.getHours(), date.getMinutes());
-    }
-   
-    // Handle time string like "14:30" or "09:00"
-    const [hours, minutes] = timeString.split(':');
-    return formatTime(parseInt(hours, 10), parseInt(minutes, 10));
-  };
-
-  // Get today's date in YYYY-MM-DD format
-  const getTodayDate = () => {
-    return new Date().toISOString().split('T')[0];
-  };
-
-  // Get max date (30 days from now)
-  const getMaxDate = () => {
-    const maxDate = new Date();
-    maxDate.setDate(maxDate.getDate() + 30);
-    return maxDate.toISOString().split('T')[0];
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-8 px-4">
@@ -260,7 +166,7 @@ const BookingForm = () => {
             Book Your EV Charging Slot
           </h1>
           <p className="text-gray-600">Reserve your preferred charging time slot</p>
-         
+          
           {/* Show pre-selected bunk info if available */}
           {preSelectedBunk && (
             <div className="mt-4 p-3 bg-blue-100 rounded-lg border border-blue-200">
@@ -295,7 +201,7 @@ const BookingForm = () => {
                     </option>
                   ))}
                 </select>
-               
+                
                 {/* Bunk Details */}
                 {selectedBunkDetails && (
                   <div className="mt-3 p-4 bg-blue-50 rounded-lg border border-blue-100">
@@ -311,7 +217,7 @@ const BookingForm = () => {
                   </div>
                 )}
               </div>
-             
+              
               {/* Date Selection */}
               <div>
                 <label htmlFor="date" className="flex items-center text-sm font-semibold text-gray-700 mb-3">
@@ -329,7 +235,7 @@ const BookingForm = () => {
                   required
                 />
               </div>
-             
+              
               {/* Time Slot Selection */}
               {selectedBunk && selectedDate && (
                 <div>
@@ -337,7 +243,7 @@ const BookingForm = () => {
                     <Clock className="h-4 w-4 mr-2 text-blue-500" />
                     Select Time Slot
                   </label>
-                 
+                  
                   {loading ? (
                     <div className="text-center py-12">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -345,27 +251,23 @@ const BookingForm = () => {
                     </div>
                   ) : availableSlots.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {availableSlots.map((slot, index) => {
-                        const slotKey = slot.id || `slot-${index}`;
-                        const slotValue = slot.value || slot.hour || slot;
-                        return (
-                          <button
-                            key={slotKey}
-                            type="button"
-                            onClick={() => setSelectedSlot(slotValue)}
-                            className={`p-4 text-sm font-medium rounded-xl border-2 transition-all duration-200 ${
-                              selectedSlot === slotValue
-                                ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white border-green-500 shadow-lg transform scale-105'
-                                : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50 hover:border-gray-300'
-                            }`}
-                          >
-                            <div className="flex items-center justify-center">
-                              <Clock className="h-4 w-4 mr-2" />
-                              {formatTimeSlot(slot)}
-                            </div>
-                          </button>
-                        );
-                      })}
+                      {availableSlots.map((slot, index) => (
+                        <button
+                          key={`${slot}-${index}`}
+                          type="button"
+                          onClick={() => setSelectedSlot(slot)}
+                          className={`p-4 text-sm font-medium rounded-xl border-2 transition-all duration-200 ${
+                            selectedSlot === slot
+                              ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white border-green-500 shadow-lg transform scale-105'
+                              : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+                          }`}
+                        >
+                          <div className="flex items-center justify-center">
+                            <Clock className="h-4 w-4 mr-2" />
+                            {formatTimeSlot(slot)}
+                          </div>
+                        </button>
+                      ))}
                     </div>
                   ) : (
                     <div className="text-center py-12 bg-gray-50 rounded-xl">
@@ -376,7 +278,7 @@ const BookingForm = () => {
                   )}
                 </div>
               )}
-             
+              
               {/* Submit Button */}
               <button
                 type="submit"
@@ -401,12 +303,12 @@ const BookingForm = () => {
               </button>
             </form>
           </div>
-         
+          
           {/* Status Message */}
           {message.text && (
             <div className={`px-8 py-4 border-t ${
-              message.type === 'success'
-                ? 'bg-green-50 border-green-100'
+              message.type === 'success' 
+                ? 'bg-green-50 border-green-100' 
                 : 'bg-red-50 border-red-100'
             }`}>
               <div className={`flex items-center ${
@@ -427,7 +329,7 @@ const BookingForm = () => {
         <div className="mt-6 bg-blue-50 rounded-xl p-6 border border-blue-100">
           <h3 className="font-semibold text-blue-900 mb-2">Booking Information</h3>
           <ul className="text-sm text-blue-800 space-y-1">
-            <li>• Each slot is 1 hour duration (9:00 AM - 8:00 PM)</li>
+            <li>• Each slot is typically 1 hour duration</li>
             <li>• Slots are shown in your local time</li>
             <li>• You can book up to 30 days in advance</li>
             <li>• Please arrive on time for your booking</li>

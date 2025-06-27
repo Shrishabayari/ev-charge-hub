@@ -287,44 +287,34 @@ export const checkSlotAvailability = async (req, res) => {
     console.error('Error in checkSlotAvailability:', error);
     res.status(500).json({ success: false, message: 'Server Error', error: error.message });
   }
-};export const getAvailableSlots = async (req, res) => {
+};
+
+export const getAvailableSlots = async (req, res) => {
   try {
     const { bunkId, date } = req.params;
-   
+    
     if (!bunkId || !date) {
       return res.status(400).json({ success: false, message: 'Bunk ID and date are required' });
     }
-   
-    // Parse the date - ensure we're working with the correct date format
-    let selectedDate;
-    if (date.includes('T')) {
-      selectedDate = new Date(date);
-    } else {
-      // If date is in YYYY-MM-DD format, create date properly
-      selectedDate = new Date(date + 'T00:00:00.000Z');
-    }
     
+    // Parse the date and create start/end of day
+    const selectedDate = new Date(date);
     if (isNaN(selectedDate.getTime())) {
       return res.status(400).json({ success: false, message: 'Invalid date format' });
     }
-   
-    // Create start and end of the selected day in local timezone
+    
     const startOfDay = new Date(selectedDate);
-    startOfDay.setUTCHours(0, 0, 0, 0);
-   
+    startOfDay.setHours(0, 0, 0, 0);
+    
     const endOfDay = new Date(selectedDate);
-    endOfDay.setUTCHours(23, 59, 59, 999);
-   
-    console.log(`Selected date: ${selectedDate.toISOString()}`);
-    console.log(`Start of day: ${startOfDay.toISOString()}`);
-    console.log(`End of day: ${endOfDay.toISOString()}`);
-   
+    endOfDay.setHours(23, 59, 59, 999);
+    
     // Find the bunk first to check if it exists
     const bunk = await Bunk.findById(bunkId);
     if (!bunk) {
       return res.status(404).json({ success: false, message: 'Bunk not found' });
     }
-   
+    
     // Find all active bookings for this bunk on this date
     const bookings = await Booking.find({
       bunkId,
@@ -335,80 +325,118 @@ export const checkSlotAvailability = async (req, res) => {
         { startTime: { $lte: startOfDay }, endTime: { $gte: endOfDay } }
       ]
     }).sort({ startTime: 1 });
-   
-    console.log(`Found ${bookings.length} existing bookings for this date`);
-   
-    // Set fixed operating hours: 9 AM to 8 PM (force these hours regardless of bunk settings)
-    const openHour = 9;
-    const openMinute = 0;
-    const closeHour = 20; // 8 PM in 24-hour format
-    const closeMinute = 0;
-   
-    console.log(`Fixed operating hours: ${openHour}:${String(openMinute).padStart(2, '0')} to ${closeHour}:${String(closeMinute).padStart(2, '0')}`);
-   
-    // Generate time slots array with detailed slot information
-    const availableSlots = [];
-    const allSlots = []; // For debugging
     
-    // Generate slots from 9 AM to 8 PM (11 total slots)
-    for (let hour = openHour; hour < closeHour; hour++) {
-      // Create slot start time
-      const slotStart = new Date(selectedDate);
-      slotStart.setUTCHours(hour, 0, 0, 0);
+    // Get operating hours from the bunk or use default
+    let operatingHours = bunk.operatingHours || "09:00-18:00";
+    
+    console.log("Operating hours:", operatingHours); // Debug log
+    
+    // Handle different operating hours formats
+    let openHour = 9;
+    let openMinute = 0;
+    let closeHour = 18;
+    let closeMinute = 0;
+    
+    // Check if format is "HH:MM-HH:MM"
+    if (operatingHours.includes('-') && !operatingHours.includes('AM') && !operatingHours.includes('PM')) {
+      let [openTime, closeTime] = operatingHours.split('-');
+      if (openTime && closeTime) {
+        [openHour, openMinute] = openTime.trim().split(':').map(Number);
+        [closeHour, closeMinute] = closeTime.trim().split(':').map(Number);
+      }
+    } 
+    // Check if format is "H:MM AM - H:MM PM"
+    else if (operatingHours.includes(' - ') || operatingHours.includes('-')) {
+      let parts = operatingHours.split(' - ');
+      // If the split didn't work, try without spaces
+      if (parts.length !== 2) {
+        parts = operatingHours.split('-');
+      }
       
-      // Create slot end time (1 hour later)
-      const slotEnd = new Date(selectedDate);
-      slotEnd.setUTCHours(hour + 1, 0, 0, 0);
+      if (parts.length === 2) {
+        let openTimePart = parts[0].trim();
+        let closeTimePart = parts[1].trim();
+        
+        // Parse opening time
+        let openTimeMatch = openTimePart.match(/(\d+):(\d+)\s*(AM|PM)?/i);
+        if (openTimeMatch) {
+          openHour = parseInt(openTimeMatch[1]);
+          openMinute = parseInt(openTimeMatch[2]);
+          // Handle AM/PM
+          if (openTimeMatch[3] && openTimeMatch[3].toUpperCase() === 'PM' && openHour < 12) {
+            openHour += 12;
+          }
+          if (openTimeMatch[3] && openTimeMatch[3].toUpperCase() === 'AM' && openHour === 12) {
+            openHour = 0;
+          }
+        }
+        
+        // Parse closing time
+        let closeTimeMatch = closeTimePart.match(/(\d+):(\d+)\s*(AM|PM)?/i);
+        if (closeTimeMatch) {
+          closeHour = parseInt(closeTimeMatch[1]);
+          closeMinute = parseInt(closeTimeMatch[2]);
+          // Handle AM/PM
+          if (closeTimeMatch[3] && closeTimeMatch[3].toUpperCase() === 'PM' && closeHour < 12) {
+            closeHour += 12;
+          }
+          if (closeTimeMatch[3] && closeTimeMatch[3].toUpperCase() === 'AM' && closeHour === 12) {
+            closeHour = 0;
+          }
+        }
+      }
+    }
+
+    console.log(`Parsed operating hours: ${openHour}:${openMinute} to ${closeHour}:${closeMinute}`); // Debug log
+    
+    // Generate time slots (1-hour slots)
+    const availableSlots = [];
+    const startTime = new Date(selectedDate);
+    startTime.setHours(openHour, openMinute, 0, 0);
+    
+    const endTime = new Date(selectedDate);
+    endTime.setHours(closeHour, closeMinute, 0, 0);
+    
+    // Create slots every hour
+    while (startTime < endTime) {
+      const currentSlotStart = new Date(startTime);
+      const currentSlotEnd = new Date(startTime);
+      currentSlotEnd.setHours(currentSlotStart.getHours() + 1);
       
       // Check if this time slot conflicts with any booking
       const isBooked = bookings.some(booking => {
         const bookingStart = new Date(booking.startTime);
         const bookingEnd = new Date(booking.endTime);
-       
+        
         return (
           // Slot start time falls within booking
-          (slotStart >= bookingStart && slotStart < bookingEnd) ||
+          (currentSlotStart >= bookingStart && currentSlotStart < bookingEnd) ||
           // Slot end time falls within booking
-          (slotEnd > bookingStart && slotEnd <= bookingEnd) ||
+          (currentSlotEnd > bookingStart && currentSlotEnd <= bookingEnd) ||
           // Booking is fully contained in slot
-          (slotStart <= bookingStart && slotEnd >= bookingEnd)
+          (currentSlotStart <= bookingStart && currentSlotEnd >= bookingEnd)
         );
       });
       
-      // Add to all slots for debugging
-      allSlots.push({
-        start: slotStart.toISOString(),
-        end: slotEnd.toISOString(),
-        isBooked: isBooked,
-        hour: hour
-      });
-     
       if (!isBooked) {
-        // Add as available slot - return both start time and formatted display
-        availableSlots.push({
-          startTime: slotStart.toISOString(),
-          endTime: slotEnd.toISOString(),
-          displayTime: `${hour > 12 ? hour - 12 : (hour === 0 ? 12 : hour)}:00 ${hour >= 12 ? 'PM' : 'AM'} - ${(hour + 1) > 12 ? (hour + 1) - 12 : ((hour + 1) === 0 ? 12 : (hour + 1))}:00 ${(hour + 1) >= 12 ? 'PM' : 'AM'}`,
-          slot24Hour: `${String(hour).padStart(2, '0')}:00 - ${String(hour + 1).padStart(2, '0')}:00`
-        });
+        // Add as available slot
+        availableSlots.push(currentSlotStart.toISOString());
       }
+      
+      // Move to next slot
+      startTime.setHours(startTime.getHours() + 1);
     }
-   
-    console.log(`Generated ${availableSlots.length} available slots out of ${allSlots.length} total slots`);
-    console.log('All slots:', allSlots);
-    console.log('Available slots:', availableSlots);
-   
+    
+    console.log(`Generated ${availableSlots.length} available slots`); // Debug log
+    
     res.json({
       success: true,
       data: {
-        date: selectedDate.toISOString().split('T')[0], // Return the date in YYYY-MM-DD format
-        bookings: bookings,
-        availableSlots: availableSlots, // Return detailed slot information
-        totalSlots: allSlots.length,
-        availableCount: availableSlots.length,
+        bookings,
+        availableSlots, // These are the slots that are available
         bunkInfo: {
           name: bunk.name,
-          operatingHours: `${String(openHour).padStart(2, '0')}:${String(openMinute).padStart(2, '0')}-${String(closeHour).padStart(2, '0')}:${String(closeMinute).padStart(2, '0')}`
+          operatingHours
         }
       }
     });
