@@ -99,7 +99,7 @@ export default function Register() {
               {/* START: Updated Form Section */}
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-200 mb-1">
                     Name
                   </label>
                   <input
@@ -113,7 +113,7 @@ export default function Register() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-200 mb-1">
                     Email
                   </label>
                   <input
@@ -127,7 +127,7 @@ export default function Register() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-200 mb-1">
                     Password
                   </label>
                   <div className="relative"> {/* Added relative for positioning eye icon */}
