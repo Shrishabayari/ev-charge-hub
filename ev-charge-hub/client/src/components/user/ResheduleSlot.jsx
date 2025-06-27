@@ -1,3 +1,4 @@
+// RescheduleBookingForm.jsx
 import React, { useState, useEffect } from "react";
 import { Calendar, Clock, MapPin, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import api from '../../api';
@@ -20,24 +21,18 @@ const RescheduleBookingForm = ({ booking, onRescheduleSuccess, onCancel }) => {
       try {
         const res = await api.get("/api/bunks");
         setBunks(res.data);
-        
-        // If there's a pre-selected bunk from navigation, set it as selected
         if (preSelectedBunk && res.data) {
           setSelectedBunk(preSelectedBunk._id);
         } else if (booking?.bunkId?._id) {
-          // Set the current booking's bunk as default
           setSelectedBunk(booking.bunkId._id);
         }
       } catch (err) {
-        console.error("Error fetching bunks:", err);
         setMessage({ text: "Failed to load EV bunks", type: "error" });
       }
     };
-    
     fetchBunks();
   }, [preSelectedBunk, booking]);
 
-  // Update selected bunk details when bunk changes
   useEffect(() => {
     if (selectedBunk) {
       const bunkDetails = bunks.find(bunk => bunk._id === selectedBunk);
@@ -47,119 +42,91 @@ const RescheduleBookingForm = ({ booking, onRescheduleSuccess, onCancel }) => {
     }
   }, [selectedBunk, bunks]);
 
-  // Fetch available slots when bunk or date changes - FIXED TO MATCH BookingForm
   useEffect(() => {
     const fetchAvailableSlots = async () => {
       if (!selectedBunk || !selectedDate) {
         setAvailableSlots([]);
         return;
       }
-      
+
       setLoading(true);
       setMessage({ text: "", type: "" });
-      
+
       try {
-        // Use the same endpoint format as BookingForm
         const res = await api.get(`/api/bookings/available-slots/${selectedBunk}/${selectedDate}`);
-        
-        console.log("Available slots response:", res.data);
-        
-        // Use the same response handling as BookingForm
         const slots = res.data.data?.availableSlots || res.data.availableSlots || [];
-        
         setAvailableSlots(slots);
-        setSelectedSlot(""); // Reset selected slot
-        
+        setSelectedSlot("");
         if (slots.length === 0) {
           setMessage({ text: "No available slots for this date", type: "info" });
         }
-        
       } catch (err) {
-        console.error("Error fetching available slots:", err);
         setAvailableSlots([]);
-        setMessage({ 
-          text: err.response?.data?.message || "Failed to load available slots", 
-          type: "error" 
+        setMessage({
+          text: err.response?.data?.message || "Failed to load available slots",
+          type: "error"
         });
       } finally {
         setLoading(false);
       }
     };
-    
     fetchAvailableSlots();
   }, [selectedBunk, selectedDate]);
 
   const handleReschedule = async (e) => {
     e.preventDefault();
-    
+
     if (!selectedBunk || !selectedSlot || !selectedDate) {
       setMessage({ text: "Please select a bunk, date, and time slot", type: "error" });
       return;
     }
-    
+
     setLoading(true);
     setMessage({ text: "", type: "" });
-    
+
     try {
-      // First check if slot is still available
       const checkRes = await api.post("/api/bookings/check-availability", {
         bunkId: selectedBunk,
         slotTime: selectedSlot
       });
-      
+
       if (!checkRes.data.data?.available) {
         setMessage({ text: "Sorry, this slot was just booked. Please select another.", type: "error" });
-        // Refresh available slots
         const res = await api.get(`/api/bookings/available-slots/${selectedBunk}/${selectedDate}`);
         setAvailableSlots(res.data.data?.availableSlots || []);
         return;
       }
-      
-      // Calculate start and end times based on slot format
+
       let startTime, endTime;
-      
       if (typeof selectedSlot === 'object') {
-        // If slot is an object with startTime and endTime
-        if (selectedSlot.startTime && selectedSlot.endTime) {
-          startTime = selectedSlot.startTime;
-          endTime = selectedSlot.endTime;
-        } else {
-          // Fallback: assume 1-hour slot
-          startTime = selectedSlot.startTime || selectedSlot.time;
-          const start = new Date(`${selectedDate}T${startTime}`);
-          const end = new Date(start.getTime() + 60 * 60 * 1000); // Add 1 hour
-          endTime = end.toTimeString().slice(0, 5); // HH:MM format
-        }
+        startTime = selectedSlot.startTime || selectedSlot.time;
+        endTime = selectedSlot.endTime || new Date(new Date(`${selectedDate}T${startTime}`).getTime() + 60 * 60 * 1000).toTimeString().slice(0, 5);
       } else if (typeof selectedSlot === 'string') {
-        // If slot is a string (e.g., "14:30" or ISO date)
         if (selectedSlot.includes('T')) {
-          // ISO date string
           const slotDate = new Date(selectedSlot);
-          startTime = slotDate.toTimeString().slice(0, 5); // HH:MM
+          startTime = slotDate.toTimeString().slice(0, 5);
           const endDate = new Date(slotDate.getTime() + 60 * 60 * 1000);
-          endTime = endDate.toTimeString().slice(0, 5); // HH:MM
+          endTime = endDate.toTimeString().slice(0, 5);
         } else if (selectedSlot.includes(':')) {
-          // Time string like "14:30"
           startTime = selectedSlot;
           const [hours, minutes] = selectedSlot.split(':');
           const endHour = parseInt(hours) + 1;
           endTime = `${endHour.toString().padStart(2, '0')}:${minutes}`;
         } else {
-          // Fallback
           startTime = selectedSlot;
           endTime = selectedSlot;
         }
       } else {
-        // If slot is a number (hour)
         startTime = `${selectedSlot.toString().padStart(2, '0')}:00`;
         endTime = `${(selectedSlot + 1).toString().padStart(2, '0')}:00`;
       }
-      
-      // Create full datetime strings
-      const startDateTime = new Date(`${selectedDate}T${startTime}`);
-      const endDateTime = new Date(`${selectedDate}T${endTime}`);
-      
-      // Prepare the reschedule data with all required fields
+
+      // ✅ Timezone fix: manual UTC conversion
+      const localStart = new Date(`${selectedDate}T${startTime}`);
+      const localEnd = new Date(`${selectedDate}T${endTime}`);
+      const startDateTime = new Date(localStart.getTime() - localStart.getTimezoneOffset() * 60000);
+      const endDateTime = new Date(localEnd.getTime() - localEnd.getTimezoneOffset() * 60000);
+
       const rescheduleData = {
         newBunkId: selectedBunk,
         newDate: selectedDate,
@@ -167,51 +134,42 @@ const RescheduleBookingForm = ({ booking, onRescheduleSuccess, onCancel }) => {
         newSlotTime: startTime,
         startTime: startDateTime.toISOString(),
         endTime: endDateTime.toISOString(),
-        // Alternative field names in case backend expects different naming
         newStartTime: startDateTime.toISOString(),
         newEndTime: endDateTime.toISOString()
       };
-      
-      console.log("Reschedule data:", rescheduleData);
-      console.log("Making request to:", `/api/bookings/reschedule/${booking._id}`);
-      
+
       const res = await api.put(`/api/bookings/reschedule/${booking._id}`, rescheduleData, {
-        headers: { 
+        headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
           'Content-Type': 'application/json'
         }
       });
-      
+
       setMessage({ text: "Booking rescheduled successfully!", type: "success" });
-      
-      // Call the success callback if provided
+
       if (onRescheduleSuccess) {
         onRescheduleSuccess(res.data);
       }
-      
-      // Reset form after successful reschedule
+
       setTimeout(() => {
         setSelectedSlot("");
         setSelectedDate("");
       }, 2000);
-      
+
     } catch (err) {
-      console.error("Reschedule error:", err);
-      
       if (err.response?.status === 401) {
         setMessage({ text: "Please log in to reschedule booking", type: "error" });
       } else if (err.response?.status === 404) {
         setMessage({ text: "Booking not found or reschedule endpoint not available", type: "error" });
       } else if (err.response?.status === 409) {
         setMessage({ text: "This slot is no longer available. Please select another.", type: "error" });
-        // Refresh available slots
         const res = await api.get(`/api/bookings/available-slots/${selectedBunk}/${selectedDate}`);
         const slots = res.data.data?.availableSlots || [];
         setAvailableSlots(slots);
       } else {
-        setMessage({ 
-          text: err.response?.data?.message || "Failed to reschedule booking", 
-          type: "error" 
+        setMessage({
+          text: err.response?.data?.message || "Failed to reschedule booking",
+          type: "error"
         });
       }
     } finally {
@@ -219,99 +177,84 @@ const RescheduleBookingForm = ({ booking, onRescheduleSuccess, onCancel }) => {
     }
   };
 
-  // Enhanced time formatting function - SAME AS BookingForm
-  const formatTimeSlot = (slotData) => {
-    if (!slotData) return "";
-
-    // If slotData is a string that looks like an ISO date
-    if (typeof slotData === 'string' && slotData.includes('T')) {
-      const date = new Date(slotData);
-      const startHour = date.getHours();
-      const startMinute = date.getMinutes();
-      const endHour = startHour + 1; // Assuming 1-hour slots
-      
-      return `${formatTime(startHour, startMinute)} - ${formatTime(endHour, startMinute)}`;
-    }
-    
-    // If slotData is an object with start and end times
-    if (typeof slotData === 'object' && slotData.startTime && slotData.endTime) {
-      return `${formatTimeFromString(slotData.startTime)} - ${formatTimeFromString(slotData.endTime)}`;
-    }
-    
-    // If slotData is just a time string like "14:30"
-    if (typeof slotData === 'string' && slotData.includes(':')) {
-      const [hours, minutes] = slotData.split(':');
-      const startHour = parseInt(hours, 10);
-      const startMinute = parseInt(minutes, 10);
-      const endHour = startHour + 1;
-      
-      return `${formatTime(startHour, startMinute)} - ${formatTime(endHour, startMinute)}`;
-    }
-    
-    // If it's a number (hour)
-    if (typeof slotData === 'number') {
-      return `${formatTime(slotData, 0)} - ${formatTime(slotData + 1, 0)}`;
-    }
-    
-    return slotData.toString();
-  };
-
-  // Helper function to format time - SAME AS BookingForm
   const formatTime = (hours, minutes = 0) => {
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  const displayHour = hours % 12 || 12;
+  const displayMinute = minutes.toString().padStart(2, '0');
+  return `${displayHour}:${displayMinute} ${ampm}`;
+};
+
+const formatTimeFromString = (timeString) => {
+  if (!timeString) return "";
+
+  if (timeString.includes('T')) {
+    const date = new Date(timeString);
+    return formatTime(date.getUTCHours(), date.getUTCMinutes());
+  }
+
+  const [hours, minutes] = timeString.split(':');
+  return formatTime(parseInt(hours, 10), parseInt(minutes, 10));
+};
+
+const formatTimeSlot = (slotData) => {
+  if (!slotData) return "";
+
+  if (typeof slotData === 'string' && slotData.includes('T')) {
+    const date = new Date(slotData);
+    const startHour = date.getUTCHours();
+    const startMinute = date.getUTCMinutes();
+    const endHour = startHour + 1;
+    return `${formatTime(startHour, startMinute)} - ${formatTime(endHour, startMinute)}`;
+  }
+
+  if (typeof slotData === 'object' && slotData.startTime && slotData.endTime) {
+    return `${formatTimeFromString(slotData.startTime)} - ${formatTimeFromString(slotData.endTime)}`;
+  }
+
+  if (typeof slotData === 'string' && slotData.includes(':')) {
+    const [hours, minutes] = slotData.split(':');
+    const h = parseInt(hours, 10);
+    const m = parseInt(minutes, 10);
+    return `${formatTime(h, m)} - ${formatTime(h + 1, m)}`;
+  }
+
+  if (typeof slotData === 'number') {
+    return `${formatTime(slotData, 0)} - ${formatTime(slotData + 1, 0)}`;
+  }
+
+  return slotData.toString();
+};
+
+const getCurrentBookingTime = () => {
+  if (!booking || !booking.startTime) return "";
+
+  const startTime = new Date(booking.startTime);
+  const endTime = new Date(booking.endTime);
+
+  const formatTimeLocal = (date) => {
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
     const ampm = hours >= 12 ? 'PM' : 'AM';
-    const displayHour = hours % 12 || 12;
-    const displayMinute = minutes.toString().padStart(2, '0');
-    return `${displayHour}:${displayMinute} ${ampm}`;
+    const hour = hours % 12 || 12;
+
+    return minutes === 0
+      ? `${hour} ${ampm}`
+      : `${hour}:${minutes.toString().padStart(2, '0')} ${ampm}`;
   };
 
-  // Helper function to format time from string - SAME AS BookingForm
-  const formatTimeFromString = (timeString) => {
-    if (!timeString) return "";
-    
-    // Handle full ISO string
-    if (timeString.includes('T')) {
-      const date = new Date(timeString);
-      return formatTime(date.getHours(), date.getMinutes());
-    }
-    
-    // Handle time string like "14:30"
-    const [hours, minutes] = timeString.split(':');
-    return formatTime(parseInt(hours, 10), parseInt(minutes, 10));
-  };
+  const startFormatted = formatTimeLocal(startTime);
+  const endFormatted = formatTimeLocal(endTime);
 
-  const getCurrentBookingTime = () => {
-    if (!booking || !booking.startTime) return "";
-    
-    const startTime = new Date(booking.startTime);
-    const endTime = new Date(booking.endTime);
-    
-    const formatTime = (date) => {
-      const hours = date.getHours();
-      const minutes = date.getMinutes();
-      const ampm = hours >= 12 ? 'PM' : 'AM';
-      const hour = hours % 12 || 12;
-      
-      if (minutes === 0) {
-        return `${hour} ${ampm}`;
-      } else {
-        return `${hour}:${minutes.toString().padStart(2, '0')} ${ampm}`;
-      }
-    };
-    
-    const startFormatted = formatTime(startTime);
-    const endFormatted = formatTime(endTime);
-    
-    // If both times have the same AM/PM, show it only once
-    const startAMPM = startTime.getHours() >= 12 ? 'PM' : 'AM';
-    const endAMPM = endTime.getHours() >= 12 ? 'PM' : 'AM';
-    
-    if (startAMPM === endAMPM) {
-      const startWithoutAMPM = startFormatted.replace(` ${startAMPM}`, '');
-      return `${startWithoutAMPM} - ${endFormatted}`;
-    } else {
-      return `${startFormatted} - ${endFormatted}`;
-    }
-  };
+  const startAMPM = startTime.getHours() >= 12 ? 'PM' : 'AM';
+  const endAMPM = endTime.getHours() >= 12 ? 'PM' : 'AM';
+
+  if (startAMPM === endAMPM) {
+    const startWithoutAMPM = startFormatted.replace(` ${startAMPM}`, '');
+    return `${startWithoutAMPM} - ${endFormatted}`;
+  } else {
+    return `${startFormatted} - ${endFormatted}`;
+  }
+};
 
   // Get today's date in YYYY-MM-DD format - SAME AS BookingForm
   const getTodayDate = () => {

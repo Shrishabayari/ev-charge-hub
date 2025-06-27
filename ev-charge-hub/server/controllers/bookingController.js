@@ -292,157 +292,42 @@ export const checkSlotAvailability = async (req, res) => {
 export const getAvailableSlots = async (req, res) => {
   try {
     const { bunkId, date } = req.params;
-    
+
     if (!bunkId || !date) {
       return res.status(400).json({ success: false, message: 'Bunk ID and date are required' });
     }
-    
-    // Parse the date and create start/end of day
+
     const selectedDate = new Date(date);
-    if (isNaN(selectedDate.getTime())) {
-      return res.status(400).json({ success: false, message: 'Invalid date format' });
-    }
-    
-    const startOfDay = new Date(selectedDate);
-    startOfDay.setHours(0, 0, 0, 0);
-    
-    const endOfDay = new Date(selectedDate);
-    endOfDay.setHours(23, 59, 59, 999);
-    
-    // Find the bunk first to check if it exists
-    const bunk = await Bunk.findById(bunkId);
-    if (!bunk) {
-      return res.status(404).json({ success: false, message: 'Bunk not found' });
-    }
-    
-    // Find all active bookings for this bunk on this date
+    const startOfDay = new Date(selectedDate.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(selectedDate.setHours(23, 59, 59, 999));
+
     const bookings = await Booking.find({
       bunkId,
-      status: 'active',
-      $or: [
-        { startTime: { $gte: startOfDay, $lte: endOfDay } },
-        { endTime: { $gte: startOfDay, $lte: endOfDay } },
-        { startTime: { $lte: startOfDay }, endTime: { $gte: endOfDay } }
-      ]
-    }).sort({ startTime: 1 });
-    
-    // Get operating hours from the bunk or use default
-    let operatingHours = bunk.operatingHours || "09:00-18:00";
-    
-    console.log("Operating hours:", operatingHours); // Debug log
-    
-    // Handle different operating hours formats
-    let openHour = 9;
-    let openMinute = 0;
-    let closeHour = 18;
-    let closeMinute = 0;
-    
-    // Check if format is "HH:MM-HH:MM"
-    if (operatingHours.includes('-') && !operatingHours.includes('AM') && !operatingHours.includes('PM')) {
-      let [openTime, closeTime] = operatingHours.split('-');
-      if (openTime && closeTime) {
-        [openHour, openMinute] = openTime.trim().split(':').map(Number);
-        [closeHour, closeMinute] = closeTime.trim().split(':').map(Number);
-      }
-    } 
-    // Check if format is "H:MM AM - H:MM PM"
-    else if (operatingHours.includes(' - ') || operatingHours.includes('-')) {
-      let parts = operatingHours.split(' - ');
-      // If the split didn't work, try without spaces
-      if (parts.length !== 2) {
-        parts = operatingHours.split('-');
-      }
-      
-      if (parts.length === 2) {
-        let openTimePart = parts[0].trim();
-        let closeTimePart = parts[1].trim();
-        
-        // Parse opening time
-        let openTimeMatch = openTimePart.match(/(\d+):(\d+)\s*(AM|PM)?/i);
-        if (openTimeMatch) {
-          openHour = parseInt(openTimeMatch[1]);
-          openMinute = parseInt(openTimeMatch[2]);
-          // Handle AM/PM
-          if (openTimeMatch[3] && openTimeMatch[3].toUpperCase() === 'PM' && openHour < 12) {
-            openHour += 12;
-          }
-          if (openTimeMatch[3] && openTimeMatch[3].toUpperCase() === 'AM' && openHour === 12) {
-            openHour = 0;
-          }
-        }
-        
-        // Parse closing time
-        let closeTimeMatch = closeTimePart.match(/(\d+):(\d+)\s*(AM|PM)?/i);
-        if (closeTimeMatch) {
-          closeHour = parseInt(closeTimeMatch[1]);
-          closeMinute = parseInt(closeTimeMatch[2]);
-          // Handle AM/PM
-          if (closeTimeMatch[3] && closeTimeMatch[3].toUpperCase() === 'PM' && closeHour < 12) {
-            closeHour += 12;
-          }
-          if (closeTimeMatch[3] && closeTimeMatch[3].toUpperCase() === 'AM' && closeHour === 12) {
-            closeHour = 0;
-          }
-        }
+      startTime: { $gte: startOfDay, $lte: endOfDay }
+    });
+
+    const bookedSlots = bookings.map((booking) => {
+      const date = new Date(booking.startTime);
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+      return `${hours}:${minutes}`;
+    });
+
+    const availableSlots = [];
+    for (let hour = 9; hour < 20; hour++) {
+      const slot = `${hour.toString().padStart(2, '0')}:00`;
+      if (!bookedSlots.includes(slot)) {
+        availableSlots.push(slot);
       }
     }
 
-    console.log(`Parsed operating hours: ${openHour}:${openMinute} to ${closeHour}:${closeMinute}`); // Debug log
-    
-    // Generate time slots (1-hour slots)
-    const availableSlots = [];
-    const startTime = new Date(selectedDate);
-    startTime.setHours(openHour, openMinute, 0, 0);
-    
-    const endTime = new Date(selectedDate);
-    endTime.setHours(closeHour, closeMinute, 0, 0);
-    
-    // Create slots every hour
-    while (startTime < endTime) {
-      const currentSlotStart = new Date(startTime);
-      const currentSlotEnd = new Date(startTime);
-      currentSlotEnd.setHours(currentSlotStart.getHours() + 1);
-      
-      // Check if this time slot conflicts with any booking
-      const isBooked = bookings.some(booking => {
-        const bookingStart = new Date(booking.startTime);
-        const bookingEnd = new Date(booking.endTime);
-        
-        return (
-          // Slot start time falls within booking
-          (currentSlotStart >= bookingStart && currentSlotStart < bookingEnd) ||
-          // Slot end time falls within booking
-          (currentSlotEnd > bookingStart && currentSlotEnd <= bookingEnd) ||
-          // Booking is fully contained in slot
-          (currentSlotStart <= bookingStart && currentSlotEnd >= bookingEnd)
-        );
-      });
-      
-      if (!isBooked) {
-        // Add as available slot
-        availableSlots.push(currentSlotStart.toISOString());
-      }
-      
-      // Move to next slot
-      startTime.setHours(startTime.getHours() + 1);
-    }
-    
-    console.log(`Generated ${availableSlots.length} available slots`); // Debug log
-    
-    res.json({
+    return res.status(200).json({
       success: true,
-      data: {
-        bookings,
-        availableSlots, // These are the slots that are available
-        bunkInfo: {
-          name: bunk.name,
-          operatingHours
-        }
-      }
+      data: { availableSlots }
     });
-  } catch (error) {
-    console.error('Error in getAvailableSlots:', error);
-    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  } catch (err) {
+    console.error("Error fetching available slots:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
