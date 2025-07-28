@@ -7,6 +7,8 @@ import bunkRoutes from './routes/bunkRouts.js';
 import bookingRoutes from './routes/bookingRoutes.js';
 import userRoutes from './routes/userRoutes.js'
 import { WebSocketServer } from 'ws';
+require('dotenv').config();
+
 import http from 'http';
 
 dotenv.config();
