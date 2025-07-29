@@ -1,14 +1,10 @@
 # Electric Vehicle Recharge Bunk
 
-[![GitHub stars](https://img.shields.io/github/stars/yourusername/ev-recharge-bunk.svg)](https://github.com/yourusername/ev-recharge-bunk/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/yourusername/ev-recharge-bunk.svg)](https://github.com/yourusername/ev-recharge-bunk/network)
-[![GitHub license](https://img.shields.io/github/license/yourusername/ev-recharge-bunk.svg)](https://github.com/yourusername/ev-recharge-bunk/blob/main/LICENSE)
-
 A comprehensive MERN stack web application for managing Electric Vehicle charging stations with real-time slot booking, location tracking, and administrative controls.
 
 ## 🚗 Project Overview
 
-The Electric Vehicle Recharge Bunk is a medium-complexity full-stack web application built using the MERN stack. It provides separate interfaces for administrators and users, enabling efficient management of EV charging bunks and seamless user experience for finding and booking charging slots in real-time.
+The Electric Vehicle Recharge Bunk is a full-stack web application built using the MERN stack. It provides separate interfaces for administrators and users, enabling efficient management of EV charging bunks and seamless user experience for finding and booking charging slots in real-time.
 
 ## 🛠️ Technologies Used
 
@@ -99,62 +95,110 @@ The Electric Vehicle Recharge Bunk is a medium-complexity full-stack web applica
 ev-recharge-bunk/
 ├── client/                     # React frontend
 │   ├── public/
+│   │   ├── favicon.ico
+│   │   ├── index.html
+│   │   ├── logo192.png
+│   │   ├── logo512.png
+│   │   ├── manifest.json
+│   │   └── robots.txt
 │   ├── src/
 │   │   ├── components/
-│   │   │   ├── Admin/
-│   │   │   │   ├── Dashboard.jsx
-│   │   │   │   ├── BunkManagement.jsx
-│   │   │   │   ├── UserManagement.jsx
-│   │   │   │   ├── BookingManagement.jsx
-│   │   │   │   └── Profile.jsx
-│   │   │   ├── User/
-│   │   │   │   ├── Dashboard.jsx
-│   │   │   │   ├── BookSlot.jsx
-│   │   │   │   ├── FindBunks.jsx
-│   │   │   │   ├── MyBookings.jsx
-│   │   │   │   └── Profile.jsx
-│   │   │   ├── Auth/
-│   │   │   │   ├── Login.jsx
-│   │   │   │   └── Register.jsx
-│   │   │   └── Shared/
-│   │   │       ├── Navbar.jsx
-│   │   │       ├── Footer.jsx
-│   │   │       └── MapComponent.jsx
-│   │   ├── pages/
-│   │   ├── utils/
+│   │   │   ├── admin/
+│   │   │   │   ├── AdminBookings.js
+│   │   │   │   ├── AdminDashboard.js
+│   │   │   │   ├── AdminLogin.js
+│   │   │   │   ├── AdminProfile.js
+│   │   │   │   ├── AdminRegister.js
+│   │   │   │   ├── BunkForm.js
+│   │   │   │   ├── BunkList.js
+│   │   │   │   ├── BunkManagement.js
+│   │   │   │   ├── UserManagement.js
+│   │   │   │   └── ViewBookings.js
+│   │   │   ├── user/
+│   │   │   │   ├── BookingHistory.js
+│   │   │   │   ├── BookSlot.js
+│   │   │   │   ├── FindBunks.js
+│   │   │   │   ├── Navbar.js
+│   │   │   │   ├── NearbyBunks.js
+│   │   │   │   ├── SlotBooking.js
+│   │   │   │   ├── UserDashboard.js
+│   │   │   │   ├── UserLogin.js
+│   │   │   │   ├── UserProfile.js
+│   │   │   │   └── UserRegister.js
+│   │   │   └── common/
+│   │   │       ├── Header.js
+│   │   │       ├── Footer.js
+│   │   │       └── LoadingSpinner.js
 │   │   ├── contexts/
-│   │   └── styles/
+│   │   │   ├── AdminContext.js
+│   │   │   ├── AuthContext.js
+│   │   │   └── UserContext.js
+│   │   ├── services/
+│   │   │   ├── adminService.js
+│   │   │   ├── authService.js
+│   │   │   ├── bookingService.js
+│   │   │   ├── bunkService.js
+│   │   │   └── userService.js
+│   │   ├── utils/
+│   │   │   ├── api.js
+│   │   │   ├── constants.js
+│   │   │   └── helpers.js
+│   │   ├── styles/
+│   │   │   ├── admin.css
+│   │   │   ├── global.css
+│   │   │   └── user.css
+│   │   ├── App.css
+│   │   ├── App.js
+│   │   ├── App.test.js
+│   │   ├── index.css
+│   │   ├── index.js
+│   │   ├── logo.svg
+│   │   ├── reportWebVitals.js
+│   │   └── setupTests.js
+│   ├── .gitignore
+│   ├── package-lock.json
 │   ├── package.json
+│   ├── postcss.config.js
+│   ├── README.md
 │   └── tailwind.config.js
 ├── server/                     # Node.js backend
-│   ├── controllers/
-│   │   ├── authController.js
-│   │   ├── bunkController.js
-│   │   ├── bookingController.js
-│   │   └── userController.js
-│   ├── models/
-│   │   ├── User.js
-│   │   ├── Bunk.js
-│   │   ├── Booking.js
-│   │   └── Location.js
-│   ├── routes/
-│   │   ├── auth.js
-│   │   ├── bunks.js
-│   │   ├── bookings.js
-│   │   └── users.js
-│   ├── middleware/
-│   │   ├── auth.js
-│   │   ├── admin.js
-│   │   └── validation.js
 │   ├── config/
-│   │   └── database.js
+│   │   ├── database.js
+│   │   └── emailConfig.js
+│   ├── controllers/
+│   │   ├── adminController.js
+│   │   ├── authController.js
+│   │   ├── bookingController.js
+│   │   ├── bunkController.js
+│   │   └── userController.js
+│   ├── middleware/
+│   │   ├── adminAuth.js
+│   │   ├── auth.js
+│   │   ├── errorHandler.js
+│   │   └── validation.js
+│   ├── models/
+│   │   ├── Booking.js
+│   │   ├── Bunk.js
+│   │   └── User.js
+│   ├── routes/
+│   │   ├── admin.js
+│   │   ├── auth.js
+│   │   ├── bookings.js
+│   │   ├── bunks.js
+│   │   └── users.js
 │   ├── utils/
-│   ├── server.js
-│   └── package.json
-├── docs/
-├── tests/
-├── README.md
-└── .gitignore
+│   │   ├── emailService.js
+│   │   ├── generateToken.js
+│   │   └── validators.js
+│   ├── .env
+│   ├── .gitignore
+│   ├── package-lock.json
+│   ├── package.json
+│   └── server.js
+├── .gitignore
+├── package-lock.json
+├── package.json
+└── README.md
 ```
 
 ## 🚀 Getting Started
@@ -191,11 +235,14 @@ ev-recharge-bunk/
    Create `.env` file in the server directory:
    ```env
    PORT=5000
-   MONGODB_URI=mongodb://localhost:27017/ev-recharge-bunk
+   MONGO_URI=mongodb+srv://username:password@cluster0.lsnugmy.mongodb.net/ev_charge_hub?retryWrites=true&w=majority&appName=Cluster0
    JWT_SECRET=your-super-secret-jwt-key
    JWT_EXPIRE=7d
-   GOOGLE_MAPS_API_KEY=your-google-maps-api-key
    NODE_ENV=development
+   
+   # Google Services Configuration
+   GOOGLE_API_KEY=your-google-api-key
+   GOOGLE_OAUTH_REFRESH_TOKEN=your-oauth-refresh-token
    
    # Email Configuration (for notifications)
    SMTP_HOST=smtp.gmail.com
@@ -209,15 +256,33 @@ ev-recharge-bunk/
 
    Create `.env` file in the client directory:
    ```env
-   REACT_APP_API_URL=http://localhost:5000/api
+   REACT_APP_API_URL=http://localhost:5000
    REACT_APP_GOOGLE_MAPS_API_KEY=your-google-maps-api-key
    REACT_APP_WS_URL=ws://localhost:8080
+   
+   # Production API URL (fallback)
+   # REACT_APP_API_URL=https://ev-charge-hub-server1.onrender.com
    ```
 
 5. **Database Setup**
    ```bash
-   # Make sure MongoDB is running locally or configure MongoDB Atlas connection
+   # MongoDB Atlas Connection (Recommended for production)
+   # Your MongoDB URI should look like:
+   # mongodb+srv://username:password@cluster0.lsnugmy.mongodb.net/ev_charge_hub?retryWrites=true&w=majority&appName=Cluster0
+   
+   # For local development, you can use:
+   # mongodb://localhost:27017/ev_charge_hub
+   
    # The application will automatically create the required collections
+   ```
+
+6. **API Configuration**
+   The client uses intelligent API endpoint detection with fallbacks:
+   ```javascript
+   // Priority order for API base URL:
+   // 1. Environment variable (REACT_APP_API_URL)
+   // 2. Production server (https://ev-charge-hub-server1.onrender.com)
+   // 3. Local development server (http://localhost:5000)
    ```
 
 ### Running the Application
@@ -239,7 +304,8 @@ ev-recharge-bunk/
 
 3. **Access the application**
    - Frontend: `http://localhost:3000`
-   - Backend API: `http://localhost:5000/api`
+   - Backend API: `http://localhost:5000`
+   - Production API: `https://ev-charge-hub-server1.onrender.com`
 
 ## 🔐 Default Login Credentials
 
@@ -364,29 +430,82 @@ npm run eject      # Eject from Create React App (irreversible)
 ## 🔧 API Endpoints
 
 ### Authentication Routes
-- `POST /api/auth/register` - User registration
-- `POST /api/auth/login` - User login
-- `POST /api/auth/logout` - User logout
-- `GET /api/auth/profile` - Get user profile
+#### User Authentication
+- `POST /api/users/login` - User login
+- `POST /api/users/register` - User registration  
+- `GET /api/users/profile` - Get user profile
+- `PUT /api/users/profile` - Update user profile
+
+#### Admin Authentication
+- `POST /api/admin/login` - Admin login
+- `POST /api/admin/register` - Admin registration
+- `GET /api/admin/profile` - Get admin profile
+- `PUT /api/admin/profile` - Update admin profile
 
 ### Bunk Routes
+#### Public/User Access
 - `GET /api/bunks` - Get all bunks
-- `GET /api/bunks/:id` - Get specific bunk
-- `POST /api/bunks` - Create new bunk (Admin only)
-- `PUT /api/bunks/:id` - Update bunk (Admin only)
-- `DELETE /api/bunks/:id` - Delete bunk (Admin only)
-- `GET /api/bunks/nearby` - Find nearby bunks
+- `GET /api/bunks/:id` - Get specific bunk details
+- `GET /api/bunks/available` - Get available bunks
+- `GET /api/bunks/nearby` - Find nearby bunks (with lat, lng, radius params)
+- `GET /api/bunks/search` - Search bunks by query
+- `GET /api/bunks/connector/:type` - Get bunks by connector type
+
+#### Admin Bunk Management
+- `POST /api/admin/ev-bunks` - Create new bunk (Admin only)
+- `GET /api/admin/ev-bunks` - Get admin's bunks
+- `PUT /api/admin/ev-bunks/:id` - Update bunk (Admin only)
+- `DELETE /api/admin/ev-bunks/:id` - Delete bunk (Admin only)
 
 ### Booking Routes
-- `GET /api/bookings` - Get all bookings (Admin) / user bookings (User)
-- `POST /api/bookings` - Create new booking
-- `PUT /api/bookings/:id` - Update booking status
-- `DELETE /api/bookings/:id` - Cancel booking
+#### User Booking Operations
+- `POST /api/bookings/create` - Create new booking
+- `GET /api/bookings/user` - Get user's bookings
+- `PUT /api/bookings/cancel/:id` - Cancel booking
+- `PUT /api/bookings/reschedule/:id` - Reschedule booking
+- `POST /api/bookings/check-availability` - Check slot availability
+- `GET /api/bookings/available-slots/:bunkId/:date` - Get available slots
+
+#### Admin Booking Management
+- `GET /api/admin/bookings` - Get all bookings (with filters)
+- `GET /api/admin/bookings/:id` - Get specific booking
+- `PATCH /api/admin/bookings/:id` - Update booking
+- `PATCH /api/admin/bookings/:id/status` - Update booking status
+- `GET /api/admin/bookings/stats` - Get booking statistics
 
 ### User Management Routes (Admin only)
-- `GET /api/users` - Get all users
-- `PUT /api/users/:id/status` - Update user status
-- `DELETE /api/users/:id` - Delete user
+- `GET /api/admin/users` - Get all users (with filters and search)
+- `GET /api/admin/users/search` - Search users by query
+- `GET /api/admin/users/:id` - Get specific user details
+- `GET /api/admin/users/:id/bookings` - Get user's booking history
+- `PUT /api/admin/users/:id/status` - Update user status
+- `DELETE /api/admin/users/:id` - Delete user
+
+### Analytics & Dashboard
+- `GET /api/admin/stats` - Get dashboard statistics
+- `GET /api/admin/bookings/analytics` - Get booking analytics by period
+
+### Client API Configuration
+The application uses a sophisticated API client (`client/src/api.js`) with the following features:
+
+#### Smart URL Resolution
+```javascript
+// Automatic API base URL detection with fallback chain:
+const API_BASE_URL = process.env.REACT_APP_API_URL || 
+                    'https://ev-charge-hub-server1.onrender.com' || 
+                    'http://localhost:5000';
+```
+
+#### Token-based Authentication
+- **Admin routes** (`/api/admin/*`): Uses `token` from localStorage
+- **User routes**: Uses `userToken` from localStorage
+- Automatic token injection via request interceptors
+
+#### Advanced Error Handling
+- **401 Unauthorized**: Auto-redirect to appropriate login page
+- **403 Forbidden**: Access denied notifications
+- **404 Not Found**: Endpoint detection and logging
+- **500 Server Error**: Graceful error handling with user feedback
 
 ## ⚡ Real-time Features
 
@@ -456,9 +575,10 @@ npm run build
 
 3. **Set environment variables**
    ```bash
-   heroku config:set MONGODB_URI=your-mongodb-atlas-uri
+   heroku config:set MONGO_URI=your-mongodb-atlas-uri
    heroku config:set JWT_SECRET=your-jwt-secret
-   heroku config:set GOOGLE_MAPS_API_KEY=your-api-key
+   heroku config:set GOOGLE_API_KEY=your-google-api-key
+   heroku config:set GOOGLE_OAUTH_REFRESH_TOKEN=your-oauth-refresh-token
    heroku config:set SMTP_HOST=smtp.gmail.com
    heroku config:set SMTP_USER=your-email@gmail.com
    heroku config:set SMTP_PASS=your-app-password
