@@ -13,23 +13,32 @@ The Electric Vehicle Recharge Bunk is a medium-complexity full-stack web applica
 ## 🛠️ Technologies Used
 
 ### Frontend
-- **React.js**: Component-based user interface
-- **HTML5**: Semantic markup structure
-- **CSS3**: Modern styling and responsive design
-- **JavaScript (ES6+)**: Interactive functionality
-- **Tailwind CSS**: Utility-first CSS framework
+- **React.js (v19.1.0)**: Component-based user interface
+- **React Router DOM (v7.5.1)**: Client-side routing
+- **Tailwind CSS (v3.4.17)**: Utility-first CSS framework
+- **Axios (v1.9.0)**: HTTP client for API requests
+- **Lucide React (v0.511.0)**: Beautiful & consistent icons
+- **React Toastify (v11.0.5)**: Toast notifications
+- **Date-fns (v4.1.0)**: Modern JavaScript date utility library
 
 ### Backend
-- **Node.js**: Server-side JavaScript runtime
-- **Express.js**: Web application framework
+- **Node.js**: Server-side JavaScript runtime (ES Module support)
+- **Express.js (v5.1.0)**: Web application framework
 - **MongoDB**: NoSQL database for data storage
-- **Mongoose**: MongoDB object modeling
+- **Mongoose (v8.13.2)**: MongoDB object modeling
+- **Express Async Handler (v1.2.0)**: Async error handling middleware
+- **Express Validator (v7.2.1)**: Input validation and sanitization
+
+### Security & Authentication
+- **JWT (v9.0.2)**: JSON Web Tokens for authentication
+- **bcrypt (v5.1.1)** & **bcryptjs (v3.0.2)**: Password hashing
+- **CORS (v2.8.5)**: Cross-Origin Resource Sharing
 
 ### Additional Technologies
-- **JWT**: JSON Web Tokens for authentication
-- **bcrypt**: Password hashing and security
-- **Google Maps API**: Location services and mapping
-- **Axios**: HTTP client for API requests
+- **Google APIs (v148.0.0)**: Google Maps and other Google services
+- **Nodemailer (v6.10.1)**: Email functionality
+- **WebSocket (v8.18.1)**: Real-time communication
+- **dotenv (v16.5.0)**: Environment variables management
 
 ## 📋 Features
 
@@ -152,7 +161,7 @@ ev-recharge-bunk/
 
 ### Prerequisites
 
-- Node.js (v16 or higher)
+- Node.js (v18 or higher) - Required for React 19
 - npm or yarn
 - MongoDB (local installation or MongoDB Atlas)
 - Google Maps API Key
@@ -187,12 +196,22 @@ ev-recharge-bunk/
    JWT_EXPIRE=7d
    GOOGLE_MAPS_API_KEY=your-google-maps-api-key
    NODE_ENV=development
+   
+   # Email Configuration (for notifications)
+   SMTP_HOST=smtp.gmail.com
+   SMTP_PORT=587
+   SMTP_USER=your-email@gmail.com
+   SMTP_PASS=your-app-password
+   
+   # WebSocket Configuration
+   WS_PORT=8080
    ```
 
    Create `.env` file in the client directory:
    ```env
    REACT_APP_API_URL=http://localhost:5000/api
    REACT_APP_GOOGLE_MAPS_API_KEY=your-google-maps-api-key
+   REACT_APP_WS_URL=ws://localhost:8080
    ```
 
 5. **Database Setup**
@@ -208,6 +227,7 @@ ev-recharge-bunk/
    cd server
    npm run dev
    # Server will run on http://localhost:5000
+   # WebSocket server will run on ws://localhost:8080
    ```
 
 2. **Start the frontend application**
@@ -308,6 +328,39 @@ ev-recharge-bunk/
 }
 ```
 
+## 📦 Package Scripts
+
+### Server Scripts
+```bash
+npm start          # Start production server
+npm run dev        # Start development server with nodemon
+```
+
+### Client Scripts
+```bash
+npm start          # Start React development server
+npm run build      # Build React app for production
+npm test           # Run React tests
+npm run eject      # Eject from Create React App (irreversible)
+```
+
+## 🔧 Key Dependencies Explained
+
+### Server Dependencies
+- **express-async-handler**: Simplifies async/await error handling in Express routes
+- **express-validator**: Comprehensive input validation middleware
+- **googleapis**: Official Google APIs Node.js client for Maps integration
+- **nodemailer**: Send emails for notifications and confirmations
+- **ws**: WebSocket library for real-time slot availability updates
+- **bcrypt & bcryptjs**: Dual password hashing libraries for enhanced security
+
+### Client Dependencies
+- **@testing-library/***: Comprehensive testing utilities for React components
+- **date-fns**: Lightweight date manipulation library (alternative to moment.js)
+- **lucide-react**: Modern icon library with consistent design
+- **react-toastify**: Beautiful toast notifications for user feedback
+- **react-router-dom v7**: Latest routing library with enhanced features
+
 ## 🔧 API Endpoints
 
 ### Authentication Routes
@@ -335,6 +388,18 @@ ev-recharge-bunk/
 - `PUT /api/users/:id/status` - Update user status
 - `DELETE /api/users/:id` - Delete user
 
+## ⚡ Real-time Features
+
+### WebSocket Integration
+- **Real-time Slot Updates**: Live slot availability using WebSocket connections
+- **Booking Notifications**: Instant notifications for booking confirmations
+- **Admin Alerts**: Real-time alerts for new bookings and user activities
+
+### Email Notifications
+- **Booking Confirmations**: Automated email confirmations using Nodemailer
+- **Status Updates**: Email notifications for booking status changes
+- **Admin Notifications**: Email alerts for new registrations and bookings
+
 ## 🧪 Testing
 
 ```bash
@@ -342,12 +407,18 @@ ev-recharge-bunk/
 cd server
 npm test
 
-# Run frontend tests
+# Run frontend tests (with comprehensive testing library)
 cd client
 npm test
 
-# Run all tests
-npm run test:all
+# Run tests in watch mode
+npm test -- --watch
+
+# Run tests with coverage
+npm test -- --coverage
+
+# Build and test production build
+npm run build
 ```
 
 ## 📱 Usage Guide
@@ -387,11 +458,22 @@ npm run test:all
    ```bash
    heroku config:set MONGODB_URI=your-mongodb-atlas-uri
    heroku config:set JWT_SECRET=your-jwt-secret
+   heroku config:set GOOGLE_MAPS_API_KEY=your-api-key
+   heroku config:set SMTP_HOST=smtp.gmail.com
+   heroku config:set SMTP_USER=your-email@gmail.com
+   heroku config:set SMTP_PASS=your-app-password
    ```
 
-4. **Deploy**
+4. **Configure package.json for Heroku**
    ```bash
-   git push heroku main
+   # Ensure your server/package.json has:
+   # "start": "node server.js"
+   # "type": "module"
+   ```
+
+5. **Deploy**
+   ```bash
+   git subtree push --prefix server heroku main
    ```
 
 ### Using Netlify (Frontend)
@@ -408,21 +490,25 @@ npm run test:all
 
 ## 🔒 Security Features
 
-- JWT-based authentication and authorization
-- Password hashing using bcrypt
-- Role-based access control (Admin/User)
-- Input validation and sanitization
-- MongoDB injection prevention
-- CORS configuration
-- Rate limiting on API endpoints
+- **JWT-based authentication** with secure token management
+- **bcrypt & bcryptjs** dual-layer password hashing
+- **Express Validator** comprehensive input validation
+- **CORS configuration** for secure cross-origin requests
+- **Environment variables** for sensitive data protection
+- **Rate limiting** on API endpoints
+- **MongoDB injection** prevention with Mongoose
+- **Async error handling** with express-async-handler
 
 ## 📈 Optimization
 
-- **Database**: MongoDB indexing for faster queries
-- **Frontend**: React lazy loading and code splitting
-- **API**: Response caching and pagination
-- **Images**: Optimized image loading and compression
-- **Performance**: Debounced search and infinite scrolling
+- **Database**: MongoDB indexing with Mongoose for faster queries
+- **Frontend**: React 19 features with automatic batching and concurrent features
+- **API**: Response caching and pagination with express-async-handler
+- **Real-time**: WebSocket connections for live updates
+- **Images**: Optimized loading with lazy loading
+- **Build**: Tailwind CSS purging for smaller bundle sizes
+- **Email**: Efficient email delivery with Nodemailer
+- **Testing**: Comprehensive testing with React Testing Library
 
 ## 🤝 Contributing
 
