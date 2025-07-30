@@ -1,10 +1,14 @@
 # Electric Vehicle Recharge Bunk
 
+[![GitHub stars](https://img.shields.io/github/stars/yourusername/ev-recharge-bunk.svg)](https://github.com/yourusername/ev-recharge-bunk/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/yourusername/ev-recharge-bunk.svg)](https://github.com/yourusername/ev-recharge-bunk/network)
+[![GitHub license](https://img.shields.io/github/license/yourusername/ev-recharge-bunk.svg)](https://github.com/yourusername/ev-recharge-bunk/blob/main/LICENSE)
+
 A comprehensive MERN stack web application for managing Electric Vehicle charging stations with real-time slot booking, location tracking, and administrative controls.
 
 ## 🚗 Project Overview
 
-The Electric Vehicle Recharge Bunk is a full-stack web application built using the MERN stack. It provides separate interfaces for administrators and users, enabling efficient management of EV charging bunks and seamless user experience for finding and booking charging slots in real-time.
+The Electric Vehicle Recharge Bunk is a medium-complexity full-stack web application built using the MERN stack. It provides separate interfaces for administrators and users, enabling efficient management of EV charging bunks and seamless user experience for finding and booking charging slots in real-time.
 
 ## 🛠️ Technologies Used
 
@@ -323,55 +327,47 @@ ev-recharge-bunk/
 
 ## 📊 Database Schema
 
+### Admin Model
+```javascript
+{
+  _id: ObjectId,
+  name: String (required, trimmed),
+  email: String (required, unique, lowercase),
+  password: String (required, hashed),
+  createdAt: Date (auto-generated),
+  updatedAt: Date (auto-generated)
+}
+```
+
 ### User Model
 ```javascript
 {
   _id: ObjectId,
-  name: String,
-  email: String (unique),
-  password: String (hashed),
-  phone: String,
-  role: String (enum: ['admin', 'user']),
-  status: String (enum: ['active', 'inactive']),
-  createdAt: Date,
-  updatedAt: Date
+  name: String (required),
+  email: String (required, unique),
+  password: String (required, hashed),
+  status: String (enum: ['active', 'inactive', 'suspended', 'banned'], default: 'active'),
+  isActive: Boolean (default: true),
+  role: String (enum: ['user', 'admin'], default: 'user'),
+  lastLogin: Date (nullable),
+  deletedAt: Date (nullable, for soft deletion),
+  createdAt: Date (auto-generated),
+  updatedAt: Date (auto-generated)
 }
 ```
 
-### Bunk Model
+### EvBunk Model
 ```javascript
 {
   _id: ObjectId,
-  name: String,
-  description: String,
-  address: {
-    street: String,
-    city: String,
-    state: String,
-    zipCode: String,
-    country: String
-  },
-  location: {
-    type: String (default: 'Point'),
-    coordinates: [Number] // [longitude, latitude]
-  },
-  contact: {
-    phone: String,
-    email: String
-  },
-  totalSlots: Number,
-  availableSlots: Number,
-  chargingTypes: [String],
-  amenities: [String],
-  pricePerHour: Number,
-  operatingHours: {
-    open: String,
-    close: String
-  },
-  isActive: Boolean,
-  createdBy: ObjectId (ref: 'User'),
-  createdAt: Date,
-  updatedAt: Date
+  name: String (required),
+  address: String (required),
+  phone: String (required),
+  slotsAvailable: Number (required),
+  latitude: Number (required),
+  longitude: Number (required),
+  operatingHours: String (required, format: "09:00-18:00"),
+  connectorTypes: [String] (required, array of connector types)
 }
 ```
 
@@ -379,20 +375,40 @@ ev-recharge-bunk/
 ```javascript
 {
   _id: ObjectId,
-  userId: ObjectId (ref: 'User'),
-  bunkId: ObjectId (ref: 'Bunk'),
-  slotNumber: Number,
-  bookingDate: Date,
-  startTime: Date,
-  endTime: Date,
-  duration: Number, // in hours
-  totalAmount: Number,
-  status: String (enum: ['pending', 'confirmed', 'in-progress', 'completed', 'cancelled']),
-  paymentStatus: String (enum: ['pending', 'paid', 'refunded']),
-  createdAt: Date,
-  updatedAt: Date
+  userId: ObjectId (ref: 'User', required),
+  bunkId: ObjectId (ref: 'EvBunk', required),
+  startTime: Date (required),
+  endTime: Date (required),
+  status: String (enum: ['active', 'completed', 'cancelled'], default: 'active'),
+  createdAt: Date (default: Date.now)
 }
 ```
+
+### Key Model Features
+
+#### User Management
+- **Soft Deletion**: Users have `deletedAt` field for soft deletion instead of permanent removal
+- **Status Management**: Multiple status levels (`active`, `inactive`, `suspended`, `banned`)
+- **Role-based Access**: Separate `role` field for user/admin distinction
+- **Activity Tracking**: `lastLogin` and `isActive` fields for monitoring user engagement
+
+#### EV Bunk Management
+- **Simplified Location**: Direct `latitude` and `longitude` fields instead of GeoJSON
+- **Contact Information**: Direct `phone` field for easy access
+- **Availability Tracking**: `slotsAvailable` for real-time slot management
+- **Flexible Hours**: String-based `operatingHours` (e.g., "09:00-18:00")
+- **Connector Support**: Array of `connectorTypes` for different charging standards
+
+#### Booking System
+- **Reference Integrity**: Uses `EvBunk` model reference (matches your actual model name)
+- **Simple Status Flow**: Three-state system (`active`, `completed`, `cancelled`)
+- **Time-based Queries**: Optimized indexes for efficient time-range searches
+- **User History**: Efficient user booking retrieval with compound indexes
+
+#### Database Performance
+- **Strategic Indexing**: Compound indexes on frequently queried fields
+- **Efficient Lookups**: User-booking and bunk-availability queries optimized
+- **Status Filtering**: Dedicated index on booking status for admin dashboards
 
 ## 📦 Package Scripts
 
