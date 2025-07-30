@@ -1,14 +1,10 @@
 # Electric Vehicle Recharge Bunk
 
-[![GitHub stars](https://img.shields.io/github/stars/yourusername/ev-recharge-bunk.svg)](https://github.com/yourusername/ev-recharge-bunk/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/yourusername/ev-recharge-bunk.svg)](https://github.com/yourusername/ev-recharge-bunk/network)
-[![GitHub license](https://img.shields.io/github/license/yourusername/ev-recharge-bunk.svg)](https://github.com/yourusername/ev-recharge-bunk/blob/main/LICENSE)
-
 A comprehensive MERN stack web application for managing Electric Vehicle charging stations with real-time slot booking, location tracking, and administrative controls.
 
 ## 🚗 Project Overview
 
-The Electric Vehicle Recharge Bunk is a medium-complexity full-stack web application built using the MERN stack. It provides separate interfaces for administrators and users, enabling efficient management of EV charging bunks and seamless user experience for finding and booking charging slots in real-time.
+The Electric Vehicle Recharge Bunk is a full-stack web application built using the MERN stack. It provides separate interfaces for administrators and users, enabling efficient management of EV charging bunks and seamless user experience for finding and booking charging slots in real-time.
 
 ## 🛠️ Technologies Used
 
@@ -247,12 +243,6 @@ ev-recharge-bunk/
    # Google Services Configuration
    GOOGLE_API_KEY=your-google-api-key
    GOOGLE_OAUTH_REFRESH_TOKEN=your-oauth-refresh-token
-   
-   # Email Configuration (for notifications)
-   SMTP_HOST=smtp.gmail.com
-   SMTP_PORT=587
-   SMTP_USER=your-email@gmail.com
-   SMTP_PASS=your-app-password
    
    # WebSocket Configuration
    WS_PORT=8080
@@ -575,122 +565,6 @@ npm run build
 4. **Manage Bookings**: View booking history and current reservations
 5. **Profile Updates**: Modify personal information and change password
 
-## 🚀 Deployment
-
-### Using Render (Recommended)
-
-#### Backend Deployment (Node.js Service)
-
-1. **Create Render account and connect GitHub**
-   ```bash
-   # Push your code to GitHub first
-   git add .
-   git commit -m "Deploy to Render"
-   git push origin main
-   ```
-
-2. **Create Web Service on Render**
-   - Go to [Render Dashboard](https://dashboard.render.com)
-   - Click "New" → "Web Service"
-   - Connect your GitHub repository
-   - Select the `server` directory as root directory
-
-3. **Configure Build Settings**
-   ```
-   Build Command: npm install
-   Start Command: npm start
-   ```
-
-4. **Set Environment Variables**
-   In Render dashboard, add these environment variables:
-   ```env
-   NODE_ENV=production
-   PORT=10000
-   MONGO_URI=mongodb+srv://username:password@cluster0.lsnugmy.mongodb.net/ev_charge_hub?retryWrites=true&w=majority&appName=Cluster0
-   JWT_SECRET=your-super-secret-jwt-key
-   JWT_EXPIRE=7d
-   GOOGLE_API_KEY=your-google-api-key
-   GOOGLE_OAUTH_REFRESH_TOKEN=your-oauth-refresh-token
-   SMTP_HOST=smtp.gmail.com
-   SMTP_PORT=587
-   SMTP_USER=your-email@gmail.com
-   SMTP_PASS=your-app-password
-   ```
-
-5. **Deploy**
-   - Click "Create Web Service"
-   - Render will automatically deploy your backend
-   - Your API will be available at: `https://your-service-name.onrender.com`
-
-#### Frontend Deployment (Static Site)
-
-1. **Update API URL in client**
-   Update `client/.env` or `client/src/api.js`:
-   ```env
-   REACT_APP_API_URL=https://your-backend-service.onrender.com
-   REACT_APP_GOOGLE_MAPS_API_KEY=your-google-maps-api-key
-   ```
-
-2. **Create Static Site on Render**
-   - Go to Render Dashboard
-   - Click "New" → "Static Site"
-   - Connect your GitHub repository
-   - Select the `client` directory as root directory
-
-3. **Configure Build Settings**
-   ```
-   Build Command: npm install && npm run build
-   Publish Directory: build
-   ```
-
-4. **Set Environment Variables**
-   ```env
-   REACT_APP_API_URL=https://your-backend-service.onrender.com
-   REACT_APP_GOOGLE_MAPS_API_KEY=your-google-maps-api-key
-   ```
-
-5. **Deploy**
-   - Click "Create Static Site"
-   - Your frontend will be available at: `https://your-frontend-site.onrender.com`
-
-### Alternative: Single Repository Deployment
-
-If you want to deploy both frontend and backend from a single repository:
-
-1. **Create Web Service for Backend**
-   - Root Directory: `server`
-   - Build Command: `cd server && npm install`
-   - Start Command: `cd server && npm start`
-
-2. **Create Static Site for Frontend**
-   - Root Directory: `client`
-   - Build Command: `cd client && npm install && npm run build`
-   - Publish Directory: `client/build`
-
-### Production URLs
-Based on your current setup:
-- **Backend API**: `https://ev-charge-hub-server1.onrender.com`
-- **Frontend**: `https://your-frontend-name.onrender.com`
-
-### Render Advantages
-- ✅ **Free tier available** with automatic sleep after inactivity
-- ✅ **Automatic HTTPS** and SSL certificates
-- ✅ **GitHub integration** with auto-deployments
-- ✅ **Environment variable management**
-- ✅ **Build and deploy logs**
-- ✅ **No credit card required** for free tier
-
-## 🔒 Security Features
-
-- **JWT-based authentication** with secure token management
-- **bcrypt & bcryptjs** dual-layer password hashing
-- **Express Validator** comprehensive input validation
-- **CORS configuration** for secure cross-origin requests
-- **Environment variables** for sensitive data protection
-- **Rate limiting** on API endpoints
-- **MongoDB injection** prevention with Mongoose
-- **Async error handling** with express-async-handler
-
 ## 📈 Optimization
 
 - **Database**: MongoDB indexing with Mongoose for faster queries
@@ -709,33 +583,5 @@ Based on your current setup:
 3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 📞 Support
-
-For support and queries:
-- Create an issue on GitHub
-- Email: support@evrechargebunk.com
-- Documentation: [Wiki](https://github.com/yourusername/ev-recharge-bunk/wiki)
-
-## 🙏 Acknowledgments
-
-- MongoDB team for the excellent database solution
-- React team for the amazing frontend framework
-- Google Maps team for location services
-- Open source community for various libraries and tools
-
-## 📊 Project Status
-
-- **Status**: Active Development
-- **Version**: 1.0.0
-- **Stack**: MERN (MongoDB, Express.js, React.js, Node.js)
-- **Last Updated**: [Current Date]
-- **Maintained**: Yes
-
----
 
 **Made with ❤️ for sustainable transportation using the MERN Stack**
