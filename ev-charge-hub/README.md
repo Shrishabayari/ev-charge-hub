@@ -577,52 +577,108 @@ npm run build
 
 ## 🚀 Deployment
 
-### Using Heroku (Backend)
+### Using Render (Recommended)
 
-1. **Install Heroku CLI and login**
+#### Backend Deployment (Node.js Service)
+
+1. **Create Render account and connect GitHub**
    ```bash
-   heroku login
+   # Push your code to GitHub first
+   git add .
+   git commit -m "Deploy to Render"
+   git push origin main
    ```
 
-2. **Create Heroku app**
-   ```bash
-   heroku create ev-recharge-bunk-api
+2. **Create Web Service on Render**
+   - Go to [Render Dashboard](https://dashboard.render.com)
+   - Click "New" → "Web Service"
+   - Connect your GitHub repository
+   - Select the `server` directory as root directory
+
+3. **Configure Build Settings**
+   ```
+   Build Command: npm install
+   Start Command: npm start
    ```
 
-3. **Set environment variables**
-   ```bash
-   heroku config:set MONGO_URI=your-mongodb-atlas-uri
-   heroku config:set JWT_SECRET=your-jwt-secret
-   heroku config:set GOOGLE_API_KEY=your-google-api-key
-   heroku config:set GOOGLE_OAUTH_REFRESH_TOKEN=your-oauth-refresh-token
-   heroku config:set SMTP_HOST=smtp.gmail.com
-   heroku config:set SMTP_USER=your-email@gmail.com
-   heroku config:set SMTP_PASS=your-app-password
-   ```
-
-4. **Configure package.json for Heroku**
-   ```bash
-   # Ensure your server/package.json has:
-   # "start": "node server.js"
-   # "type": "module"
+4. **Set Environment Variables**
+   In Render dashboard, add these environment variables:
+   ```env
+   NODE_ENV=production
+   PORT=10000
+   MONGO_URI=mongodb+srv://username:password@cluster0.lsnugmy.mongodb.net/ev_charge_hub?retryWrites=true&w=majority&appName=Cluster0
+   JWT_SECRET=your-super-secret-jwt-key
+   JWT_EXPIRE=7d
+   GOOGLE_API_KEY=your-google-api-key
+   GOOGLE_OAUTH_REFRESH_TOKEN=your-oauth-refresh-token
+   SMTP_HOST=smtp.gmail.com
+   SMTP_PORT=587
+   SMTP_USER=your-email@gmail.com
+   SMTP_PASS=your-app-password
    ```
 
 5. **Deploy**
-   ```bash
-   git subtree push --prefix server heroku main
+   - Click "Create Web Service"
+   - Render will automatically deploy your backend
+   - Your API will be available at: `https://your-service-name.onrender.com`
+
+#### Frontend Deployment (Static Site)
+
+1. **Update API URL in client**
+   Update `client/.env` or `client/src/api.js`:
+   ```env
+   REACT_APP_API_URL=https://your-backend-service.onrender.com
+   REACT_APP_GOOGLE_MAPS_API_KEY=your-google-maps-api-key
    ```
 
-### Using Netlify (Frontend)
+2. **Create Static Site on Render**
+   - Go to Render Dashboard
+   - Click "New" → "Static Site"
+   - Connect your GitHub repository
+   - Select the `client` directory as root directory
 
-1. **Build the React app**
-   ```bash
-   cd client
-   npm run build
+3. **Configure Build Settings**
+   ```
+   Build Command: npm install && npm run build
+   Publish Directory: build
    ```
 
-2. **Deploy to Netlify**
-   - Drag and drop the `build` folder to Netlify
-   - Or connect your GitHub repository for automatic deployments
+4. **Set Environment Variables**
+   ```env
+   REACT_APP_API_URL=https://your-backend-service.onrender.com
+   REACT_APP_GOOGLE_MAPS_API_KEY=your-google-maps-api-key
+   ```
+
+5. **Deploy**
+   - Click "Create Static Site"
+   - Your frontend will be available at: `https://your-frontend-site.onrender.com`
+
+### Alternative: Single Repository Deployment
+
+If you want to deploy both frontend and backend from a single repository:
+
+1. **Create Web Service for Backend**
+   - Root Directory: `server`
+   - Build Command: `cd server && npm install`
+   - Start Command: `cd server && npm start`
+
+2. **Create Static Site for Frontend**
+   - Root Directory: `client`
+   - Build Command: `cd client && npm install && npm run build`
+   - Publish Directory: `client/build`
+
+### Production URLs
+Based on your current setup:
+- **Backend API**: `https://ev-charge-hub-server1.onrender.com`
+- **Frontend**: `https://your-frontend-name.onrender.com`
+
+### Render Advantages
+- ✅ **Free tier available** with automatic sleep after inactivity
+- ✅ **Automatic HTTPS** and SSL certificates
+- ✅ **GitHub integration** with auto-deployments
+- ✅ **Environment variable management**
+- ✅ **Build and deploy logs**
+- ✅ **No credit card required** for free tier
 
 ## 🔒 Security Features
 
